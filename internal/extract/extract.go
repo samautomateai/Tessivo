@@ -27,6 +27,13 @@ func (d Document) Tokens() int { return EstimateTokens(d.Text) }
 // EstimateTokens is a fast, provider-neutral token estimate.
 func EstimateTokens(s string) int { return (utf8.RuneCountInString(s) + 3) / 4 }
 
+// Office document kinds.
+const (
+	KindDOCX = "docx"
+	KindXLSX = "xlsx"
+	KindPPTX = "pptx"
+)
+
 // ErrUnsupported is returned for formats with no extractor yet.
 var ErrUnsupported = errors.New("unsupported format")
 
@@ -55,6 +62,8 @@ func KindOf(name string) string {
 		return "csv"
 	case ext == ".json":
 		return "json"
+	case ext == ".docx" || ext == ".xlsx" || ext == ".pptx":
+		return ext[1:]
 	case codeExt[ext]:
 		return "code"
 	case ext == "" && isWellKnown(filepath.Base(name)):
@@ -94,11 +103,15 @@ func File(path string) (Document, error) {
 	if kind == "" {
 		return Document{}, fmt.Errorf("%s: %w (%s)", path, ErrUnsupported, filepath.Ext(path))
 	}
-	b, err := readLimited(path)
+	limit := int64(MaxFileBytes)
+	if isOffice(kind) {
+		limit = MaxArchiveBytes
+	}
+	b, err := readLimited(path, limit)
 	if err != nil {
 		return Document{}, err
 	}
-	if isBinary(b) {
+	if !isOffice(kind) && isBinary(b) {
 		return Document{}, fmt.Errorf("%s: %w (binary content)", path, ErrUnsupported)
 	}
 	return FromBytes(path, kind, b)
@@ -111,24 +124,39 @@ func FromBytes(source, kind string, b []byte) (Document, error) {
 		return CSV(source, b)
 	case "json":
 		return JSON(source, b)
+	case KindDOCX:
+		return DOCX(source, b)
+	case KindXLSX:
+		return XLSX(source, b)
+	case KindPPTX:
+		return PPTX(source, b)
 	default:
 		return Document{Source: source, Kind: kind, Text: string(b)}, nil
 	}
 }
 
-func readLimited(path string) ([]byte, error) {
+func isOffice(kind string) bool { return kind == KindDOCX || kind == KindXLSX || kind == KindPPTX }
+
+func readLimited(path string, limit int64) ([]byte, error) {
 	f, err := os.Open(path) //nolint:gosec // G304: the user chose this context file
 	if err != nil {
 		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
 	defer func() { _ = f.Close() }()
-	buf := make([]byte, MaxFileBytes+1)
+	info, err := f.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("stat %s: %w", path, err)
+	}
+	if info.Size() > limit {
+		return nil, fmt.Errorf("%s: larger than %d bytes", path, limit)
+	}
+	buf := make([]byte, min(info.Size(), limit)+1)
 	n, err := io.ReadFull(f, buf)
 	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 		return nil, fmt.Errorf("read %s: %w", path, err)
 	}
-	if n > MaxFileBytes {
-		return nil, fmt.Errorf("%s: larger than %d bytes", path, MaxFileBytes)
+	if int64(n) > limit {
+		return nil, fmt.Errorf("%s: larger than %d bytes", path, limit)
 	}
 	return buf[:n], nil
 }

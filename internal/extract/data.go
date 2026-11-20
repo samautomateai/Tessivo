@@ -29,8 +29,14 @@ func CSV(source string, b []byte) (Document, error) {
 	if err != nil {
 		return Document{}, fmt.Errorf("%s: parse csv: %w", source, err)
 	}
+	return Document{Source: source, Kind: "csv", Text: tableText(source, rows)}, nil
+}
+
+// tableText summarises rows (first row is the header): columns with computed
+// statistics, then every row for small tables or a sample for large ones.
+func tableText(source string, rows [][]string) string {
 	if len(rows) == 0 {
-		return Document{Source: source, Kind: "csv", Text: "(empty table)"}, nil
+		return "(empty table)"
 	}
 	header, data := rows[0], rows[1:]
 	var sb strings.Builder
@@ -48,7 +54,7 @@ func CSV(source string, b []byte) (Document, error) {
 		sb.WriteString(strings.Join(row, " | "))
 		sb.WriteByte('\n')
 	}
-	return Document{Source: source, Kind: "csv", Text: sb.String()}, nil
+	return sb.String()
 }
 
 func columnStats(data [][]string, col int) string {

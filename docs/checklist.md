@@ -21,7 +21,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | gRPC contract (`api/proto`, buf lint/generate) | — | ☑ |
 | Flutter desktop shell: theme, sidebar, workspace, new notebook, library, settings on a demo core | — | ☑ |
 | Flutter gRPC client replacing the demo core; core gRPC server | — | ☐ |
-| Extractors: DOCX, XLSX, PPTX (zip + XML, stdlib) | SRC-1 | ☐ |
+| Extractors: DOCX (paragraphs, tables), XLSX (all sheets, computed stats), PPTX (slides + notes); zip-bomb, entry, size and XML-token limits; fuzzed | SRC-1 | ☑ |
 | OS keychain secrets (go-keyring) | SET-1 | ☐ |
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |
 | Agent executor on Eino + MCP tools | WT/E11 | ☐ |
