@@ -116,8 +116,10 @@ func TestValidateAliases(t *testing.T) {
 	if err == nil {
 		t.Fatal("want errors")
 	}
-	for _, want := range []string{"duplicate name", "duplicate", "must not contain", "chain needs", "unknown provider",
-		"unknown fallback trigger", "max_retries", "defaults"} {
+	for _, want := range []string{
+		"duplicate name", "duplicate", "must not contain", "chain needs", "unknown provider",
+		"unknown fallback trigger", "max_retries", "defaults",
+	} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("missing %q in %v", want, err)
 		}

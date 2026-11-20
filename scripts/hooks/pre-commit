@@ -1,0 +1,11 @@
+#!/bin/sh
+# Tessivo pre-commit hook: fast gates only. Install with `task hooks:install`.
+set -e
+diff=$(golangci-lint fmt --diff ./... 2>/dev/null || true)
+if [ -n "$diff" ]; then
+  echo "$diff"
+  echo "pre-commit: Go files are not formatted. Run: task fmt"
+  exit 1
+fi
+go run ./tools/lencheck -max-line 120 -max-file 500 -max-test-file 800 .
+golangci-lint run --new-from-rev=HEAD ./...

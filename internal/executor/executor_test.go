@@ -31,8 +31,10 @@ func (s *scripted) ChatStream(_ context.Context, req llm.Request, onDelta func(s
 	if onDelta != nil {
 		onDelta(r)
 	}
-	return llm.Result{Response: llm.Response{Content: r, Usage: llm.Usage{TotalTokens: 10}}, Target: "p/a",
-		Attempts: []llm.Attempt{{Target: "p/a"}}}, nil
+	return llm.Result{
+		Response: llm.Response{Content: r, Usage: llm.Usage{TotalTokens: 10}}, Target: "p/a",
+		Attempts: []llm.Attempt{{Target: "p/a"}},
+	}, nil
 }
 
 const goodSummary = `{"title":"T","tldr":"x","key_points":["a"],"per_source":[],"action_items":[]}`

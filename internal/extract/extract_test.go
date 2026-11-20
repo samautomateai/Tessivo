@@ -65,8 +65,10 @@ func TestCSVSmallTableWithStats(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"3 rows, 3 columns", "amount: numeric, min 5.5, max 1000", "sum 1015.5",
-		"region: text, 3 distinct", "note: text, 1 distinct values, empty 1, values: ok (2)", "All rows"} {
+	for _, want := range []string{
+		"3 rows, 3 columns", "amount: numeric, min 5.5, max 1000", "sum 1015.5",
+		"region: text, 3 distinct", "note: text, 1 distinct values, empty 1, values: ok (2)", "All rows",
+	} {
 		if !strings.Contains(d.Text, want) {
 			t.Errorf("missing %q in:\n%s", want, d.Text)
 		}

@@ -59,8 +59,10 @@ func TestRouterRetriesThenSucceeds(t *testing.T) {
 func TestRouterFallsBack(t *testing.T) {
 	a := &fake{errs: []error{&APIError{Status: 429}, &APIError{Status: 429}}}
 	b := &fake{response: "from b"}
-	r := &Router{Chain: []Target{{"p/a", "a", a}, {"p/b", "b", b}}, Triggers: config.DefaultTriggers, MaxRetries: 1,
-		sleep: noSleep}
+	r := &Router{
+		Chain: []Target{{"p/a", "a", a}, {"p/b", "b", b}}, Triggers: config.DefaultTriggers, MaxRetries: 1,
+		sleep: noSleep,
+	}
 	res, err := r.Chat(context.Background(), Request{})
 	if err != nil || res.Target != "p/b" || res.Model != "b" {
 		t.Fatalf("res %+v err %v", res, err)
@@ -73,8 +75,10 @@ func TestRouterFallsBack(t *testing.T) {
 func TestRouterStopsWhenTriggerDisabled(t *testing.T) {
 	a := &fake{errs: []error{&APIError{Status: 500}}}
 	b := &fake{response: "b"}
-	r := &Router{Chain: []Target{{"p/a", "a", a}, {"p/b", "b", b}}, Triggers: []string{config.TriggerRateLimit},
-		sleep: noSleep}
+	r := &Router{
+		Chain: []Target{{"p/a", "a", a}, {"p/b", "b", b}}, Triggers: []string{config.TriggerRateLimit},
+		sleep: noSleep,
+	}
 	if _, err := r.Chat(context.Background(), Request{}); err == nil || b.calls != 0 {
 		t.Fatalf("want stop without fallback, err %v calls %d", err, b.calls)
 	}
@@ -83,8 +87,10 @@ func TestRouterStopsWhenTriggerDisabled(t *testing.T) {
 func TestRouterNonRetryableFallsBackImmediately(t *testing.T) {
 	a := &fake{errs: []error{&APIError{Status: 400, Body: "context_length_exceeded"}}}
 	b := &fake{response: "b"}
-	r := &Router{Chain: []Target{{"p/a", "a", a}, {"p/b", "b", b}}, Triggers: config.DefaultTriggers, MaxRetries: 3,
-		sleep: noSleep}
+	r := &Router{
+		Chain: []Target{{"p/a", "a", a}, {"p/b", "b", b}}, Triggers: config.DefaultTriggers, MaxRetries: 3,
+		sleep: noSleep,
+	}
 	res, err := r.Chat(context.Background(), Request{})
 	if err != nil || a.calls != 1 || res.Target != "p/b" {
 		t.Fatalf("res %+v err %v calls %d", res, err, a.calls)
@@ -105,8 +111,10 @@ func TestRouterLastTargetFails(t *testing.T) {
 func TestRouterStreamNoFallbackAfterOutput(t *testing.T) {
 	a := &fake{errs: []error{&APIError{Status: 503}}, partial: true}
 	b := &fake{response: "b"}
-	r := &Router{Chain: []Target{{"p/a", "a", a}, {"p/b", "b", b}}, Triggers: config.DefaultTriggers, MaxRetries: 2,
-		sleep: noSleep}
+	r := &Router{
+		Chain: []Target{{"p/a", "a", a}, {"p/b", "b", b}}, Triggers: config.DefaultTriggers, MaxRetries: 2,
+		sleep: noSleep,
+	}
 	var got string
 	_, err := r.ChatStream(context.Background(), Request{}, func(s string) { got += s })
 	if err == nil || b.calls != 0 || a.calls != 1 || got != "par" {
@@ -128,8 +136,10 @@ func TestRouterCancelledDuringBackoff(t *testing.T) {
 	a := &fake{errs: []error{&APIError{Status: 503}, &APIError{Status: 503}}}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	r := &Router{Chain: []Target{{"p/a", "a", a}, {"p/b", "b", &fake{}}}, Triggers: config.DefaultTriggers,
-		MaxRetries: 3, Backoff: func(int) time.Duration { return time.Hour }}
+	r := &Router{
+		Chain: []Target{{"p/a", "a", a}, {"p/b", "b", &fake{}}}, Triggers: config.DefaultTriggers,
+		MaxRetries: 3, Backoff: func(int) time.Duration { return time.Hour },
+	}
 	_, err := r.Chat(ctx, Request{})
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("want canceled, got %v", err)

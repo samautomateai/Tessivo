@@ -162,9 +162,14 @@ func TestClassify(t *testing.T) {
 func TestNewRouterFromConfig(t *testing.T) {
 	f := config.Default()
 	f.Providers = append(f.Providers, config.Provider{Name: "open", BaseURL: "http://o"})
-	alias := config.Alias{Name: "smart", MaxRetries: 2,
-		Chain: []config.ModelRef{{Provider: "litellm", Model: "a"}, {Provider: "litellm", Model: "b"},
-			{Provider: "open", Model: "c"}}}
+	alias := config.Alias{
+		Name: "smart", MaxRetries: 2,
+		Chain: []config.ModelRef{
+			{Provider: "litellm", Model: "a"},
+			{Provider: "litellm", Model: "b"},
+			{Provider: "open", Model: "c"},
+		},
+	}
 	r, err := NewRouter(f, alias, secrets.Map{"TESSIVO_LITELLM_KEY": "k123"})
 	if err != nil {
 		t.Fatal(err)

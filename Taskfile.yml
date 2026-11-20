@@ -17,11 +17,44 @@ tasks:
       - go build -trimpath -o {{.BIN}}/tess ./cmd/tess
 
   fmt:
-    desc: Format Go and Dart code
+    desc: Format Go (gofmt -s, gofumpt, goimports) and Dart code
     cmds:
-      - gofmt -s -w .
-      - cmd: dart format desktop
+      - golangci-lint fmt ./...
+      - cmd: dart format desktop/lib desktop/test
         ignore_error: true
+
+  fmt:check:
+    desc: Fail if any Go file is not formatted
+    cmds:
+      - test -z "$(golangci-lint fmt --diff ./...)" || (golangci-lint fmt --diff ./...; exit 1)
+
+  audit:
+    desc: "Security audit: module checksums, known vulnerabilities, static security analysis"
+    cmds:
+      - go mod verify
+      - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - go run github.com/securego/gosec/v2/cmd/gosec@latest -quiet ./...
+
+  fuzz:
+    desc: Run every fuzz target briefly (FUZZTIME=20s by default)
+    vars:
+      FUZZTIME: '{{.FUZZTIME | default "20s"}}'
+    cmds:
+      - |
+        for f in $(grep -rhoE "^func Fuzz[A-Za-z0-9_]+" --include='*_test.go' . | sed 's/^func //'); do
+          dir=$(dirname "$(grep -rl "^func $f(" --include='*_test.go' . | head -1)")
+          go test -run '^$' -fuzz "^$f\$" -fuzztime {{.FUZZTIME}} "./$dir" || exit 1
+        done
+
+  bench:
+    desc: Run benchmarks with allocation stats
+    cmds:
+      - go test -run '^$' -bench . -benchmem ./...
+
+  hooks:install:
+    desc: Use the repo's git hooks (format, lengths, lint before commit)
+    cmds:
+      - git config core.hooksPath scripts/hooks
 
   test:
     desc: Run Go tests with the race detector
@@ -91,6 +124,7 @@ tasks:
   check:
     desc: Every quality gate (run before pushing)
     cmds:
+      - task: fmt:check
       - task: lengths
       - task: lint
       - task: cover

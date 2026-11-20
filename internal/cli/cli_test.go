@@ -27,8 +27,10 @@ func (f *fakeModel) ChatStream(_ context.Context, req llm.Request, _ func(string
 	if f.err != nil {
 		return llm.Result{}, f.err
 	}
-	return llm.Result{Response: llm.Response{Content: f.reply, Usage: llm.Usage{TotalTokens: 5}},
-		Target: "litellm/m", Attempts: []llm.Attempt{{Target: "litellm/m"}, {Target: "x", Err: errors.New("e")}}}, nil
+	return llm.Result{
+		Response: llm.Response{Content: f.reply, Usage: llm.Usage{TotalTokens: 5}},
+		Target:   "litellm/m", Attempts: []llm.Attempt{{Target: "litellm/m"}, {Target: "x", Err: errors.New("e")}},
+	}, nil
 }
 
 const summary = `{"title":"Digest","tldr":"short","key_points":["one"],"per_source":[],"action_items":["do"]}`
@@ -90,8 +92,17 @@ func TestVersionHelpAndUsage(t *testing.T) {
 	if out := h.mustRun("help"); !strings.Contains(out, "Usage:") {
 		t.Fatal(out)
 	}
-	for _, args := range [][]string{{}, {"bogus"}, {"new"}, {"context", "x"}, {"config"}, {"config", "x"},
-		{"outputs"}, {"run", "a", "b"}, {"new", "x", "--nope"}} {
+	for _, args := range [][]string{
+		{},
+		{"bogus"},
+		{"new"},
+		{"context", "x"},
+		{"config"},
+		{"config", "x"},
+		{"outputs"},
+		{"run", "a", "b"},
+		{"new", "x", "--nope"},
+	} {
 		if code := h.run(args...); code != ExitUsage {
 			t.Errorf("%v: want usage exit, got %d (%s)", args, code, h.errOut)
 		}

@@ -213,8 +213,10 @@ func saveRun(nb *notebook.Notebook, spec executor.Spec, res executor.Result, run
 		run.Error = runErr.Error()
 	}
 	if res.Valid {
-		out := notebook.Output{ID: notebook.NewID(), RunID: run.ID, WorkType: spec.WorkType.ID,
-			Title: titleOf(res.Data), CreatedAt: run.StartedAt, Data: res.Data}
+		out := notebook.Output{
+			ID: notebook.NewID(), RunID: run.ID, WorkType: spec.WorkType.ID,
+			Title: titleOf(res.Data), CreatedAt: run.StartedAt, Data: res.Data,
+		}
 		md, _ := render.Markdown(res.Data, requiredOrder(spec.WorkType))
 		if err := nb.SaveOutput(out, md); err != nil {
 			return err

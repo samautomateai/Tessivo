@@ -6,12 +6,23 @@ Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
 
 ## Non-negotiable quality gates (`task check`)
 
+- `task fmt:check`: gofmt -s, gofumpt (extra rules) and goimports must report no diff. Fix with `task fmt`.
 - `task lengths`: lines ≤ 120 characters; files ≤ 500 lines (tests ≤ 800). Split files, don't wrap hacks.
 - `task lint`: golangci-lint v2 with gosec, lll, funlen (80 lines), gocyclo (15), wrapcheck, errorlint.
   `//nolint` needs a specific linter and an explanation.
 - `task cover`: total Go coverage ≥ 80%. Flutter: `task desktop:check`, also ≥ 80%.
 - `task vuln`: govulncheck clean.
 - Race detector on in tests.
+- `task audit`: `go mod verify`, govulncheck, gosec. `task fuzz` for parsers; `task bench` for hot paths.
+- Install hooks once: `task hooks:install` (format, lengths, lint on commit).
+
+## Security and performance rules
+
+- Treat every input as hostile: files, archives, model output, MCP results, HTTP responses.
+  Bound sizes, counts and time; never trust a declared length.
+- No secrets in argv, logs, errors or audit entries; redact before writing.
+- Files Tessivo writes are 0600, directories 0700/0750; writes are atomic.
+- Parsers get fuzz tests; hot paths get benchmarks; concurrency is bounded.
 
 ## Engineering rules
 

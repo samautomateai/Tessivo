@@ -113,7 +113,8 @@ func (p *Pipeline) mapStep(ctx context.Context, spec Spec, prompt string, docs [
 				{Role: "system", Content: "Extract the facts from this source that matter for the task. " +
 					"Keep names, numbers, file paths and quotes needed as evidence. Be concise."},
 				{Role: "user", Content: "Task: " + prompt + "\n\n" + formatContext([]extract.Document{
-					{Source: d.Source, Kind: d.Kind, Text: piece}})},
+					{Source: d.Source, Kind: d.Kind, Text: piece},
+				})},
 			}
 			out, err := p.Model.ChatStream(ctx, p.request(spec, msgs, nil), nil)
 			res.Attempts = append(res.Attempts, out.Attempts...)
@@ -121,8 +122,10 @@ func (p *Pipeline) mapStep(ctx context.Context, spec Spec, prompt string, docs [
 				return nil, fmt.Errorf("condense %s: %w", d.Source, err)
 			}
 			res.TotalTokens += out.Usage.TotalTokens
-			notes = append(notes, extract.Document{Source: fmt.Sprintf("%s (part %d notes)", d.Source, i+1),
-				Kind: "notes", Text: out.Content})
+			notes = append(notes, extract.Document{
+				Source: fmt.Sprintf("%s (part %d notes)", d.Source, i+1),
+				Kind:   "notes", Text: out.Content,
+			})
 		}
 	}
 	return notes, nil

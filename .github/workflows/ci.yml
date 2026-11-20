@@ -21,6 +21,8 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+      - name: Module checksums
+        run: go mod verify
       - name: Lengths
         run: go run ./tools/lencheck -max-line 120 -max-file 500 -max-test-file 800 .
       - name: Tidy
@@ -29,6 +31,10 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: latest
+      - name: Format check (gofmt -s, gofumpt, goimports)
+        run: |
+          diff=$(golangci-lint fmt --diff ./...)
+          if [ -n "$diff" ]; then echo "$diff"; echo "run: task fmt"; exit 1; fi
       - name: Test with race detector
         run: go test -race -count=1 ./...
       - name: Coverage gate (80%)
@@ -39,6 +45,12 @@ jobs:
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
       - name: Build
         run: go build -trimpath ./...
+      - name: Fuzz (smoke, 10s per target)
+        run: |
+          for f in $(grep -rhoE "^func Fuzz[A-Za-z0-9_]+" --include='*_test.go' . | sed 's/^func //'); do
+            dir=$(dirname "$(grep -rl "^func $f(" --include='*_test.go' . | head -1)")
+            go test -run '^$' -fuzz "^$f\$" -fuzztime 10s "./$dir"
+          done
 
   gosec:
     runs-on: ubuntu-latest
