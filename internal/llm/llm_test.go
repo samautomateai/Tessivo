@@ -169,7 +169,8 @@ func TestNewRouterFromConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(r.Chain) != 3 || r.Chain[0].Client != r.Chain[1].Client || r.Chain[2].Label != "open/c" || r.MaxRetries != 2 {
+	if len(r.Chain) != 3 || r.Chain[0].Client != r.Chain[1].Client || r.Chain[2].Label != "open/c" ||
+		r.MaxRetries != 2 {
 		t.Fatalf("router: %+v", r)
 	}
 	if _, err := NewRouter(f, alias, secrets.Map{}); err == nil {

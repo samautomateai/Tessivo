@@ -9,7 +9,9 @@ import (
 
 func TestResolveLayers(t *testing.T) {
 	e := Resolve(
-		Layer{"app", RunSettings{Model: "fast", Temperature: Ptr(0.2), ThinkingEffort: ThinkingLow, Mode: ModePipeline}},
+		Layer{"app", RunSettings{
+			Model: "fast", Temperature: Ptr(0.2), ThinkingEffort: ThinkingLow, Mode: ModePipeline,
+		}},
 		Layer{"notebook", RunSettings{Model: "smart", ContextBudget: Ptr(1000)}},
 		Layer{"run", RunSettings{ThinkingEffort: ThinkingHigh, MaxOutputTokens: Ptr(50), Mode: ModeAgent}},
 	)

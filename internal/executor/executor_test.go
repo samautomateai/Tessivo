@@ -47,7 +47,9 @@ func summarizeSpec(t *testing.T) Spec {
 		WorkType: wt, Prompt: "Summarize {{topic}}", Vars: map[string]string{"topic": "contracts"},
 		Documents: []extract.Document{{Source: "a.md", Kind: "markdown", Text: "alpha"}},
 		Memory:    []string{"Fiscal year starts in April"},
-		Settings:  config.Effective{RunSettings: config.RunSettings{ThinkingEffort: "low", MaxOutputTokens: config.Ptr(99)}},
+		Settings: config.Effective{RunSettings: config.RunSettings{
+			ThinkingEffort: "low", MaxOutputTokens: config.Ptr(99),
+		}},
 	}
 }
 

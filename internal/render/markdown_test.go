@@ -9,7 +9,8 @@ func TestMarkdown(t *testing.T) {
 	data := `{"title":"PR 482 risk","risk_score":7,"tldr":"short","ok":true,"none":null,
 	"impacted_areas":["ledger","batch"],"evidence":[{"claim":"double post","source":"writer.go"}],
 	"mitigations":[],"meta":{"model":"m","ratio":0.25},"tags":[["a","b"]],"extra":"z"}`
-	md, err := Markdown([]byte(data), []string{"title", "tldr", "risk_score", "impacted_areas", "evidence", "mitigations"})
+	order := []string{"title", "tldr", "risk_score", "impacted_areas", "evidence", "mitigations"}
+	md, err := Markdown([]byte(data), order)
 	if err != nil {
 		t.Fatal(err)
 	}

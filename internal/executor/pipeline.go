@@ -66,7 +66,8 @@ func (p *Pipeline) reduceStep(ctx context.Context, spec Spec, prompt string, doc
 	sch *schema.Schema, res Result, onDelta func(string),
 ) (Result, error) {
 	msgs := []llm.Message{
-		{Role: "system", Content: spec.WorkType.SystemPrompt + "\n\nOutput JSON schema:\n" + string(spec.WorkType.Schema)},
+		{Role: "system", Content: spec.WorkType.SystemPrompt + "\n\nOutput JSON schema:\n" +
+			string(spec.WorkType.Schema)},
 		{Role: "user", Content: userMessage(prompt, spec.Memory, docs)},
 	}
 	format := &llm.ResponseFormat{Name: spec.WorkType.ID, Schema: json.RawMessage(spec.WorkType.Schema)}
