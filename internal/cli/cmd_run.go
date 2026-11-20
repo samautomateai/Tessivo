@@ -2,19 +2,15 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/executor"
 	"github.com/samautomateai/tessivo/internal/extract"
 	"github.com/samautomateai/tessivo/internal/notebook"
-	"github.com/samautomateai/tessivo/internal/render"
-	"github.com/samautomateai/tessivo/internal/worktype"
+	"github.com/samautomateai/tessivo/internal/service"
 )
 
 type runOpts struct {
@@ -47,104 +43,22 @@ func cmdRun(ctx context.Context, args []string, env Env) error {
 	if err != nil {
 		return err
 	}
-	var nb *notebook.Notebook
+	req := service.RunRequest{
+		WorkType: o.workType, Prompt: o.prompt, PromptName: o.promptName, Save: !o.noSave,
+		Overrides: config.RunSettings{Model: o.model, ThinkingEffort: o.thinking},
+	}
 	if len(pos) == 1 && pos[0] != "-" {
-		if nb, err = notebook.Open(pos[0]); err != nil {
+		if req.Notebook, err = notebook.Open(pos[0]); err != nil {
 			return err
 		}
 	}
-	spec, layers, err := buildSpec(nb, o, env)
-	if err != nil {
+	if req.Vars, err = parseVars(o.vars); err != nil {
 		return err
 	}
-	return execute(ctx, f, nb, spec, layers, o, env)
-}
-
-func buildSpec(nb *notebook.Notebook, o runOpts, env Env) (executor.Spec, []config.Layer, error) {
-	wtID := o.workType
-	var layers []config.Layer
-	prompt := o.prompt
-	if nb != nil {
-		wtID = nb.Manifest.WorkType
-		layers = append(layers, config.Layer{Name: "notebook", Settings: nb.Manifest.Settings})
-		if o.promptName != "" {
-			p, err := nb.LoadPrompt(o.promptName)
-			if err != nil {
-				return executor.Spec{}, nil, err
-			}
-			prompt = p.Text
-			layers = append(layers, config.Layer{Name: "prompt", Settings: p.Settings})
-		}
-	}
-	if wtID == "" {
-		return executor.Spec{}, nil, usagef("run: give a notebook or --type")
-	}
-	wt, err := worktype.Get(wtID)
-	if err != nil {
-		return executor.Spec{}, nil, err
-	}
-	if prompt == "" {
-		prompt = wt.StarterPrompt
-	}
-	vars, err := parseVars(o.vars)
-	if err != nil {
-		return executor.Spec{}, nil, err
-	}
-	run := config.RunSettings{Model: o.model, ThinkingEffort: o.thinking}
-	if err := run.Validate(); err != nil {
-		return executor.Spec{}, nil, usageError{err.Error()}
-	}
-	layers = append(layers, config.Layer{Name: "run", Settings: run})
-	docs, err := gatherDocs(nb, env)
-	if err != nil {
-		return executor.Spec{}, nil, err
-	}
-	return executor.Spec{WorkType: wt, Prompt: prompt, Vars: vars, Documents: docs}, layers, nil
-}
-
-func gatherDocs(nb *notebook.Notebook, env Env) ([]extract.Document, error) {
-	var docs []extract.Document
-	if nb != nil {
-		for _, c := range nb.Manifest.Context {
-			if !c.Enabled {
-				continue
-			}
-			d, err := extract.Path(nb.ContextPath(c))
-			if err != nil {
-				return nil, err
-			}
-			docs = append(docs, d...)
-		}
-	}
-	if !env.StdinIsTTY && env.Stdin != nil {
-		b, err := io.ReadAll(io.LimitReader(env.Stdin, extract.MaxFileBytes+1))
-		if err != nil {
-			return nil, fmt.Errorf("read stdin: %w", err)
-		}
-		if len(b) > extract.MaxFileBytes {
-			return nil, fmt.Errorf("stdin is larger than %d bytes", extract.MaxFileBytes)
-		}
-		if len(b) > 0 {
-			d, _ := extract.FromBytes("stdin", "text", b)
-			docs = append(docs, d)
-		}
-	}
-	return docs, nil
-}
-
-func execute(ctx context.Context, f config.File, nb *notebook.Notebook, spec executor.Spec, layers []config.Layer,
-	o runOpts, env Env,
-) error {
-	all := append([]config.Layer{{Name: "app", Settings: f.Defaults}}, layers...)
-	spec.Settings = config.Resolve(all...)
-	if spec.Settings.Model == "" {
-		return usagef("run: no model set; pass --model or set defaults.model in the config")
-	}
-	alias, err := f.ResolveModel(spec.Settings.Model)
-	if err != nil {
+	if req.Extra, err = stdinDocs(env); err != nil {
 		return err
 	}
-	model, err := env.NewModel(f, alias, env.Secrets)
+	svc, err := newService(f, env)
 	if err != nil {
 		return err
 	}
@@ -153,37 +67,49 @@ func execute(ctx context.Context, f config.File, nb *notebook.Notebook, spec exe
 			_, _ = fmt.Fprintf(env.Stderr, "· %s\n", e.Text)
 		}
 	}
-	rec, err := startAudit(nb, spec, env)
+	out, err := svc.Run(ctx, req, onEvent)
 	if err != nil {
-		return fmt.Errorf("audit: %w", err)
-	}
-	started := time.Now()
-	res, runErr := (&executor.Pipeline{Model: model}).Run(ctx, spec, onEvent)
-	outputID := ""
-	if nb != nil && !o.noSave {
-		id, err := saveRun(nb, rec.runID, spec, res, runErr, started)
-		if err != nil {
-			return errors.Join(runErr, err, rec.finish(res, runErr, "", time.Since(started)))
+		if service.IsInvalid(err) {
+			return usageError{err.Error()}
 		}
-		outputID = id
+		return err
 	}
-	if err := rec.finish(res, runErr, outputID, time.Since(started)); err != nil {
-		return errors.Join(runErr, fmt.Errorf("audit: %w", err))
-	}
-	if runErr != nil {
-		return runErr
-	}
-	return writeResult(spec, res, o, env)
+	return writeResult(out, o, env)
 }
 
-func writeResult(spec executor.Spec, res executor.Result, o runOpts, env Env) error {
-	text := string(res.Data) + "\n"
-	if !o.asJSON {
-		md, err := render.Markdown(res.Data, requiredOrder(spec.WorkType))
-		if err != nil {
-			return err
-		}
-		text = md
+func newService(f config.File, env Env) (*service.Service, error) {
+	userAudit, err := auditPath(nil, env)
+	if err != nil {
+		return nil, err
+	}
+	return &service.Service{
+		Config: f, Secrets: env.Secrets, NewModel: service.ModelFactory(env.NewModel),
+		UserAuditPath: userAudit, Actor: "cli",
+	}, nil
+}
+
+func stdinDocs(env Env) ([]extract.Document, error) {
+	if env.StdinIsTTY || env.Stdin == nil {
+		return nil, nil
+	}
+	b, err := io.ReadAll(io.LimitReader(env.Stdin, extract.MaxFileBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("read stdin: %w", err)
+	}
+	if len(b) > extract.MaxFileBytes {
+		return nil, fmt.Errorf("stdin is larger than %d bytes", extract.MaxFileBytes)
+	}
+	if len(b) == 0 {
+		return nil, nil
+	}
+	d, _ := extract.FromBytes("stdin", "text", b)
+	return []extract.Document{d}, nil
+}
+
+func writeResult(out service.RunOutcome, o runOpts, env Env) error {
+	text := out.Markdown
+	if o.asJSON {
+		text = string(out.Result.Data) + "\n"
 	}
 	if o.out != "" {
 		if err := os.WriteFile(o.out, []byte(text), 0o600); err != nil {
@@ -193,55 +119,4 @@ func writeResult(spec executor.Spec, res executor.Result, o runOpts, env Env) er
 	}
 	_, err := io.WriteString(env.Stdout, text)
 	return wrapWrite(err)
-}
-
-func requiredOrder(wt worktype.WorkType) []string {
-	s, err := wt.ParsedSchema()
-	if err != nil {
-		return nil
-	}
-	return s.Required
-}
-
-func saveRun(nb *notebook.Notebook, runID string, spec executor.Spec, res executor.Result, runErr error,
-	started time.Time,
-) (string, error) {
-	run := notebook.Run{
-		ID: runID, StartedAt: started.UTC().Format(time.RFC3339), WorkType: spec.WorkType.ID,
-		DurationMS: time.Since(started).Milliseconds(), Prompt: spec.Prompt, Vars: spec.Vars, Settings: spec.Settings,
-		ModelUsed: res.Model, Strategy: res.Strategy, TotalTokens: res.TotalTokens, Valid: res.Valid,
-	}
-	for _, d := range spec.Documents {
-		run.Context = append(run.Context, d.Source)
-	}
-	for _, a := range res.Attempts {
-		ar := notebook.AttemptRecord{Target: a.Target, Trigger: a.Trigger}
-		if a.Err != nil {
-			ar.Error = a.Err.Error()
-		}
-		run.Attempts = append(run.Attempts, ar)
-	}
-	if runErr != nil {
-		run.Error = runErr.Error()
-	}
-	if res.Valid {
-		out := notebook.Output{
-			ID: notebook.NewID(), RunID: run.ID, WorkType: spec.WorkType.ID,
-			Title: titleOf(res.Data), CreatedAt: run.StartedAt, Data: res.Data,
-		}
-		md, _ := render.Markdown(res.Data, requiredOrder(spec.WorkType))
-		if err := nb.SaveOutput(out, md); err != nil {
-			return "", err
-		}
-		run.OutputID = out.ID
-	}
-	return run.OutputID, nb.SaveRun(run)
-}
-
-func titleOf(data json.RawMessage) string {
-	var v struct {
-		Title string `json:"title"`
-	}
-	_ = json.Unmarshal(data, &v)
-	return v.Title
 }

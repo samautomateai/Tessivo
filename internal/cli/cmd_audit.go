@@ -7,15 +7,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/samautomateai/tessivo/internal/audit"
-	"github.com/samautomateai/tessivo/internal/executor"
 	"github.com/samautomateai/tessivo/internal/notebook"
+	"github.com/samautomateai/tessivo/internal/service"
 )
 
 // AuditFile is the audit log name inside a notebook (and the config dir).
-const AuditFile = "audit.jsonl"
+const AuditFile = service.AuditFile
 
 // auditPath is the notebook's log, or the user-level log for notebook-less runs.
 func auditPath(nb *notebook.Notebook, env Env) (string, error) {
@@ -27,64 +26,6 @@ func auditPath(nb *notebook.Notebook, env Env) (string, error) {
 		return "", err
 	}
 	return filepath.Join(filepath.Dir(p), AuditFile), nil
-}
-
-// runAudit records the lifecycle of one run. Prompts are stored as digests.
-type runAudit struct {
-	log   *audit.Log
-	runID string
-}
-
-func startAudit(nb *notebook.Notebook, spec executor.Spec, env Env) (*runAudit, error) {
-	p, err := auditPath(nb, env)
-	if err != nil {
-		return nil, err
-	}
-	l, err := audit.Open(p, "cli")
-	if err != nil {
-		return nil, err
-	}
-	a := &runAudit{log: l, runID: notebook.NewID()}
-	sources := make([]string, 0, len(spec.Documents))
-	for _, d := range spec.Documents {
-		sources = append(sources, d.Source)
-	}
-	err = l.Append(audit.KindRunStart, a.runID, map[string]any{
-		"work_type": spec.WorkType.ID, "prompt_sha256": audit.Digest(spec.Prompt), "prompt_chars": len(spec.Prompt),
-		"sources": sources, "model": spec.Settings.Model, "thinking": spec.Settings.ThinkingEffort,
-	})
-	if err != nil {
-		_ = l.Close()
-		return nil, err
-	}
-	return a, nil
-}
-
-func (a *runAudit) finish(res executor.Result, runErr error, outputID string, d time.Duration) error {
-	defer func() { _ = a.log.Close() }()
-	for _, at := range res.Attempts {
-		data := map[string]any{"target": at.Target, "trigger": at.Trigger}
-		if at.Err != nil {
-			data["error"] = at.Err
-		}
-		if err := a.log.Append(audit.KindModelAttempt, a.runID, data); err != nil {
-			return err
-		}
-	}
-	data := map[string]any{
-		"valid": res.Valid, "model_used": res.Model, "strategy": res.Strategy, "total_tokens": res.TotalTokens,
-		"duration_ms": d.Milliseconds(),
-	}
-	if runErr != nil {
-		data["error"] = runErr
-	}
-	if err := a.log.Append(audit.KindRunFinish, a.runID, data); err != nil {
-		return err
-	}
-	if outputID != "" {
-		return a.log.Append(audit.KindOutputSaved, a.runID, map[string]any{"output_id": outputID})
-	}
-	return nil
 }
 
 func resolveAuditTarget(arg string) string {

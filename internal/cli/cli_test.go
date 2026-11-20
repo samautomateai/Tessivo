@@ -219,7 +219,7 @@ func TestRunFromStdinAndErrors(t *testing.T) {
 	if code := h.run("run"); code != ExitUsage {
 		t.Fatal("want usage error without notebook or type")
 	}
-	if code := h.run("run", "--type", "poem"); code != ExitError {
+	if code := h.run("run", "--type", "poem"); code != ExitUsage {
 		t.Fatal("want unknown work type")
 	}
 	if code := h.run("run", "--type", "summarize", "--thinking", "max"); code != ExitUsage {
@@ -228,7 +228,7 @@ func TestRunFromStdinAndErrors(t *testing.T) {
 	if code := h.run("run", "--type", "summarize", "--var", "novalue"); code != ExitUsage {
 		t.Fatal("want invalid var")
 	}
-	if code := h.run("run", "--type", "summarize", "--model", "ghost"); code != ExitError {
+	if code := h.run("run", "--type", "summarize", "--model", "ghost"); code != ExitUsage {
 		t.Fatal("want unknown model")
 	}
 	if code := h.run("run", filepath.Join(h.dir, "nope")); code != ExitError {
