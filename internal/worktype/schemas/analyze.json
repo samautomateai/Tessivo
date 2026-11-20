@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "summary", "risk_score", "risk_level", "impacted_areas", "evidence", "mitigations", "open_questions"],
+  "properties": {
+    "title": {"type": "string"},
+    "summary": {"type": "string"},
+    "risk_score": {"type": "integer", "minimum": 0, "maximum": 10},
+    "risk_level": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+    "impacted_areas": {"type": "array", "items": {"type": "string"}},
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim", "source"],
+        "properties": {"claim": {"type": "string"}, "source": {"type": "string"}}
+      }
+    },
+    "mitigations": {"type": "array", "items": {"type": "string"}},
+    "open_questions": {"type": "array", "items": {"type": "string"}}
+  }
+}

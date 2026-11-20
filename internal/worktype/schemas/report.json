@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "period", "highlights", "issues", "trends", "next_steps"],
+  "properties": {
+    "title": {"type": "string"},
+    "period": {"type": "string"},
+    "highlights": {"type": "array", "items": {"type": "string"}},
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["issue", "severity", "owner"],
+        "properties": {
+          "issue": {"type": "string"},
+          "severity": {"type": "string", "enum": ["low", "medium", "high"]},
+          "owner": {"type": "string"}
+        }
+      }
+    },
+    "trends": {"type": "array", "items": {"type": "string"}},
+    "next_steps": {"type": "array", "items": {"type": "string"}}
+  }
+}
