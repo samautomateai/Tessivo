@@ -23,7 +23,8 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Desktop ↔ core contract: local JSON API + SSE (ADR 0004, docs/api.md) | — | ☑ |
 | Flutter desktop shell: theme, sidebar, workspace, new notebook, library, settings on a demo core | — | ☑ |
 | Shared service layer; `tess serve` local API (token, origin/host checks, limits, SSE runs) | — | ☑ |
-| Flutter HTTP client replacing the demo core | — | ◐ |
+| Flutter client for the local API (Unix socket/loopback, token, SSE, endpoint discovery, demo fallback) | — | ☑ |
+| Desktop launches and supervises `tess serve` itself | — | ☐ |
 | Extractors: DOCX (paragraphs, tables), XLSX (all sheets, computed stats), PPTX (slides + notes); zip-bomb, entry, size and XML-token limits; fuzzed | SRC-1 | ☑ |
 | OS keychain secrets (go-keyring) | SET-1 | ☐ |
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |

@@ -1,8 +1,9 @@
 # Tessivo desktop (Flutter)
 
-Native desktop UI for Tessivo: no Chromium or webview. Talks to the Go core over local gRPC
-(contract: `api/proto/tessivo/v1/tessivo.proto`). Until the gRPC client lands, the app runs on
-`DemoCoreClient` with sample data so screens can be built and tested.
+Native desktop UI for Tessivo: no Chromium or webview. Talks to the Go core's local JSON API
+(`docs/api.md`, ADR 0004) with `dart:io` only: a Unix socket on macOS/Linux, loopback on Windows,
+with the session token from `run/endpoint.json`. Start the core with `tess serve`; if it is not
+running, the app falls back to `DemoCoreClient` sample data.
 
 ```sh
 task desktop:init    # once: generate macOS, Windows and Linux runners (flutter create)
