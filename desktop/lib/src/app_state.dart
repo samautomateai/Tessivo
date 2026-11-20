@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import 'core/core_client.dart';
 import 'core/models.dart';
 
-enum Section { notebooks, library, settings }
+enum Section { notebooks, schedules, library, settings }
 
 /// App-wide state on a plain [ChangeNotifier] (no state-management package).
 class AppState extends ChangeNotifier {
@@ -23,6 +25,55 @@ class AppState extends ChangeNotifier {
   RunOutcome? outcome;
 
   String get streamedText => _stream.toString();
+
+  // Notifications from the core's event stream (newest last, capped).
+  final List<String> notices = [];
+  StreamSubscription<CoreEvent>? _events;
+  Duration _retry = const Duration(seconds: 2);
+
+  /// Subscribes to core events and reconnects with capped backoff.
+  void listenForEvents() {
+    _events?.cancel();
+    _events = core.events().listen(
+      (e) {
+        _retry = const Duration(seconds: 2);
+        if (e.kind == 'schedule.started') return; // only outcomes are worth a notice
+        notices.add(e.message);
+        if (notices.length > 20) notices.removeAt(0);
+        notifyListeners();
+      },
+      onError: (Object _) => _reconnect(),
+      onDone: _reconnect,
+      cancelOnError: true,
+    );
+  }
+
+  void _reconnect() {
+    final wait = _retry;
+    _retry = _retry * 2 > const Duration(minutes: 1) ? const Duration(minutes: 1) : _retry * 2;
+    Future<void>.delayed(wait, () {
+      if (_events != null) listenForEvents();
+    });
+  }
+
+  void dismissNotice() {
+    if (notices.isNotEmpty) {
+      notices.removeLast();
+      notifyListeners();
+    }
+  }
+
+  /// Stops listening; pending reconnects become no-ops.
+  void stopEvents() {
+    _events?.cancel();
+    _events = null;
+  }
+
+  @override
+  void dispose() {
+    stopEvents();
+    super.dispose();
+  }
 
   Notebook? get selected {
     for (final n in notebooks) {

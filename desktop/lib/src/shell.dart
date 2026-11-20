@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'app_state.dart';
 import 'screens/library_screen.dart';
 import 'screens/new_notebook_dialog.dart';
+import 'screens/schedules_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/workspace_screen.dart';
 import 'theme.dart';
@@ -26,7 +27,15 @@ class AppShell extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _Sidebar(state: state),
-              Expanded(child: _content()),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (state.notices.isNotEmpty) _NoticeBanner(state: state),
+                    Expanded(child: _content()),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -36,6 +45,7 @@ class AppShell extends StatelessWidget {
 
   Widget _content() => switch (state.section) {
     Section.notebooks => WorkspaceScreen(state: state),
+    Section.schedules => SchedulesScreen(state: state),
     Section.library => LibraryScreen(core: state.core),
     Section.settings => const SettingsScreen(),
   };
@@ -82,6 +92,11 @@ class _Sidebar extends StatelessWidget {
           ),
           const Divider(color: Tokens.sidebarSelected),
           _NavItem(
+            label: 'Schedules',
+            selected: state.section == Section.schedules,
+            onTap: () => state.go(Section.schedules),
+          ),
+          _NavItem(
             label: 'Outputs library',
             selected: state.section == Section.library,
             onTap: () => state.go(Section.library),
@@ -93,6 +108,26 @@ class _Sidebar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// In-app notification for the newest core event (schedule finished or failed).
+class _NoticeBanner extends StatelessWidget {
+  const _NoticeBanner({required this.state});
+
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final extra = state.notices.length - 1;
+    return MaterialBanner(
+      key: const Key('notice-banner'),
+      content: Text(extra > 0 ? '${state.notices.last}  (+$extra more)' : state.notices.last),
+      leading: const Icon(Icons.notifications_outlined),
+      actions: [
+        TextButton(key: const Key('notice-dismiss'), onPressed: state.dismissNotice, child: const Text('Dismiss')),
+      ],
     );
   }
 }

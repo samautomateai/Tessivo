@@ -1,8 +1,9 @@
+import 'dart:async';
+
 import 'models.dart';
 
-/// The desktop app's view of the Go core. The production implementation talks
-/// gRPC over a local socket (generated from api/proto); [DemoCoreClient] lets
-/// the UI run and be tested before the core is wired in.
+/// The desktop app's view of the Go core. `HttpCoreClient` talks to the local
+/// API (docs/api.md); [DemoCoreClient] serves sample data when no core runs.
 abstract interface class CoreClient {
   Future<List<WorkType>> listWorkTypes();
   Future<List<Notebook>> listNotebooks();
@@ -10,6 +11,13 @@ abstract interface class CoreClient {
   Future<Notebook> setContextEnabled({required String notebookId, required String contextId, required bool enabled});
   Stream<RunEvent> startRun({required String notebookId, required String prompt, required Map<String, String> vars});
   Future<List<OutputSummary>> listOutputs({WorkTypeId? workType});
+  Future<List<ScheduleInfo>> listSchedules(String notebookId);
+  Future<ScheduleInfo> addSchedule(String notebookId, {required String cron, String prompt, String missed});
+  Future<ScheduleInfo> setScheduleEnabled(String notebookId, String scheduleId, {required bool enabled});
+  Future<void> deleteSchedule(String notebookId, String scheduleId);
+
+  /// Live notifications (scheduled runs). Never completes while the core runs.
+  Stream<CoreEvent> events();
 }
 
 const builtInWorkTypes = <WorkType>[
@@ -49,6 +57,20 @@ class DemoCoreClient implements CoreClient {
 
   final Duration _tick;
   int _nextId = 100;
+  final Map<String, List<ScheduleInfo>> _schedules = {
+    'nb-4': const [
+      ScheduleInfo(
+        id: 's1',
+        cron: '0 8 * * MON',
+        missed: 'run_once',
+        enabled: true,
+        prompt: "Produce this week's ops report",
+        nextRun: 'Mon 08:00',
+        history: [ScheduleRun(status: 'ok', startedAt: '2026-11-16 08:00')],
+      ),
+    ],
+  };
+  final _events = StreamController<CoreEvent>.broadcast();
 
   final List<Notebook> _notebooks = [
     const Notebook(
@@ -125,6 +147,53 @@ class DemoCoreClient implements CoreClient {
       ),
     );
   }
+
+  @override
+  Future<List<ScheduleInfo>> listSchedules(String notebookId) async =>
+      List.unmodifiable(_schedules[notebookId] ?? const <ScheduleInfo>[]);
+
+  @override
+  Future<ScheduleInfo> addSchedule(
+    String notebookId, {
+    required String cron,
+    String prompt = '',
+    String missed = 'skip',
+  }) async {
+    if (cron.trim().split(RegExp(r'\s+')).length != 5 && !cron.startsWith('@')) {
+      throw const FormatException('want 5 fields (minute hour day month weekday)');
+    }
+    final s = ScheduleInfo(
+      id: 's${_nextId++}',
+      cron: cron,
+      missed: missed,
+      enabled: true,
+      prompt: prompt,
+      nextRun: 'soon',
+    );
+    _schedules[notebookId] = [...?_schedules[notebookId], s];
+    return s;
+  }
+
+  @override
+  Future<ScheduleInfo> setScheduleEnabled(String notebookId, String scheduleId, {required bool enabled}) async {
+    final list = [...?_schedules[notebookId]];
+    final i = list.indexWhere((s) => s.id == scheduleId);
+    if (i < 0) throw StateError('unknown schedule $scheduleId');
+    list[i] = list[i].copyWith(enabled: enabled);
+    _schedules[notebookId] = list;
+    return list[i];
+  }
+
+  @override
+  Future<void> deleteSchedule(String notebookId, String scheduleId) async {
+    _schedules[notebookId] = [...?_schedules[notebookId]]..removeWhere((s) => s.id == scheduleId);
+  }
+
+  @override
+  Stream<CoreEvent> events() => _events.stream;
+
+  /// Emits a demo event (used by tests and the demo mode).
+  void emit(CoreEvent e) => _events.add(e);
 
   @override
   Future<List<OutputSummary>> listOutputs({WorkTypeId? workType}) async {

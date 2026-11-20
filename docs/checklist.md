@@ -38,7 +38,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Schedules per notebook; scheduler inside `tess serve` with no overlap and bounded concurrency | SCH-1 | ☑ |
 | Missed-run policy (skip / run_once) after downtime | SCH-2 | ☑ |
 | Events stream for notifications (`/v1/events`) | SCH-3 | ☑ |
-| Desktop notifications and schedules screen | SCH-3, SCH-4 | ☐ |
+| Desktop schedules screen and in-app notice banner from `/v1/events` (OS notifications later) | SCH-3, SCH-4 | ☑ |
 | Schedule history (newest 50 per schedule) via API and `tess schedule list` | SCH-4 | ☑ |
 | Template library: 12 built-ins + user templates; create notebook from template (context slots, disabled schedule) | TPL-1, TPL-2 | ☑ |
 | Prompt library via template prompts; save notebook as template; extend with parent and version; parent-update notice with changed prompts | TPL-3–TPL-6 | ☑ |

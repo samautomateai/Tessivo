@@ -193,9 +193,83 @@ class HttpCoreClient implements CoreClient {
     }
   }
 
+  String _schedulesPath(String notebookId) => '/v1/notebooks/${Uri.encodeComponent(notebookId)}/schedules';
+
+  @override
+  Future<List<ScheduleInfo>> listSchedules(String notebookId) async {
+    final json = await _json('GET', _schedulesPath(notebookId));
+    return _list(json['schedules']).map(scheduleFromJson).toList();
+  }
+
+  @override
+  Future<ScheduleInfo> addSchedule(
+    String notebookId, {
+    required String cron,
+    String prompt = '',
+    String missed = 'skip',
+  }) async {
+    final body = {'cron': cron, 'prompt': prompt, 'missed': missed};
+    return scheduleFromJson(await _json('POST', _schedulesPath(notebookId), body: body));
+  }
+
+  @override
+  Future<ScheduleInfo> setScheduleEnabled(String notebookId, String scheduleId, {required bool enabled}) async {
+    final path = '${_schedulesPath(notebookId)}/${Uri.encodeComponent(scheduleId)}';
+    return scheduleFromJson(await _json('PATCH', path, body: {'enabled': enabled}));
+  }
+
+  @override
+  Future<void> deleteSchedule(String notebookId, String scheduleId) async {
+    await _json('DELETE', '${_schedulesPath(notebookId)}/${Uri.encodeComponent(scheduleId)}');
+  }
+
+  @override
+  Stream<CoreEvent> events() async* {
+    final resp = await _send('GET', '/v1/events');
+    if (resp.statusCode >= 400) {
+      await resp.drain<void>();
+      throw CoreException(resp.statusCode, 'events unavailable');
+    }
+    await for (final e in parseSse(resp.transform(utf8.decoder), maxLine: 64 * 1024)) {
+      if (e.event != 'event') continue;
+      final Object? data;
+      try {
+        data = jsonDecode(e.data);
+      } on FormatException {
+        continue; // hostile or garbled frame: drop it, keep the stream
+      }
+      if (data is Map<String, Object?>) yield eventFromJson(data);
+    }
+  }
+
   /// Releases connections.
   void close() => _client.close(force: true);
 }
+
+ScheduleInfo scheduleFromJson(Map<String, Object?> j) => ScheduleInfo(
+  id: j['id'] as String? ?? '',
+  cron: j['cron'] as String? ?? '',
+  missed: j['missed'] as String? ?? 'skip',
+  enabled: j['enabled'] as bool? ?? false,
+  prompt: j['prompt'] as String? ?? '',
+  nextRun: j['nextRun'] as String?,
+  history: _list(j['history'])
+      .map(
+        (h) => ScheduleRun(
+          status: h['status'] as String? ?? '',
+          startedAt: h['startedAt'] as String? ?? '',
+          error: h['error'] as String?,
+        ),
+      )
+      .toList(),
+);
+
+CoreEvent eventFromJson(Map<String, Object?> j) => CoreEvent(
+  kind: j['kind'] as String? ?? '',
+  notebookName: j['notebookName'] as String? ?? '',
+  title: j['title'] as String?,
+  error: j['error'] as String?,
+);
 
 List<Map<String, Object?>> _list(Object? v) =>
     v is List ? v.whereType<Map<String, Object?>>().toList() : const <Map<String, Object?>>[];

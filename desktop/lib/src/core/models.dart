@@ -122,3 +122,59 @@ class RunFinished extends RunEvent {
   const RunFinished(this.outcome);
   final RunOutcome outcome;
 }
+
+/// One past scheduled run.
+class ScheduleRun {
+  const ScheduleRun({required this.status, required this.startedAt, this.error});
+  final String status; // ok, failed, skipped
+  final String startedAt;
+  final String? error;
+}
+
+/// A notebook schedule as the UI shows it.
+class ScheduleInfo {
+  const ScheduleInfo({
+    required this.id,
+    required this.cron,
+    required this.missed,
+    required this.enabled,
+    this.prompt = '',
+    this.nextRun,
+    this.history = const [],
+  });
+
+  final String id;
+  final String cron;
+  final String missed; // skip or run_once
+  final bool enabled;
+  final String prompt;
+  final String? nextRun;
+  final List<ScheduleRun> history;
+
+  ScheduleInfo copyWith({bool? enabled}) => ScheduleInfo(
+    id: id,
+    cron: cron,
+    missed: missed,
+    enabled: enabled ?? this.enabled,
+    prompt: prompt,
+    nextRun: (enabled ?? this.enabled) ? nextRun : null,
+    history: history,
+  );
+}
+
+/// A notification-worthy event from the core (e.g. a scheduled run finished).
+class CoreEvent {
+  const CoreEvent({required this.kind, required this.notebookName, this.title, this.error});
+  final String kind;
+  final String notebookName;
+  final String? title;
+  final String? error;
+
+  /// Short message for an in-app notification.
+  String get message => switch (kind) {
+    'schedule.finished' => '$notebookName: ${title ?? 'scheduled run'} is ready',
+    'schedule.failed' => '$notebookName: scheduled run failed${error == null ? '' : ' ($error)'}',
+    'schedule.skipped' => '$notebookName: missed run skipped',
+    _ => '$notebookName: scheduled run started',
+  };
+}

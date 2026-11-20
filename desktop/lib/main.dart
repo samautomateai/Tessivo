@@ -16,6 +16,7 @@ Future<void> main() async {
   // crashes or is killed.
   final state = AppState(await connectCore(supervisor.ensureRunning));
   unawaited(state.load());
+  state.listenForEvents();
   runApp(TessivoApp(state: state));
 }
 
