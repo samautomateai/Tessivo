@@ -1,0 +1,80 @@
+package llm
+
+import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+)
+
+type wireChunk struct {
+	Model   string `json:"model"`
+	Choices []struct {
+		Delta struct {
+			Content string `json:"content"`
+		} `json:"delta"`
+		FinishReason *string `json:"finish_reason"`
+	} `json:"choices"`
+	Usage *Usage `json:"usage"`
+}
+
+// ChatStream sends a streaming request, calling onDelta for each content
+// fragment, and returns the assembled response.
+func (c *Client) ChatStream(ctx context.Context, req Request, onDelta func(string)) (Response, error) {
+	resp, err := c.do(ctx, http.MethodPost, "/chat/completions", toWire(req, true))
+	if err != nil {
+		return Response{}, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	return readSSE(resp, onDelta)
+}
+
+func readSSE(resp *http.Response, onDelta func(string)) (Response, error) {
+	var out Response
+	var sb strings.Builder
+	sc := bufio.NewScanner(resp.Body)
+	sc.Buffer(make([]byte, 0, 64<<10), 4<<20)
+	for sc.Scan() {
+		line := sc.Text()
+		data, ok := strings.CutPrefix(line, "data:")
+		if !ok {
+			continue
+		}
+		data = strings.TrimSpace(data)
+		if data == "[DONE]" {
+			break
+		}
+		var ch wireChunk
+		if err := json.Unmarshal([]byte(data), &ch); err != nil {
+			return Response{}, fmt.Errorf("decode stream chunk: %w", err)
+		}
+		applyChunk(&out, &sb, ch, onDelta)
+	}
+	if err := sc.Err(); err != nil {
+		return Response{}, &TransportError{Err: err}
+	}
+	out.Content = sb.String()
+	return out, nil
+}
+
+func applyChunk(out *Response, sb *strings.Builder, ch wireChunk, onDelta func(string)) {
+	if ch.Model != "" {
+		out.Model = ch.Model
+	}
+	if ch.Usage != nil {
+		out.Usage = *ch.Usage
+	}
+	for _, c := range ch.Choices {
+		if c.Delta.Content != "" {
+			sb.WriteString(c.Delta.Content)
+			if onDelta != nil {
+				onDelta(c.Delta.Content)
+			}
+		}
+		if c.FinishReason != nil {
+			out.FinishReason = *c.FinishReason
+		}
+	}
+}
