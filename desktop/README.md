@@ -2,8 +2,9 @@
 
 Native desktop UI for Tessivo: no Chromium or webview. Talks to the Go core's local JSON API
 (`docs/api.md`, ADR 0004) with `dart:io` only: a Unix socket on macOS/Linux, loopback on Windows,
-with the session token from `run/endpoint.json`. Start the core with `tess serve`; if it is not
-running, the app falls back to `DemoCoreClient` sample data.
+with the session token from `run/endpoint.json`. The app reuses a healthy core or starts
+`tess serve --exit-with-parent` itself (the `tess` binary bundled next to the app, else on PATH),
+and stops it on exit. If the core cannot start, the app falls back to `DemoCoreClient` sample data.
 
 ```sh
 task desktop:init    # once: generate macOS, Windows and Linux runners (flutter create)

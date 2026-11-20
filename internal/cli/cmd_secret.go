@@ -77,7 +77,7 @@ func readSecret(ctx context.Context, env Env, prompt string) (string, error) {
 // noEcho disables terminal echo with stty on Unix; it returns a restore func.
 func noEcho(ctx context.Context, env Env) func() {
 	f, ok := env.Stdin.(*os.File)
-	if !ok || runtime.GOOS == "windows" {
+	if !ok || runtime.GOOS == goosWindows {
 		return func() {}
 	}
 	stty := func(arg string) {

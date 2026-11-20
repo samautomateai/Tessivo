@@ -70,3 +70,26 @@ func TestServeErrors(t *testing.T) {
 		t.Fatal("want usage error")
 	}
 }
+
+func TestWatchParent(t *testing.T) {
+	calls := 0
+	done := make(chan struct{})
+	go watchParent(context.Background(), 10, func() int {
+		calls++
+		if calls > 2 {
+			return 1 // re-parented to init
+		}
+		return 10
+	}, time.Millisecond, func() { close(done) })
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("parent exit not detected")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	watchParent(ctx, 10, func() int { return 10 }, time.Hour, func() { t.Fatal("must not fire") })
+	pctx, pcancel := exitWithParent(context.Background())
+	pcancel()
+	<-pctx.Done()
+}

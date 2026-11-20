@@ -124,6 +124,12 @@ class HttpCoreClient implements CoreClient {
     return utf8.decode(builder.takeBytes());
   }
 
+  /// True when the core answers its health check.
+  Future<bool> health() async {
+    final json = await _json('GET', '/v1/health');
+    return json['ok'] == true;
+  }
+
   @override
   Future<List<WorkType>> listWorkTypes() async => builtInWorkTypes;
 

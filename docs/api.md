@@ -1,6 +1,7 @@
 # Local API (v1)
 
-The core (`tess serve`) listens on a Unix socket (macOS/Linux) or a loopback port (Windows) and
+The desktop app starts the core itself (`tess serve --exit-with-parent`, reusing a healthy running
+core if there is one); you can also run it by hand. The core (`tess serve`) listens on a Unix socket (macOS/Linux) or a loopback port (Windows) and
 writes its address and token to `endpoint.json` (0600) in the config dir's `run/` folder.
 Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bodies are JSON
 (`Content-Type: application/json`, ≤ 1 MiB, unknown fields rejected). Errors are

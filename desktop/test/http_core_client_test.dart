@@ -6,6 +6,7 @@ import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
+import 'package:tessivo_desktop/src/core/supervisor.dart';
 
 const token = 'secret-token';
 
@@ -32,7 +33,9 @@ Future<HttpServer> fakeCore(HttpServer server) async {
     final body = await utf8.decoder.bind(req).join();
     final path = req.uri.path;
     res.headers.contentType = ContentType.json;
-    if (req.method == 'GET' && path == '/v1/notebooks') {
+    if (path == '/v1/health') {
+      res.write(jsonEncode({'ok': true}));
+    } else if (req.method == 'GET' && path == '/v1/notebooks') {
       res.write(jsonEncode({'notebooks': [notebookJson]}));
     } else if (req.method == 'POST' && path == '/v1/notebooks') {
       final m = jsonDecode(body) as Map<String, Object?>;
@@ -93,6 +96,7 @@ void main() {
     final toggled = await client.setContextEnabled(notebookId: 'board', contextId: 'c2', enabled: true);
     expect(toggled.id, 'board');
     expect(await client.listWorkTypes(), hasLength(4));
+    expect(await client.health(), isTrue);
   });
 
   test('lists outputs with a filter', () async {
@@ -168,11 +172,9 @@ void main() {
     });
 
     test('connectCore falls back to demo data', () async {
-      expect(await connectCore(discover: () async => null), isA<DemoCoreClient>());
-      expect(await connectCore(discover: () async => throw const FormatException('bad')), isA<DemoCoreClient>());
-      final real = await connectCore(
-        discover: () async => const Endpoint(network: 'tcp', address: '127.0.0.1:1', token: 't'),
-      );
+      expect(await connectCore(() async => null), isA<DemoCoreClient>());
+      expect(await connectCore(() async => throw const CoreStartException('no tess')), isA<DemoCoreClient>());
+      final real = await connectCore(() async => const Endpoint(network: 'tcp', address: '127.0.0.1:1', token: 't'));
       expect(real, isA<HttpCoreClient>());
       (real as HttpCoreClient).close();
     });

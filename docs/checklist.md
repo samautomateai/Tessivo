@@ -24,7 +24,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Flutter desktop shell: theme, sidebar, workspace, new notebook, library, settings on a demo core | — | ☑ |
 | Shared service layer; `tess serve` local API (token, origin/host checks, limits, SSE runs) | — | ☑ |
 | Flutter client for the local API (Unix socket/loopback, token, SSE, endpoint discovery, demo fallback) | — | ☑ |
-| Desktop launches and supervises `tess serve` itself | — | ☐ |
+| Desktop reuses a healthy core or starts `tess serve --exit-with-parent` (bundled binary or PATH), waits for health, stops it on exit; core exits if the app dies | — | ☑ |
 | Extractors: DOCX (paragraphs, tables), XLSX (all sheets, computed stats), PPTX (slides + notes); zip-bomb, entry, size and XML-token limits; fuzzed | SRC-1 | ☑ |
 | OS keychain secrets, built in-house: `tess secret set/delete/check`; env then keychain lookup | SET-1 | ☑ |
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |

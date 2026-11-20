@@ -25,15 +25,21 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 		return err
 	}
 	defNet := "unix"
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == goosWindows {
 		defNet = "tcp"
 	}
 	fs := newFlags("serve", env)
 	network := fs.String("network", defNet, "unix (macOS/Linux) or tcp (loopback only)")
 	addr := fs.String("addr", "", "socket path or host:port (default: runtime dir socket, or 127.0.0.1:0)")
 	epPath := fs.String("endpoint-file", filepath.Join(dir, "endpoint.json"), "where to write connection details")
+	withParent := fs.Bool("exit-with-parent", false, "stop when the launching process (the desktop app) exits")
 	if _, err := parse(fs, args); err != nil {
 		return err
+	}
+	if *withParent {
+		var cancel context.CancelFunc
+		ctx, cancel = exitWithParent(ctx)
+		defer cancel()
 	}
 	if *addr == "" {
 		*addr = filepath.Join(dir, "tessivo.sock")
