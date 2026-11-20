@@ -5,6 +5,8 @@
 - GUI design: [Notebook App — GUI Design](https://claude.ai/artifact/1PvRsJBgqmNqAx6jX6dmQc)
 - [Architecture](architecture.md)
 - [Security and performance model](security-model.md)
+- [Local API](api.md)
 - [Delivery checklist](checklist.md)
 - Decisions: [ADR 0001 stack](adr/0001-stack.md) · [ADR 0002 Eino](adr/0002-agent-engine-eino.md) ·
-  [ADR 0003 dependency policy](adr/0003-dependency-policy.md)
+  [ADR 0003 dependency policy](adr/0003-dependency-policy.md) ·
+  [ADR 0004 local JSON API](adr/0004-local-json-api.md)

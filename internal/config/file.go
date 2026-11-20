@@ -71,10 +71,12 @@ type Limits struct {
 
 // File is the on-disk application config shared by the CLI and desktop app.
 type File struct {
-	Providers []Provider  `json:"providers"`
-	Aliases   []Alias     `json:"aliases"`
-	Defaults  RunSettings `json:"defaults"`
-	Limits    Limits      `json:"limits"`
+	// WorkspaceDir holds notebooks managed by the desktop app (default ~/Tessivo/notebooks).
+	WorkspaceDir string      `json:"workspace_dir,omitempty"`
+	Providers    []Provider  `json:"providers"`
+	Aliases      []Alias     `json:"aliases"`
+	Defaults     RunSettings `json:"defaults"`
+	Limits       Limits      `json:"limits"`
 }
 
 // Default returns a starter config pointing at a local LiteLLM proxy.
@@ -89,6 +91,18 @@ func Default() File {
 			Temperature: Ptr(0.2), MaxOutputTokens: Ptr(8000), ThinkingEffort: ThinkingMedium, Mode: ModePipeline,
 		},
 	}
+}
+
+// Workspace returns WorkspaceDir or the default ~/Tessivo/notebooks.
+func (f File) Workspace() (string, error) {
+	if f.WorkspaceDir != "" {
+		return f.WorkspaceDir, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("home dir: %w", err)
+	}
+	return filepath.Join(home, "Tessivo", "notebooks"), nil
 }
 
 // DefaultPath is the per-user config location, e.g. ~/.config/tessivo/config.json.

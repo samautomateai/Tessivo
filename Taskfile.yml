@@ -93,13 +93,6 @@ tasks:
       - go mod tidy
       - git diff --exit-code go.mod go.sum
 
-  proto:
-    desc: Generate Go and Dart code from the gRPC contract (needs buf)
-    dir: api
-    cmds:
-      - buf lint
-      - buf generate
-
   desktop:init:
     desc: Generate Flutter platform runners (macOS, Windows, Linux) once
     dir: desktop

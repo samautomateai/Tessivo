@@ -11,7 +11,8 @@ Do not open a public issue. We aim to acknowledge reports within 3 working days.
 - **Secrets** (API keys, MCP tokens) live in the OS keychain or environment variables, never in
   config files, notebooks, templates or logs.
 - **Self-hosted by design**: model traffic goes only to the providers you configure. No telemetry.
-- **Local-only core**: the desktop UI talks to the Go core over a local socket with a per-session token.
+- **Local-only core**: the desktop UI talks to the Go core over a 0600 Unix socket (loopback on Windows)
+  with a per-session token; browser-origin and non-loopback Host requests are refused.
 - **Audit trail**: every run, model attempt, tool call and saved output is appended to a hash-chained
   `audit.jsonl` (0600). Prompts are stored as SHA-256 digests, secrets are redacted, and
   `tess audit verify` detects any edit, deletion or reordering.

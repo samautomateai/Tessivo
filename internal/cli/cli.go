@@ -60,6 +60,7 @@ Usage:
   tess models [--provider NAME]             list models from configured providers
   tess worktypes                            list work types
   tess audit verify|show [<notebook-or-file>] [--last N]   check or read the tamper-evident audit log
+  tess serve [--network unix|tcp] [--addr A]   run the local API for the desktop app
   tess config init|show|path
   tess version
 
@@ -129,6 +130,8 @@ func dispatch(ctx context.Context, args []string, env Env) error {
 		return cmdConfig(rest, env)
 	case "audit":
 		return cmdAudit(rest, env)
+	case "serve":
+		return cmdServe(ctx, rest, env)
 	default:
 		return usagef("unknown command %q", cmd)
 	}

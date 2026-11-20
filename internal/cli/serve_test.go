@@ -1,0 +1,72 @@
+package cli
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/samautomateai/tessivo/internal/server"
+)
+
+func TestServeWritesEndpointAndShutsDown(t *testing.T) {
+	h := newHarness(t)
+	h.initConfig()
+	f, _ := os.ReadFile(h.env.ConfigPath)
+	var cfg map[string]any
+	_ = json.Unmarshal(f, &cfg)
+	cfg["workspace_dir"] = filepath.Join(h.dir, "ws")
+	b, _ := json.Marshal(cfg)
+	_ = os.WriteFile(h.env.ConfigPath, b, 0o600)
+
+	ep := filepath.Join(h.dir, "run", "endpoint.json")
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan int, 1)
+	go func() {
+		done <- Main(ctx, []string{"serve", "--network", "tcp", "--addr", "127.0.0.1:0", "--endpoint-file", ep}, h.env)
+	}()
+	var e server.Endpoint
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if raw, err := os.ReadFile(ep); err == nil && json.Unmarshal(raw, &e) == nil && e.Token != "" {
+			break
+		}
+		if time.Now().After(deadline) {
+			cancel()
+			t.Fatal("endpoint file not written")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	req, _ := http.NewRequest("GET", "http://"+e.Address+"/v1/notebooks", nil)
+	req.Header.Set("Authorization", "Bearer "+e.Token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		cancel()
+		t.Fatalf("request: %v %v", err, resp)
+	}
+	_ = resp.Body.Close()
+	cancel()
+	if code := <-done; code != ExitOK {
+		t.Fatalf("serve exit %d: %s", code, h.errOut)
+	}
+	if _, err := os.Stat(ep); !os.IsNotExist(err) {
+		t.Fatal("endpoint file should be removed on shutdown")
+	}
+}
+
+func TestServeErrors(t *testing.T) {
+	h := newHarness(t)
+	if code := h.run("serve", "--network", "tcp", "--addr", "127.0.0.1:0"); code != ExitError {
+		t.Fatal("want missing config error")
+	}
+	h.initConfig()
+	if code := h.run("serve", "--network", "tcp", "--addr", "0.0.0.0:0"); code != ExitError {
+		t.Fatal("want non-loopback refusal")
+	}
+	if code := h.run("serve", "--bogus"); code != ExitUsage {
+		t.Fatal("want usage error")
+	}
+}

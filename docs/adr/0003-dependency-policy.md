@@ -19,6 +19,7 @@ below with its reason in the same change that adds it.
 | Text, Markdown, CSV, JSON and code-base extractors | Stdlib `encoding/*`, `io/fs` cover them |
 | DOCX, XLSX, PPTX extractors | They are zip + XML; `archive/zip` and `encoding/xml` suffice |
 | CLI flags | `flag` package is enough |
+| Desktop ↔ core API (JSON + SSE over Unix socket/loopback) | `net/http` and `dart:io` cover it; see ADR 0004 |
 | Length and coverage gates | Tiny tools in `tools/` |
 
 ## Planned dependencies (added when their story starts)
@@ -29,7 +30,6 @@ below with its reason in the same change that adds it.
 | `github.com/modelcontextprotocol/go-sdk` | Official MCP client/server; protocol interop |
 | `modernc.org/sqlite` | Embedded SQLite without cgo; writing a database makes no sense |
 | `github.com/zalando/go-keyring` | OS keychain access on macOS, Windows, Linux |
-| `google.golang.org/grpc`, `google.golang.org/protobuf` | Desktop ↔ core contract |
 | PDF text extraction library (TBD) | PDF parsing is large and error-prone; pick a maintained pure-Go one |
 
 ## Current direct dependencies

@@ -1,6 +1,6 @@
 # ADR 0001: Go core and CLI, Flutter desktop, no Chromium
 
-- Status: accepted (2026-11-20)
+- Status: accepted (2026-11-20); transport amended by [ADR 0004](0004-local-json-api.md)
 
 ## Context
 
@@ -11,7 +11,7 @@ webview-based shells (Electron, Wails, Tauri) are ruled out.
 
 - **Core and CLI in Go** (latest stable, pinned in `go.mod`). One engine; the CLI is a thin wrapper.
 - **Desktop in Flutter** (stable channel). Own GPU renderer, no webview, runs on macOS, Windows, Linux.
-- **Desktop ↔ core over local gRPC** (Unix socket / named pipe, per-session token). The core can also
+- **Desktop ↔ core over a local API** (Unix socket / loopback, per-session token); JSON + SSE per ADR 0004. The core can also
   run headless for the CLI and, later, a daemon.
 
 ## Alternatives considered

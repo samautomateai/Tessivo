@@ -30,7 +30,8 @@ Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
 - **Standard library first.** Add a dependency only when building it ourselves makes no sense
   (protocols, OS integration, databases, agent framework). Record every direct dependency and its
   reason in `docs/adr/0003-dependency-policy.md` in the same change.
-- **Core stays engine-agnostic**: Eino, SQLite, gRPC types never leak out of their adapter packages.
+- **Core stays engine-agnostic**: Eino, SQLite and transport types never leak out of their adapter packages;
+  business logic lives in `internal/service`.
 - **Secrets** never in config, notebooks, templates, logs or test fixtures.
 - **Every change updates docs**: the relevant `docs/` page, `docs/checklist.md` (story status) and an
   ADR when a decision changes. Not optional.
@@ -41,5 +42,5 @@ Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
 - `cmd/tess` — CLI entry point (thin).
 - `internal/` — core packages (see `docs/architecture.md`).
 - `tools/` — repo tooling (length and coverage gates).
-- `api/proto` — gRPC contract between the desktop UI and the core.
+- `docs/api.md` — local JSON API contract between the desktop UI and the core (ADR 0004).
 - `desktop/` — Flutter app.

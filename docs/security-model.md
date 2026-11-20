@@ -20,6 +20,10 @@ holds credentials for model providers. Every control below exists in code and is
 | Untrusted model output | Validated against the work type's schema; invalid output is never saved as an output | `schema`, `executor` |
 | Repudiation / silent edits of history | Hash-chained, fsynced, 0600 audit log; prompts recorded as digests; `tess audit verify` | `audit` |
 | Local file exposure | Files written 0600, directories 0700/0750, atomic replace | `config`, `notebook`, `audit` |
+| Other local users or processes calling the core | 0600 socket in a 0700 dir (loopback-only TCP on Windows); 256-bit per-session token, constant-time compare; token only in a 0600 endpoint file | `server` |
+| Websites attacking the loopback API (CSRF, DNS rebinding) | Requests with `Origin`/`Sec-Fetch-*` refused; only loopback `Host` values accepted | `server/middleware.go` |
+| API abuse | 1 MiB bodies, strict JSON, header/read timeouts, ≤ 4 concurrent runs, panic recovery, errors redacted | `server` |
+| Path traversal via API | Notebooks addressed by `[a-z0-9-]` IDs inside the workspace; context paths must be absolute files the user picked | `service` |
 | Vulnerable dependencies | Standard library first; `go mod verify`, govulncheck, gosec, CodeQL, Dependabot | CI, `task audit` |
 
 ## Performance budgets

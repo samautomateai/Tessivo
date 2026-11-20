@@ -195,3 +195,13 @@ func TestBaseURLSecurity(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestWorkspace(t *testing.T) {
+	if w, _ := (File{WorkspaceDir: "/data/nb"}).Workspace(); w != "/data/nb" {
+		t.Fatal(w)
+	}
+	t.Setenv("HOME", "/home/x")
+	if w, err := (File{}).Workspace(); err != nil || w != filepath.Join("/home/x", "Tessivo", "notebooks") {
+		t.Fatalf("%q %v", w, err)
+	}
+}

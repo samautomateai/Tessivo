@@ -1,7 +1,7 @@
 # Architecture
 
 ```
- Flutter desktop ──gRPC (local socket)──┐
+ Flutter desktop ──JSON + SSE (Unix socket / loopback, token)──┐
                                         ▼
  tess CLI ─────────────────────────► Go core ──► LiteLLM / OpenAI-compatible providers
                                         │
@@ -22,7 +22,9 @@
 | `notebook` | Notebook folder layout, manifest, context items, prompts, run records, outputs. |
 | `executor` | `Executor` interface; `pipeline` mode now, `agent` mode (Eino) next. |
 | `audit` | Tamper-evident audit log: append-only JSONL, each entry's SHA-256 covers the previous one; secrets redacted, prompts stored as digests; `Verify` detects edits, deletions and reordering. |
-| `cli` | `tess` commands; `cmd/tess` only calls it. |
+| `service` | Application layer shared by CLI and server: workspace notebooks by validated ID, runs (settings, audit, records), outputs, settings, models. |
+| `server` | Local API: routes, auth/host/origin checks, strict JSON, SSE runs, listeners, endpoint file. See [api.md](api.md). |
+| `cli` | `tess` commands (including `tess serve`); `cmd/tess` only calls it. |
 
 ## Notebook folder
 
