@@ -68,6 +68,8 @@ linters:
         linters:
           - dupl
           - funlen
+          - gocyclo
+          - gocognit
           - gosec
           - wrapcheck
           - goconst
