@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -184,5 +185,56 @@ func TestNewRouterFromConfig(t *testing.T) {
 	alias.Chain = append(alias.Chain, config.ModelRef{Provider: "ghost", Model: "x"})
 	if _, err := NewRouter(f, alias, secrets.Map{"TESSIVO_LITELLM_KEY": "k123"}); err == nil {
 		t.Fatal("want unknown provider error")
+	}
+}
+
+func TestRedirectsAreRefused(t *testing.T) {
+	leaked := false
+	other := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		leaked = r.Header.Get("X-Team") != ""
+	}))
+	t.Cleanup(other.Close)
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL+"/steal", http.StatusTemporaryRedirect)
+	})
+	c.Headers = map[string]string{"X-Team": "ops"}
+	_, err := c.Chat(context.Background(), Request{})
+	var api *APIError
+	if !errors.As(err, &api) || api.Status != http.StatusTemporaryRedirect || leaked {
+		t.Fatalf("want refused redirect, got %v leaked=%v", err, leaked)
+	}
+}
+
+func TestStreamIdleTimeout(t *testing.T) {
+	c := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprint(w, `data: {"choices":[{"delta":{"content":"a"}}]}`+"\n\n")
+		w.(http.Flusher).Flush()
+		hang(r) // then go silent
+	})
+	c.Timeout = 50 * time.Millisecond
+	_, err := c.ChatStream(context.Background(), Request{}, nil)
+	if !errors.Is(err, ErrIdleTimeout) || Classify(err) != config.TriggerTimeout {
+		t.Fatalf("want idle timeout classified as timeout, got %v (%q)", err, Classify(err))
+	}
+}
+
+func TestChatTimeout(t *testing.T) {
+	c := newServer(t, func(_ http.ResponseWriter, r *http.Request) { hang(r) })
+	c.Timeout = 30 * time.Millisecond
+	if _, err := c.Chat(context.Background(), Request{}); Classify(err) != config.TriggerTimeout {
+		t.Fatalf("want timeout, got %v", err)
+	}
+	if _, err := c.Models(context.Background()); Classify(err) != config.TriggerTimeout {
+		t.Fatalf("want timeout, got %v", err)
+	}
+}
+
+// hang blocks until the client goes away (or a safety timeout). Draining the
+// body first lets the server notice the client closing the connection.
+func hang(r *http.Request) {
+	_, _ = io.Copy(io.Discard, r.Body)
+	select {
+	case <-r.Context().Done():
+	case <-time.After(3 * time.Second):
 	}
 }

@@ -76,3 +76,28 @@ func TestTypeMismatches(t *testing.T) {
 		t.Fatal("bare fence")
 	}
 }
+
+func FuzzValidateJSON(f *testing.F) {
+	s, err := Parse([]byte(report))
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add([]byte(`{"title":"x","score":7,"areas":["a"]}`))
+	f.Add([]byte("```json\n{}\n```"))
+	f.Add([]byte(`[[[[[[[[]]]]]]]]`))
+	f.Fuzz(func(_ *testing.T, data []byte) {
+		_ = s.ValidateJSON(data)
+		_ = StripFences(string(data))
+	})
+}
+
+func BenchmarkValidateJSON(b *testing.B) {
+	s, _ := Parse([]byte(report))
+	data := []byte(`{"title":"x","score":7,"level":"high","ratio":0.5,"ok":true,"areas":["a","b","c","d"]}`)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		if err := s.ValidateJSON(data); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

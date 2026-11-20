@@ -69,6 +69,8 @@ type Client struct {
 	APIKey  string
 	Headers map[string]string
 	HTTP    *http.Client
+	// Timeout bounds a non-streaming call and the gap between stream chunks.
+	Timeout time.Duration
 }
 
 // NewClient returns a client with a sensible timeout.
@@ -79,7 +81,8 @@ func NewClient(baseURL, apiKey string, timeout time.Duration) *Client {
 	return &Client{
 		BaseURL: strings.TrimRight(baseURL, "/"),
 		APIKey:  apiKey,
-		HTTP:    &http.Client{Timeout: timeout},
+		HTTP:    newHTTPClient(timeout),
+		Timeout: timeout,
 	}
 }
 
@@ -139,6 +142,11 @@ func toWire(req Request, stream bool) wireRequest {
 
 // Chat sends a non-streaming chat completion request.
 func (c *Client) Chat(ctx context.Context, req Request) (Response, error) {
+	if c.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.Timeout)
+		defer cancel()
+	}
 	resp, err := c.do(ctx, http.MethodPost, "/chat/completions", toWire(req, false))
 	if err != nil {
 		return Response{}, err
@@ -159,6 +167,11 @@ func (c *Client) Chat(ctx context.Context, req Request) (Response, error) {
 
 // Models lists the models the provider exposes.
 func (c *Client) Models(ctx context.Context) ([]Model, error) {
+	if c.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.Timeout)
+		defer cancel()
+	}
 	resp, err := c.do(ctx, http.MethodGet, "/models", nil)
 	if err != nil {
 		return nil, err

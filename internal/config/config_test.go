@@ -172,3 +172,26 @@ func TestProviderLookup(t *testing.T) {
 		t.Fatal("want miss")
 	}
 }
+
+func TestBaseURLSecurity(t *testing.T) {
+	cases := map[string]bool{
+		"https://llm.example.com/v1":        true,
+		"http://localhost:4000/v1":          true,
+		"http://127.0.0.1:4000":             true,
+		"http://[::1]:4000":                 true,
+		"http://10.0.0.5:4000":              false,
+		"https://user:pass@llm.example.com": false,
+		"ftp://x":                           false,
+		"not a url":                         false,
+	}
+	for u, ok := range cases {
+		err := validateBaseURL(Provider{Name: "p", BaseURL: u})
+		if (err == nil) != ok {
+			t.Errorf("%s: ok=%v err=%v", u, ok, err)
+		}
+	}
+	lan := Provider{Name: "p", BaseURL: "http://10.0.0.5:4000", AllowInsecureHTTP: true}
+	if err := validateBaseURL(lan); err != nil {
+		t.Fatal(err)
+	}
+}

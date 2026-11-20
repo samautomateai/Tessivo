@@ -7,8 +7,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // TreeOptions controls folder and code-base walking.
@@ -39,7 +41,18 @@ func Tree(root string, opt TreeOptions) ([]Document, error) {
 	if !opt.IncludeAll {
 		patterns = append(patterns, readIgnore(filepath.Join(root, ".gitignore"))...)
 	}
-	var docs []Document
+	jobs, err := collect(root, opt, patterns)
+	if err != nil {
+		return nil, err
+	}
+	return extractAll(jobs), nil
+}
+
+type treeJob struct{ path, rel string }
+
+// collect walks the tree and returns the candidate files, sorted by path.
+func collect(root string, opt TreeOptions, patterns []string) ([]treeJob, error) {
+	var jobs []treeJob
 	errLimit := errors.New("file limit reached")
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -53,12 +66,11 @@ func Tree(root string, opt TreeOptions) ([]Document, error) {
 			}
 			return nil
 		}
-		doc, ok := treeFile(path, rel, d, patterns, opt.MaxBytes)
-		if !ok {
+		if !candidate(rel, d, patterns, opt.MaxBytes) {
 			return nil
 		}
-		docs = append(docs, doc)
-		if len(docs) >= opt.MaxFiles {
+		jobs = append(jobs, treeJob{path, rel})
+		if len(jobs) >= opt.MaxFiles {
 			return errLimit
 		}
 		return nil
@@ -66,24 +78,49 @@ func Tree(root string, opt TreeOptions) ([]Document, error) {
 	if err != nil && !errors.Is(err, errLimit) {
 		return nil, fmt.Errorf("walk %s: %w", root, err)
 	}
-	sort.Slice(docs, func(i, j int) bool { return docs[i].Source < docs[j].Source })
-	return docs, nil
+	sort.Slice(jobs, func(i, j int) bool { return jobs[i].rel < jobs[j].rel })
+	return jobs, nil
 }
 
-func treeFile(path, rel string, d fs.DirEntry, patterns []string, maxBytes int64) (Document, bool) {
+// extractAll reads files with a bounded worker pool, keeping input order.
+// Unreadable or binary files are skipped.
+func extractAll(jobs []treeJob) []Document {
+	results := make([]*Document, len(jobs))
+	workers := min(max(runtime.GOMAXPROCS(0), 2), 16, len(jobs))
+	next := make(chan int)
+	var wg sync.WaitGroup
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range next {
+				if doc, err := File(jobs[i].path); err == nil {
+					doc.Source = jobs[i].rel
+					results[i] = &doc
+				}
+			}
+		}()
+	}
+	for i := range jobs {
+		next <- i
+	}
+	close(next)
+	wg.Wait()
+	docs := make([]Document, 0, len(jobs))
+	for _, d := range results {
+		if d != nil {
+			docs = append(docs, *d)
+		}
+	}
+	return docs
+}
+
+func candidate(rel string, d fs.DirEntry, patterns []string, maxBytes int64) bool {
 	if ignored(rel, d.Name(), patterns) || KindOf(d.Name()) == "" {
-		return Document{}, false
+		return false
 	}
 	info, err := d.Info()
-	if err != nil || info.Size() > maxBytes || !info.Mode().IsRegular() {
-		return Document{}, false
-	}
-	doc, err := File(path)
-	if err != nil {
-		return Document{}, false
-	}
-	doc.Source = rel
-	return doc, true
+	return err == nil && info.Size() <= maxBytes && info.Mode().IsRegular()
 }
 
 func readIgnore(path string) []string {

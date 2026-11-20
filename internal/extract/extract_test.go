@@ -4,11 +4,12 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
 
-func put(t *testing.T, root, rel, content string) string {
+func put(t testing.TB, root, rel, content string) string {
 	t.Helper()
 	p := filepath.Join(root, filepath.FromSlash(rel))
 	if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
@@ -141,4 +142,52 @@ func TestTreeRespectsIgnoresAndLimits(t *testing.T) {
 	if _, err := Tree(filepath.Join(root, "missing"), TreeOptions{}); err == nil {
 		t.Fatal("want walk error")
 	}
+}
+
+func benchTree(b *testing.B, files int) string {
+	b.Helper()
+	root := b.TempDir()
+	body := strings.Repeat("func handler() { return }\n", 200)
+	for i := 0; i < files; i++ {
+		put(b, root, filepath.Join("pkg", strconv.Itoa(i%20), "f"+strconv.Itoa(i)+".go"), body)
+	}
+	return root
+}
+
+func BenchmarkTree500Files(b *testing.B) {
+	root := benchTree(b, 500)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		docs, err := Tree(root, TreeOptions{})
+		if err != nil || len(docs) != 500 {
+			b.Fatalf("%v %d", err, len(docs))
+		}
+	}
+}
+
+func BenchmarkCSV10kRows(b *testing.B) {
+	var sb strings.Builder
+	sb.WriteString("region,amount,owner\n")
+	for i := 0; i < 10_000; i++ {
+		sb.WriteString("north," + strconv.Itoa(i) + ",team-" + strconv.Itoa(i%7) + "\n")
+	}
+	data := []byte(sb.String())
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := CSV("b.csv", data); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func FuzzCSV(f *testing.F) {
+	f.Add([]byte("a,b\n1,2\n"))
+	f.Add([]byte("x\t\"y\n"))
+	f.Fuzz(func(_ *testing.T, b []byte) {
+		_, _ = CSV("f.csv", b)
+		_, _ = CSV("f.tsv", b)
+		_, _ = JSON("f.json", b)
+	})
 }

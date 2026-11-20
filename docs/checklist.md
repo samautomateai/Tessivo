@@ -18,6 +18,8 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | `tess` CLI: init, notebook, context, run, models | CLI-1, CLI-2, CLI-3 | ☐☑ |
 | Tamper-evident audit log of runs, model attempts and outputs; `tess audit verify/show` | NFR Security | ☑ |
 | Formatting gate (gofmt -s, gofumpt, goimports), `task audit`, fuzz and bench tasks | NFR Quality | ☑ |
+| Hardened HTTP: TLS 1.2+, no redirects, bounded timeouts, idle-stream timeout; plaintext to remote hosts refused | NFR Security | ☑ |
+| Parallel code-base extraction (bounded pool); benchmarks; fuzz targets for schema, CSV/JSON, Office, audit | NFR Performance | ☑ |
 | gRPC contract (`api/proto`, buf lint/generate) | — | ☑ |
 | Flutter desktop shell: theme, sidebar, workspace, new notebook, library, settings on a demo core | — | ☑ |
 | Flutter gRPC client replacing the demo core; core gRPC server | — | ☐ |

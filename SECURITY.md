@@ -20,12 +20,16 @@ Do not open a public issue. We aim to acknowledge reports within 3 working days.
   [docs/adr/0003-dependency-policy.md](docs/adr/0003-dependency-policy.md), scanned with `govulncheck`,
   and kept current by Dependabot.
 
+Full threat model and controls: [docs/security-model.md](docs/security-model.md).
+
 ## Automated checks on every push
 
 | Check | Tool |
 | --- | --- |
 | Static security analysis | gosec (in golangci-lint and standalone SARIF), CodeQL |
-| Known vulnerabilities | govulncheck |
+| Known vulnerabilities | govulncheck, `go mod verify` |
+| Parser robustness | Go fuzz targets (CI smoke run per target) |
+| Formatting | gofmt -s, gofumpt, goimports |
 | Code quality | golangci-lint, `flutter analyze --fatal-infos` |
 | Coverage | 80% minimum for Go and Flutter |
 | Size limits | 120-character lines, 500-line files (800 for tests) |

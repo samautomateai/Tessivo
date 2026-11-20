@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,6 +36,9 @@ type Provider struct {
 	APIKeyRef      string            `json:"api_key_ref,omitempty"`
 	Headers        map[string]string `json:"headers,omitempty"`
 	TimeoutSeconds int               `json:"timeout_seconds,omitempty"`
+	// AllowInsecureHTTP permits plain http:// to a non-loopback host (e.g. a
+	// LiteLLM proxy on a trusted LAN). Off by default: keys travel in headers.
+	AllowInsecureHTTP bool `json:"allow_insecure_http,omitempty"`
 }
 
 // ModelRef points at one model on one provider.
@@ -150,8 +155,8 @@ func (f File) Validate() error {
 			errs = append(errs, fmt.Errorf("providers[%d]: duplicate name %q", i, p.Name))
 		}
 		providers[p.Name] = true
-		if !strings.HasPrefix(p.BaseURL, "http://") && !strings.HasPrefix(p.BaseURL, "https://") {
-			errs = append(errs, fmt.Errorf("provider %q: base_url must start with http:// or https://", p.Name))
+		if err := validateBaseURL(p); err != nil {
+			errs = append(errs, err)
 		}
 	}
 	aliases := map[string]bool{}
@@ -163,6 +168,29 @@ func (f File) Validate() error {
 		errs = append(errs, fmt.Errorf("defaults: %w", err))
 	}
 	return errors.Join(errs...)
+}
+
+func validateBaseURL(p Provider) error {
+	u, err := url.Parse(p.BaseURL)
+	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+		return fmt.Errorf("provider %q: base_url must be an http:// or https:// URL", p.Name)
+	}
+	if u.User != nil {
+		return fmt.Errorf("provider %q: base_url must not embed credentials; use api_key_ref", p.Name)
+	}
+	if u.Scheme == "http" && !p.AllowInsecureHTTP && !isLoopback(u.Hostname()) {
+		return fmt.Errorf("provider %q: plain http to %s would send the API key unencrypted; "+
+			"use https or set allow_insecure_http", p.Name, u.Hostname())
+	}
+	return nil
+}
+
+func isLoopback(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 func validateAlias(a Alias, providers, seen map[string]bool) []error {

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -23,12 +24,22 @@ type wireChunk struct {
 // ChatStream sends a streaming request, calling onDelta for each content
 // fragment, and returns the assembled response.
 func (c *Client) ChatStream(ctx context.Context, req Request, onDelta func(string)) (Response, error) {
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
 	resp, err := c.do(ctx, http.MethodPost, "/chat/completions", toWire(req, true))
 	if err != nil {
 		return Response{}, err
 	}
+	if c.Timeout > 0 {
+		resp.Body = newIdleReader(resp.Body, c.Timeout, cancel)
+	}
 	defer func() { _ = resp.Body.Close() }()
-	return readSSE(resp, onDelta)
+	out, err := readSSE(resp, onDelta)
+	if err != nil && errors.Is(context.Cause(ctx), ErrIdleTimeout) {
+		err = fmt.Errorf("%w after %s: %w", ErrIdleTimeout, c.Timeout, context.DeadlineExceeded)
+		return out, &TransportError{Err: err}
+	}
+	return out, err
 }
 
 func readSSE(resp *http.Response, onDelta func(string)) (Response, error) {
