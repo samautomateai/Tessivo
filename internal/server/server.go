@@ -54,6 +54,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/settings", s.settings)
 	mux.HandleFunc("GET /v1/models", s.models)
 	mux.HandleFunc("GET /v1/events", s.events)
+	mux.HandleFunc("GET /v1/templates", s.listTemplates)
+	mux.HandleFunc("GET /v1/templates/{tid}", s.getTemplate)
+	mux.HandleFunc("POST /v1/templates", s.createTemplate)
+	mux.HandleFunc("DELETE /v1/templates/{tid}", s.deleteTemplate)
+	mux.HandleFunc("PUT /v1/notebooks/{id}/memory", s.setMemory)
 	mux.HandleFunc("GET /v1/notebooks/{id}/schedules", s.listSchedules)
 	mux.HandleFunc("POST /v1/notebooks/{id}/schedules", s.addSchedule)
 	mux.HandleFunc("PATCH /v1/notebooks/{id}/schedules/{sid}", s.setSchedule)
@@ -93,14 +98,23 @@ func (s *Server) listNotebooks(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) createNotebook(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Name     string `json:"name"`
-		WorkType string `json:"workType"`
+		Name       string `json:"name"`
+		WorkType   string `json:"workType"`
+		TemplateID string `json:"templateId"`
 	}
 	if err := decode(w, r, &body); err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	info, err := s.svc.CreateNotebook(body.Name, body.WorkType)
+	var (
+		info service.NotebookInfo
+		err  error
+	)
+	if body.TemplateID != "" {
+		info, err = s.svc.CreateFromTemplate(body.TemplateID, body.Name)
+	} else {
+		info, err = s.svc.CreateNotebook(body.Name, body.WorkType)
+	}
 	if err != nil {
 		s.fail(w, r, err)
 		return

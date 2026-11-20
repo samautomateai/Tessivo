@@ -60,7 +60,7 @@ func cmdAudit(args []string, env Env) error {
 		}
 		_, err = fmt.Fprintf(env.Stdout, "ok: %d entries verified in %s\n", n, target)
 		return wrapWrite(err)
-	case "show":
+	case subShow:
 		return showAudit(target, *last, env)
 	default:
 		return usagef("audit: unknown subcommand %q", sub)

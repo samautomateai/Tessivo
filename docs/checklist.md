@@ -40,13 +40,16 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Events stream for notifications (`/v1/events`) | SCH-3 | ☑ |
 | Desktop notifications and schedules screen | SCH-3, SCH-4 | ☐ |
 | Schedule history (newest 50 per schedule) via API and `tess schedule list` | SCH-4 | ☑ |
-| Templates | TPL-1–TPL-6 | ☐ |
+| Template library: 12 built-ins + user templates; create notebook from template (context slots, disabled schedule) | TPL-1, TPL-2 | ☑ |
+| Prompt library via template prompts; save notebook as template; extend with parent and version; parent-update notice with changed prompts | TPL-3–TPL-6 | ☑ |
+| Pinned notebook memory included in every run (`tess memory`, API) | MEM-1 | ☑ |
+| Desktop template gallery | TPL-1 | ☐ |
 | Chat | CHAT-1–CHAT-7 | ☐ |
 
 ## CLI reference (current)
 
 `tess new`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
 `--prompt-name`, `--var`, `--model`, `--thinking`, `--json`, `--out`, `--no-save`), `tess outputs`,
-`tess schedule add|list|remove|enable|disable|next`, `tess serve`, `tess secret`, `tess audit`,
+`tess schedule add|list|remove|enable|disable|next`, `tess template`, `tess memory`, `tess serve`, `tess secret`, `tess audit`,
 `tess models`, `tess worktypes`, `tess config init|show|path`, `tess version`.
 Exit codes: 0 ok, 1 error, 2 usage, 3 output failed schema validation.

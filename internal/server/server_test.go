@@ -19,6 +19,7 @@ import (
 	"github.com/samautomateai/tessivo/internal/llm"
 	"github.com/samautomateai/tessivo/internal/secrets"
 	"github.com/samautomateai/tessivo/internal/service"
+	"github.com/samautomateai/tessivo/internal/template"
 )
 
 const token = "test-token-0123456789"
@@ -40,6 +41,7 @@ func newTestServer(t *testing.T, reply string) (*httptest.Server, *Server) {
 	svc := &service.Service{
 		Config: f, Secrets: secrets.Map{}, Workspace: filepath.Join(dir, "ws"),
 		UserAuditPath: filepath.Join(dir, "audit.jsonl"),
+		Templates:     template.Library{Dir: filepath.Join(dir, "templates")},
 		NewModel: func(config.File, config.Alias, secrets.Resolver) (executor.Model, error) {
 			return fakeModel{reply}, nil
 		},

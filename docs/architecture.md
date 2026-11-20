@@ -27,6 +27,7 @@
 | `server` | Local API: routes, auth/host/origin checks, strict JSON, SSE runs, listeners, endpoint file. See [api.md](api.md). |
 | `cron` | Five-field cron parser; DST-safe next-time computation in the schedule's zone. |
 | `scheduler` | Runs notebook schedules inside `tess serve`: records each occurrence before running, no overlap, bounded concurrency, skip/run_once after downtime, history and events. |
+| `template` | Built-in and user templates (0600 JSON in the config dir): validate (limits, no secrets), apply to a notebook, capture from a notebook, extend with parent lineage, parent-update detection. |
 | `cli` | `tess` commands (including `tess serve`); `cmd/tess` only calls it. |
 
 ## Notebook folder

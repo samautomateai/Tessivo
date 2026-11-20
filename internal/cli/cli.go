@@ -65,6 +65,9 @@ Usage:
   tess serve [--network unix|tcp] [--addr A]   run the local API for the desktop app
   tess schedule add <notebook> --cron EXPR [--prompt P] [--missed skip|run_once]
   tess schedule list|remove|enable|disable <notebook> [id]   tess schedule next "<cron>"
+  tess template list [--type T] | show <id> | use <id> <dir> | save <notebook> --name N
+  tess template extend <id> --name N | delete <id>
+  tess memory list|add|remove <notebook> [text|number]   pinned facts included in every run
   tess secret set|delete|check <ref>          store API keys in the OS keychain (value read from stdin)
   tess config init|show|path
   tess version
@@ -110,6 +113,28 @@ func withDefaults(env Env) Env {
 	return env
 }
 
+// Sub-command words shared by several commands.
+const (
+	subAdd    = "add"
+	subList   = "list"
+	subShow   = "show"
+	subRemove = "remove"
+)
+
+type handler func(ctx context.Context, args []string, env Env) error
+
+func noCtx(f func([]string, Env) error) handler {
+	return func(_ context.Context, args []string, env Env) error { return f(args, env) }
+}
+
+var commands = map[string]handler{
+	"new": noCtx(cmdNew), "context": noCtx(cmdContext), "run": cmdRun, "outputs": noCtx(cmdOutputs),
+	"models": cmdModels, "config": noCtx(cmdConfig), "audit": noCtx(cmdAudit), "serve": cmdServe,
+	"secret": cmdSecret, "schedule": noCtx(cmdSchedule), "template": noCtx(cmdTemplate),
+	"memory":    noCtx(cmdMemory),
+	"worktypes": func(_ context.Context, _ []string, env Env) error { return cmdWorkTypes(env) },
+}
+
 func dispatch(ctx context.Context, args []string, env Env) error {
 	if len(args) == 0 {
 		return usagef("missing command")
@@ -122,31 +147,12 @@ func dispatch(ctx context.Context, args []string, env Env) error {
 	case "help", "-h", "--help":
 		_, err := fmt.Fprintln(env.Stdout, usage)
 		return wrapWrite(err)
-	case "new":
-		return cmdNew(rest, env)
-	case "context":
-		return cmdContext(rest, env)
-	case "run":
-		return cmdRun(ctx, rest, env)
-	case "outputs":
-		return cmdOutputs(rest, env)
-	case "models":
-		return cmdModels(ctx, rest, env)
-	case "worktypes":
-		return cmdWorkTypes(env)
-	case "config":
-		return cmdConfig(rest, env)
-	case "audit":
-		return cmdAudit(rest, env)
-	case "serve":
-		return cmdServe(ctx, rest, env)
-	case "secret":
-		return cmdSecret(ctx, rest, env)
-	case "schedule":
-		return cmdSchedule(rest, env)
-	default:
+	}
+	h, ok := commands[cmd]
+	if !ok {
 		return usagef("unknown command %q", cmd)
 	}
+	return h(ctx, rest, env)
 }
 
 func sortStrings(s []string) { sort.Strings(s) }

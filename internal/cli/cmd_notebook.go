@@ -37,9 +37,9 @@ func cmdContext(args []string, env Env) error {
 		return err
 	}
 	switch sub {
-	case "add":
+	case subAdd:
 		return contextAdd(nb, rest, env)
-	case "list":
+	case subList:
 		return contextList(nb, env)
 	case subEnable, "disable":
 		if len(rest) != 1 {

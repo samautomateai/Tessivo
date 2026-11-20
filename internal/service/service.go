@@ -16,6 +16,7 @@ import (
 	"github.com/samautomateai/tessivo/internal/notebook"
 	"github.com/samautomateai/tessivo/internal/render"
 	"github.com/samautomateai/tessivo/internal/secrets"
+	"github.com/samautomateai/tessivo/internal/template"
 	"github.com/samautomateai/tessivo/internal/worktype"
 )
 
@@ -47,6 +48,7 @@ type Service struct {
 	Workspace     string // folder holding notebooks addressed by ID
 	UserAuditPath string // audit log for runs without a notebook
 	Actor         string // cli, desktop, scheduler
+	Templates     template.Library
 }
 
 // DefaultModelFactory builds an llm.Router.
@@ -155,6 +157,9 @@ func (s *Service) buildSpec(req RunRequest) (executor.Spec, error) {
 	spec := executor.Spec{
 		WorkType: wt, Prompt: prompt, Vars: req.Vars, Documents: append(docs, req.Extra...),
 		Settings: config.Resolve(layers...),
+	}
+	if req.Notebook != nil {
+		spec.Memory = req.Notebook.Manifest.Memory
 	}
 	if spec.Settings.Model == "" {
 		return executor.Spec{}, invalidf("no model set; pass a model or set defaults.model in the config")

@@ -13,7 +13,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/health` | — | `{"ok": true, "version": "…"}` |
 | `GET /v1/worktypes` | — | `{"workTypes": [{id, name, question, starterPrompt, suggestedContext, schema}]}` |
 | `GET /v1/notebooks` | — | `{"notebooks": [Notebook]}` (no context stats) |
-| `POST /v1/notebooks` | `{name, workType}` | `201 Notebook` |
+| `POST /v1/notebooks` | `{name, workType}` or `{templateId, name?}` | `201 Notebook` |
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |
 | `POST /v1/notebooks/{id}/context` | `{path}` (absolute) | `Notebook` |
 | `PATCH /v1/notebooks/{id}/context/{contextId}` | `{enabled}` | `Notebook` |
@@ -26,10 +26,20 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/notebooks/{id}/schedules` | `{cron, prompt?, promptName?, vars?, missed?, enabled?}` | `201 Schedule` |
 | `PATCH /v1/notebooks/{id}/schedules/{scheduleId}` | `{enabled}` | `Schedule` |
 | `DELETE /v1/notebooks/{id}/schedules/{scheduleId}` | — | `204` |
+| `PUT /v1/notebooks/{id}/memory` | `{memory: [string]}` (≤ 50 items, ≤ 1000 chars) | `Notebook` |
+| `GET /v1/templates?workType=` | — | `{"templates": [Template]}` |
+| `GET /v1/templates/{templateId}` | — | `Template` |
+| `POST /v1/templates` | `{fromNotebook, name, id?, description?}` or `{extend, name, id?}` | `201 Template` |
+| `DELETE /v1/templates/{templateId}` | — | `204` (user templates only) |
 | `GET /v1/events` | — | SSE stream of scheduler events (keepalive comments every 25 s) |
 
-`Notebook`: `{id, name, workType, settings, createdAt, outputs, context: [{id, label, path,
+`Notebook`: `{id, name, workType, settings, createdAt, outputs, memory, template?, context: [{id, label, path,
 inPlace, enabled, addedAt, sources, estimatedTokens}]}`.
+
+`Template`: `{id, name, description, workType, version, parent?, prompts: [{name, text, settings}],
+slots: [{name, kind, description, required}], memory, settings, schedule?: {cron, promptName, missed},
+source: "builtin"|"user", parentUpdate?, changedPrompts?}`. Templates never contain context data;
+anything that looks like a credential is rejected.
 
 `Output`: `{id, runId, workType, title, createdAt, notebookId, notebookName, data?, markdown?}`.
 

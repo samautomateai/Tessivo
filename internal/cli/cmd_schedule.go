@@ -25,11 +25,11 @@ func cmdSchedule(args []string, env Env) error {
 	}
 	rest := args[2:]
 	switch sub {
-	case "add":
+	case subAdd:
 		return scheduleAdd(nb, rest, env)
-	case "list":
+	case subList:
 		return scheduleList(nb, env)
-	case "remove", subEnable, "disable":
+	case subRemove, subEnable, "disable":
 		if len(rest) != 1 {
 			return usagef("schedule %s: want <notebook> <schedule-id>", sub)
 		}
@@ -109,7 +109,7 @@ func scheduleEdit(nb *notebook.Notebook, sub, id string, env Env) error {
 		if s.ID != id {
 			continue
 		}
-		if sub == "remove" {
+		if sub == subRemove {
 			list = append(list[:i], list[i+1:]...)
 		} else {
 			list[i].Enabled = sub == subEnable

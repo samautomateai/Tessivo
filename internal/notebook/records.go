@@ -54,13 +54,21 @@ type Output struct {
 	Data      json.RawMessage `json:"data"`
 }
 
-// SavePrompt writes prompts/<name>.json.
-func (n *Notebook) SavePrompt(p Prompt) error {
+// Check validates the prompt name and settings.
+func (p Prompt) Check() error {
 	if !safeName.MatchString(p.Name) {
 		return fmt.Errorf("prompt name %q: use letters, digits, '.', '_' or '-'", p.Name)
 	}
 	if err := p.Settings.Validate(); err != nil {
 		return fmt.Errorf("prompt %s settings: %w", p.Name, err)
+	}
+	return nil
+}
+
+// SavePrompt writes prompts/<name>.json.
+func (n *Notebook) SavePrompt(p Prompt) error {
+	if err := p.Check(); err != nil {
+		return err
 	}
 	return writeJSON(filepath.Join(n.Dir, PromptsDir, p.Name+".json"), p)
 }

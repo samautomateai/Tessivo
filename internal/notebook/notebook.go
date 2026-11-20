@@ -46,6 +46,8 @@ type Manifest struct {
 	CreatedAt string             `json:"createdAt"`
 	Settings  config.RunSettings `json:"settings"`
 	Context   []ContextItem      `json:"context"`
+	Memory    []string           `json:"memory,omitempty"`   // pinned facts included in every run
+	Template  string             `json:"template,omitempty"` // "id@version" this notebook came from
 }
 
 // Notebook is an opened notebook folder.

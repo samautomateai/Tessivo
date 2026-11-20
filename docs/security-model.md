@@ -24,6 +24,7 @@ holds credentials for model providers. Every control below exists in code and is
 | Websites attacking the loopback API (CSRF, DNS rebinding) | Requests with `Origin`/`Sec-Fetch-*` refused; only loopback `Host` values accepted | `server/middleware.go` |
 | API abuse | 1 MiB bodies, strict JSON, header/read timeouts, ≤ 4 concurrent runs, panic recovery, errors redacted | `server` |
 | Path traversal via API | Notebooks addressed by `[a-z0-9-]` IDs inside the workspace; context paths must be absolute files the user picked | `service` |
+| Secrets or data leaking via shared templates | Templates hold prompts, slots, settings and memory only; context data is never captured; credential-looking text is rejected; files ≤ 256 KiB, strict JSON, 0600 | `template` |
 | Vulnerable dependencies | Standard library first; `go mod verify`, govulncheck, gosec, CodeQL, Dependabot | CI, `task audit` |
 
 ## Performance budgets
