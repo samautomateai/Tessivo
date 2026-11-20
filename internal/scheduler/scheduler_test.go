@@ -68,7 +68,9 @@ func newHarness(t *testing.T) *harness {
 	h.svc = &service.Service{
 		Config: f, Secrets: secrets.Map{}, Workspace: filepath.Join(dir, "ws"),
 		UserAuditPath: filepath.Join(dir, "audit.jsonl"),
-		NewModel:      func(config.File, config.Alias, secrets.Resolver) (executor.Model, error) { return h.model, nil },
+		NewModel: func(config.File, config.Alias, secrets.Resolver) (executor.Model, error) {
+			return h.model, nil
+		},
 	}
 	info, err := h.svc.CreateNotebook("Ops", "summarize")
 	if err != nil {
