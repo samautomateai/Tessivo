@@ -2,6 +2,7 @@ package notebook
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -149,5 +150,61 @@ func TestSanitizeAndIDs(t *testing.T) {
 	}
 	if err := writeJSON(filepath.Join(t.TempDir(), "x.json"), func() {}); err == nil {
 		t.Fatal("want encode error")
+	}
+}
+
+func TestSchedulesAndState(t *testing.T) {
+	nb, _ := Create(filepath.Join(t.TempDir(), "n"), "n", worktype.Report)
+	if list, err := nb.Schedules(); err != nil || len(list) != 0 {
+		t.Fatalf("empty: %v %v", list, err)
+	}
+	good := Schedule{ID: "a", Cron: "0 8 * * 1", Missed: MissedSkip, Enabled: true}
+	if err := nb.SaveSchedules([]Schedule{good}); err != nil {
+		t.Fatal(err)
+	}
+	if list, _ := nb.Schedules(); len(list) != 1 || list[0].Cron != "0 8 * * 1" {
+		t.Fatalf("round trip: %+v", list)
+	}
+	bad := []Schedule{
+		{ID: "", Cron: "* * * * *", Missed: MissedSkip},
+		{ID: "x", Cron: "nope", Missed: MissedSkip},
+		{ID: "x", Cron: "* * * * *", Missed: "always"},
+		{ID: "x", Cron: "* * * * *", Missed: MissedSkip, PromptName: "../p"},
+		{ID: "x", Cron: "* * * * *", Missed: MissedSkip, Overrides: config.RunSettings{Mode: "warp"}},
+	}
+	for _, b := range bad {
+		if err := nb.SaveSchedules([]Schedule{b}); err == nil {
+			t.Errorf("want error for %+v", b)
+		}
+	}
+	if err := nb.SaveSchedules([]Schedule{good, good}); err == nil {
+		t.Fatal("want duplicate id error")
+	}
+	many := make([]Schedule, MaxSchedules+1)
+	if err := nb.SaveSchedules(many); err == nil {
+		t.Fatal("want too many error")
+	}
+
+	st, err := nb.LoadScheduleState()
+	if err != nil || len(st.Schedules) != 0 {
+		t.Fatalf("empty state: %v", err)
+	}
+	rs := &ScheduleRunState{}
+	for i := 0; i < MaxHistory+5; i++ {
+		rs.Record(HistoryEntry{Status: "ok", RunID: fmt.Sprint(i)})
+	}
+	if len(rs.History) != MaxHistory || rs.History[0].RunID != fmt.Sprint(MaxHistory+4) {
+		t.Fatal("history must keep the newest entries")
+	}
+	st.Schedules["a"] = rs
+	if err := nb.SaveScheduleState(st); err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := nb.LoadScheduleState(); len(again.Schedules["a"].History) != MaxHistory {
+		t.Fatal("state round trip")
+	}
+	_ = os.WriteFile(filepath.Join(nb.Dir, SchedulesFile), []byte("{"), 0o600)
+	if _, err := nb.Schedules(); err == nil {
+		t.Fatal("want parse error")
 	}
 }

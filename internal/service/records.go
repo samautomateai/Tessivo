@@ -27,8 +27,10 @@ type runAudit struct {
 	runID string
 }
 
-func (s *Service) startAudit(nb *notebook.Notebook, spec executor.Spec) (*runAudit, error) {
-	actor := s.Actor
+func (s *Service) startAudit(nb *notebook.Notebook, spec executor.Spec, actor string) (*runAudit, error) {
+	if actor == "" {
+		actor = s.Actor
+	}
 	if actor == "" {
 		actor = "core"
 	}

@@ -64,6 +64,7 @@ type RunRequest struct {
 	Overrides  config.RunSettings
 	Extra      []extract.Document // e.g. piped stdin
 	Save       bool
+	Actor      string // overrides Service.Actor in the audit log (e.g. scheduler)
 }
 
 // RunOutcome is a finished run.
@@ -94,7 +95,7 @@ func (s *Service) Run(ctx context.Context, req RunRequest, onEvent func(executor
 	if err != nil {
 		return RunOutcome{}, err
 	}
-	rec, err := s.startAudit(req.Notebook, spec)
+	rec, err := s.startAudit(req.Notebook, spec, req.Actor)
 	if err != nil {
 		return RunOutcome{}, fmt.Errorf("audit: %w", err)
 	}
