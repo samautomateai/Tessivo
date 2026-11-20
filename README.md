@@ -13,6 +13,16 @@ Analyze, summarize, document and report with self-hosted models. A native deskto
   and the structure of the output.
 - **Context**: any mix of documents, spreadsheets, code bases, diffs, URLs, text and MCP resources.
 
+## Quick start
+
+```sh
+tess config init                       # writes the config with a LiteLLM provider
+tess secret set TESSIVO_LITELLM_KEY    # stores the key in your OS keychain
+tess new risk --type analyze
+tess context add risk ./my-repo
+tess run risk --model litellm/<model>
+```
+
 ## Develop
 
 Requires the latest stable Go (see `go.mod`), [Task](https://taskfile.dev), golangci-lint v2 and,

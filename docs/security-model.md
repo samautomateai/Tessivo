@@ -7,7 +7,7 @@ holds credentials for model providers. Every control below exists in code and is
 
 | Threat | Control | Where |
 | --- | --- | --- |
-| Credential leak in config or argv | Config stores only `api_key_ref`; keys come from env/keychain; `config show` never prints values | `config`, `secrets` |
+| Credential leak in config or argv | Config stores only `api_key_ref`; keys come from env or the OS keychain; keychain writes pass values via stdin (hex on macOS), never argv; terminal input has echo off; `config show` and `secret check` never print values | `config`, `secrets`, `keychain` |
 | Credential leak in logs, errors, audit | Value redaction plus pattern redaction (Bearer, `sk-…`, `api_key=`/`token=`/`password=`); provider error bodies redacted | `secrets`, `llm`, `audit` |
 | Key sent in clear text | Plain `http://` refused for non-loopback hosts unless `allow_insecure_http`; URLs with embedded credentials refused; TLS 1.2+ | `config`, `llm/transport.go` |
 | Headers or keys forwarded by redirects | All HTTP redirects refused | `llm/transport.go` |

@@ -26,7 +26,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Flutter client for the local API (Unix socket/loopback, token, SSE, endpoint discovery, demo fallback) | — | ☑ |
 | Desktop launches and supervises `tess serve` itself | — | ☐ |
 | Extractors: DOCX (paragraphs, tables), XLSX (all sheets, computed stats), PPTX (slides + notes); zip-bomb, entry, size and XML-token limits; fuzzed | SRC-1 | ☑ |
-| OS keychain secrets (go-keyring) | SET-1 | ☐ |
+| OS keychain secrets, built in-house: `tess secret set/delete/check`; env then keychain lookup | SET-1 | ☑ |
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |
 | Agent executor on Eino + MCP tools | WT/E11 | ☐ |
 

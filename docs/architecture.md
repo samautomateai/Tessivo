@@ -13,7 +13,8 @@
 | Package | Responsibility |
 | --- | --- |
 | `config` | Layered settings: app → notebook → work type → prompt → run. Most specific wins; records the source of each value. |
-| `secrets` | Secret lookup: environment variables now, OS keychain later. Never written to disk by Tessivo. |
+| `secrets` | Secret lookup and redaction; the default chain is environment variables, then the OS keychain. |
+| `keychain` | OS credential stores: macOS keychain, Linux Secret Service, Windows Credential Manager. Values pass through stdin or memory, never argv. |
 | `llm` | OpenAI-compatible client: models list, chat completions, SSE streaming, JSON-schema `response_format`, reasoning effort. |
 | `llm/fallback` logic (in `llm`) | Alias → ordered model chain; retry with backoff; falls back on timeout, rate limit, 5xx, context overflow; reports which model answered. |
 | `worktype` | Built-in work types (Analyze, Summarize, Document, Report): starter prompt, suggested context, output schema. |

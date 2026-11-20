@@ -13,6 +13,7 @@ import (
 
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/executor"
+	"github.com/samautomateai/tessivo/internal/keychain"
 	"github.com/samautomateai/tessivo/internal/llm"
 	"github.com/samautomateai/tessivo/internal/secrets"
 )
@@ -36,6 +37,7 @@ type Env struct {
 	Stderr     io.Writer
 	ConfigPath string
 	Secrets    secrets.Resolver
+	Keychain   keychain.Store
 	// NewModel builds the model for an alias; defaults to an llm.Router.
 	NewModel func(f config.File, alias config.Alias, sec secrets.Resolver) (executor.Model, error)
 	// ListModels lists a provider's models; defaults to the llm client.
@@ -61,6 +63,7 @@ Usage:
   tess worktypes                            list work types
   tess audit verify|show [<notebook-or-file>] [--last N]   check or read the tamper-evident audit log
   tess serve [--network unix|tcp] [--addr A]   run the local API for the desktop app
+  tess secret set|delete|check <ref>          store API keys in the OS keychain (value read from stdin)
   tess config init|show|path
   tess version
 
@@ -88,8 +91,11 @@ func Main(ctx context.Context, args []string, env Env) int {
 }
 
 func withDefaults(env Env) Env {
+	if env.Keychain == nil {
+		env.Keychain = keychain.New()
+	}
 	if env.Secrets == nil {
-		env.Secrets = secrets.Env{}
+		env.Secrets = secrets.Chain{secrets.Env{}, keychain.Resolver{Store: env.Keychain}}
 	}
 	if env.NewModel == nil {
 		env.NewModel = func(f config.File, a config.Alias, s secrets.Resolver) (executor.Model, error) {
@@ -132,6 +138,8 @@ func dispatch(ctx context.Context, args []string, env Env) error {
 		return cmdAudit(rest, env)
 	case "serve":
 		return cmdServe(ctx, rest, env)
+	case "secret":
+		return cmdSecret(ctx, rest, env)
 	default:
 		return usagef("unknown command %q", cmd)
 	}

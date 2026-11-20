@@ -59,7 +59,7 @@ func cmdConfig(args []string, env Env) error {
 		if err := config.Default().Save(p); err != nil {
 			return err
 		}
-		_, err := fmt.Fprintf(env.Stdout, "wrote %s\nset your key: export TESSIVO_LITELLM_KEY=...\n", p)
+		_, err := fmt.Fprintf(env.Stdout, "wrote %s\nstore your key: tess secret set TESSIVO_LITELLM_KEY\n", p)
 		return wrapWrite(err)
 	case "show":
 		f, err := loadConfig(env)
