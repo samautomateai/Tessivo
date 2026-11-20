@@ -153,12 +153,22 @@ func execute(ctx context.Context, f config.File, nb *notebook.Notebook, spec exe
 			_, _ = fmt.Fprintf(env.Stderr, "· %s\n", e.Text)
 		}
 	}
+	rec, err := startAudit(nb, spec, env)
+	if err != nil {
+		return fmt.Errorf("audit: %w", err)
+	}
 	started := time.Now()
 	res, runErr := (&executor.Pipeline{Model: model}).Run(ctx, spec, onEvent)
+	outputID := ""
 	if nb != nil && !o.noSave {
-		if err := saveRun(nb, spec, res, runErr, started); err != nil {
-			return errors.Join(runErr, err)
+		id, err := saveRun(nb, rec.runID, spec, res, runErr, started)
+		if err != nil {
+			return errors.Join(runErr, err, rec.finish(res, runErr, "", time.Since(started)))
 		}
+		outputID = id
+	}
+	if err := rec.finish(res, runErr, outputID, time.Since(started)); err != nil {
+		return errors.Join(runErr, fmt.Errorf("audit: %w", err))
 	}
 	if runErr != nil {
 		return runErr
@@ -193,9 +203,11 @@ func requiredOrder(wt worktype.WorkType) []string {
 	return s.Required
 }
 
-func saveRun(nb *notebook.Notebook, spec executor.Spec, res executor.Result, runErr error, started time.Time) error {
+func saveRun(nb *notebook.Notebook, runID string, spec executor.Spec, res executor.Result, runErr error,
+	started time.Time,
+) (string, error) {
 	run := notebook.Run{
-		ID: notebook.NewID(), StartedAt: started.UTC().Format(time.RFC3339), WorkType: spec.WorkType.ID,
+		ID: runID, StartedAt: started.UTC().Format(time.RFC3339), WorkType: spec.WorkType.ID,
 		DurationMS: time.Since(started).Milliseconds(), Prompt: spec.Prompt, Vars: spec.Vars, Settings: spec.Settings,
 		ModelUsed: res.Model, Strategy: res.Strategy, TotalTokens: res.TotalTokens, Valid: res.Valid,
 	}
@@ -219,11 +231,11 @@ func saveRun(nb *notebook.Notebook, spec executor.Spec, res executor.Result, run
 		}
 		md, _ := render.Markdown(res.Data, requiredOrder(spec.WorkType))
 		if err := nb.SaveOutput(out, md); err != nil {
-			return err
+			return "", err
 		}
 		run.OutputID = out.ID
 	}
-	return nb.SaveRun(run)
+	return run.OutputID, nb.SaveRun(run)
 }
 
 func titleOf(data json.RawMessage) string {

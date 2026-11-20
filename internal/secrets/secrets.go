@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -73,6 +74,28 @@ func Redact(s string, values ...string) string {
 		if len(v) >= 4 {
 			s = strings.ReplaceAll(s, v, "[REDACTED]")
 		}
+	}
+	return s
+}
+
+// keyPatterns match common credential shapes so they are redacted even when
+// the exact value is unknown (defence in depth for logs and audit entries).
+var keyPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)(bearer\s+)[A-Za-z0-9._~+/=-]{8,}`),
+	regexp.MustCompile(`\bsk-[A-Za-z0-9_-]{8,}`),
+	regexp.MustCompile(`(?i)((?:api[_-]?key|token|secret|password)["']?\s*[:=]\s*["']?)[^\s"',;]{6,}`),
+}
+
+// RedactPatterns replaces credential-looking substrings with [REDACTED].
+func RedactPatterns(s string) string {
+	for _, re := range keyPatterns {
+		s = re.ReplaceAllStringFunc(s, func(m string) string {
+			sub := re.FindStringSubmatch(m)
+			if len(sub) > 1 {
+				return sub[1] + "[REDACTED]"
+			}
+			return "[REDACTED]"
+		})
 	}
 	return s
 }

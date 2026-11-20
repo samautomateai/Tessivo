@@ -21,6 +21,7 @@
 | `extract` | Context extractors by type (text, Markdown, CSV, JSON, code base; DOCX/XLSX/PPTX next). |
 | `notebook` | Notebook folder layout, manifest, context items, prompts, run records, outputs. |
 | `executor` | `Executor` interface; `pipeline` mode now, `agent` mode (Eino) next. |
+| `audit` | Tamper-evident audit log: append-only JSONL, each entry's SHA-256 covers the previous one; secrets redacted, prompts stored as digests; `Verify` detects edits, deletions and reordering. |
 | `cli` | `tess` commands; `cmd/tess` only calls it. |
 
 ## Notebook folder
@@ -32,6 +33,7 @@
   context/           copied files (code bases and folders are referenced in place)
   runs/<run-id>.json run record: inputs, effective settings, model used, tokens, timing, result
   outputs/<id>.json  validated structured output (+ rendered .md)
+  audit.jsonl        tamper-evident log of runs, model attempts, tool calls, saved outputs
 ```
 
 SQLite (FTS, retrieval) arrives with the desktop MVP; the folder stays the source of truth so

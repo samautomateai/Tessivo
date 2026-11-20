@@ -12,7 +12,10 @@ Do not open a public issue. We aim to acknowledge reports within 3 working days.
   config files, notebooks, templates or logs.
 - **Self-hosted by design**: model traffic goes only to the providers you configure. No telemetry.
 - **Local-only core**: the desktop UI talks to the Go core over a local socket with a per-session token.
-- **Tool calls** from agent mode and MCP servers follow allow / ask / block rules and are logged per run.
+- **Audit trail**: every run, model attempt, tool call and saved output is appended to a hash-chained
+  `audit.jsonl` (0600). Prompts are stored as SHA-256 digests, secrets are redacted, and
+  `tess audit verify` detects any edit, deletion or reordering.
+- **Tool calls** from agent mode and MCP servers follow allow / ask / block rules and are audited.
 - **Supply chain**: standard library first; every dependency is justified in
   [docs/adr/0003-dependency-policy.md](docs/adr/0003-dependency-policy.md), scanned with `govulncheck`,
   and kept current by Dependabot.

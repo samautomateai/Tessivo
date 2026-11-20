@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/samautomateai/tessivo/internal/config"
@@ -58,6 +59,7 @@ Usage:
   tess outputs <notebook>                   list saved outputs, newest first
   tess models [--provider NAME]             list models from configured providers
   tess worktypes                            list work types
+  tess audit verify|show [<notebook-or-file>] [--last N]   check or read the tamper-evident audit log
   tess config init|show|path
   tess version
 
@@ -125,10 +127,14 @@ func dispatch(ctx context.Context, args []string, env Env) error {
 		return cmdWorkTypes(env)
 	case "config":
 		return cmdConfig(rest, env)
+	case "audit":
+		return cmdAudit(rest, env)
 	default:
 		return usagef("unknown command %q", cmd)
 	}
 }
+
+func sortStrings(s []string) { sort.Strings(s) }
 
 func wrapWrite(err error) error {
 	if err != nil {

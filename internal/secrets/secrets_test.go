@@ -39,3 +39,18 @@ func TestRedact(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestRedactPatterns(t *testing.T) {
+	cases := map[string]string{
+		"Authorization: Bearer abcdefgh12345": "Authorization: Bearer [REDACTED]",
+		"key sk-ABCDEFGH1234 used":            "key [REDACTED] used",
+		`{"api_key": "hunter22hunter"}`:       `{"api_key": "[REDACTED]"}`,
+		"password=s3cretpass;":                "password=[REDACTED];",
+		"nothing to hide":                     "nothing to hide",
+	}
+	for in, want := range cases {
+		if got := RedactPatterns(in); got != want {
+			t.Errorf("RedactPatterns(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
