@@ -16,8 +16,9 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Notebook folder store, run records, outputs | NB-1, RUN-2, REP-1 | ☐☑ |
 | Pipeline executor | RUN-1 | ☐☑ |
 | `tess` CLI: init, notebook, context, run, models | CLI-1, CLI-2, CLI-3 | ☐☑ |
-| gRPC contract | — | ☐ |
-| Flutter desktop shell (theme, navigation, screen stubs) | — | ☐ |
+| gRPC contract (`api/proto`, buf lint/generate) | — | ☑ |
+| Flutter desktop shell: theme, sidebar, workspace, new notebook, library, settings on a demo core | — | ☑ |
+| Flutter gRPC client replacing the demo core; core gRPC server | — | ☐ |
 | Extractors: DOCX, XLSX, PPTX (zip + XML, stdlib) | SRC-1 | ☐ |
 | OS keychain secrets (go-keyring) | SET-1 | ☐ |
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |

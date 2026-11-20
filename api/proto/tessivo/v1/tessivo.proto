@@ -1,0 +1,224 @@
+syntax = "proto3";
+
+// Contract between the Flutter desktop app and the Go core. The core serves it
+// on a local socket (Unix domain socket or Windows named pipe) and requires a
+// per-session token in the "authorization" metadata.
+package tessivo.v1;
+
+option go_package = "github.com/samautomateai/tessivo/internal/gen/tessivo/v1;tessivov1";
+
+// WorkTypeService lists the built-in and custom work types.
+service WorkTypeService {
+  rpc ListWorkTypes(ListWorkTypesRequest) returns (ListWorkTypesResponse);
+}
+
+// NotebookService manages notebooks and their context.
+service NotebookService {
+  rpc ListNotebooks(ListNotebooksRequest) returns (ListNotebooksResponse);
+  rpc CreateNotebook(CreateNotebookRequest) returns (Notebook);
+  rpc GetNotebook(GetNotebookRequest) returns (Notebook);
+  rpc AddContext(AddContextRequest) returns (ContextItem);
+  rpc SetContextEnabled(SetContextEnabledRequest) returns (ContextItem);
+}
+
+// RunService starts runs and streams their progress.
+service RunService {
+  rpc StartRun(StartRunRequest) returns (stream RunEvent);
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse);
+}
+
+// OutputService reads the outputs library.
+service OutputService {
+  rpc ListOutputs(ListOutputsRequest) returns (ListOutputsResponse);
+  rpc GetOutput(GetOutputRequest) returns (Output);
+}
+
+// SettingsService reads configuration and provider models. Secrets never
+// cross this API: only reference names do.
+service SettingsService {
+  rpc GetSettings(GetSettingsRequest) returns (Settings);
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+}
+
+message WorkType {
+  string id = 1;
+  string name = 2;
+  string question = 3;
+  string starter_prompt = 4;
+  repeated string suggested_context = 5;
+  string output_schema_json = 6;
+}
+
+message ListWorkTypesRequest {}
+
+message ListWorkTypesResponse {
+  repeated WorkType work_types = 1;
+}
+
+message RunSettings {
+  string model = 1;
+  optional double temperature = 2;
+  optional int32 max_output_tokens = 3;
+  optional int32 context_budget = 4;
+  string thinking_effort = 5; // off, low, medium, high
+  string mode = 6;            // pipeline, agent
+}
+
+message ContextItem {
+  string id = 1;
+  string label = 2;
+  string path = 3;
+  bool in_place = 4;
+  bool enabled = 5;
+  int32 sources = 6;
+  int32 estimated_tokens = 7;
+}
+
+message Notebook {
+  string id = 1;
+  string dir = 2;
+  string name = 3;
+  string work_type = 4;
+  RunSettings settings = 5;
+  repeated ContextItem context = 6;
+  string created_at = 7;
+}
+
+message ListNotebooksRequest {}
+
+message ListNotebooksResponse {
+  repeated Notebook notebooks = 1;
+}
+
+message CreateNotebookRequest {
+  string dir = 1;
+  string name = 2;
+  string work_type = 3;
+}
+
+message GetNotebookRequest {
+  string dir = 1;
+}
+
+message AddContextRequest {
+  string notebook_dir = 1;
+  string path = 2;
+}
+
+message SetContextEnabledRequest {
+  string notebook_dir = 1;
+  string context_id = 2;
+  bool enabled = 3;
+}
+
+message StartRunRequest {
+  string notebook_dir = 1;
+  string prompt = 2;
+  map<string, string> vars = 3;
+  RunSettings overrides = 4;
+  bool save = 5;
+}
+
+message Attempt {
+  string target = 1;
+  string trigger = 2;
+  string error = 3;
+}
+
+message RunEvent {
+  oneof event {
+    string status = 1;
+    string delta = 2;
+    RunFinished finished = 3;
+  }
+}
+
+message RunFinished {
+  string run_id = 1;
+  bool valid = 2;
+  string model_used = 3;
+  string strategy = 4;
+  int32 total_tokens = 5;
+  repeated Attempt attempts = 6;
+  string output_id = 7;
+  string output_json = 8;
+  string output_markdown = 9;
+  string error = 10;
+}
+
+message Run {
+  string id = 1;
+  string started_at = 2;
+  int64 duration_ms = 3;
+  string model_used = 4;
+  bool valid = 5;
+  int32 total_tokens = 6;
+  string output_id = 7;
+}
+
+message ListRunsRequest {
+  string notebook_dir = 1;
+}
+
+message ListRunsResponse {
+  repeated Run runs = 1;
+}
+
+message Output {
+  string id = 1;
+  string run_id = 2;
+  string work_type = 3;
+  string title = 4;
+  string created_at = 5;
+  string data_json = 6;
+  string markdown = 7;
+  string notebook_dir = 8;
+}
+
+message ListOutputsRequest {
+  string notebook_dir = 1; // empty: all notebooks
+  string work_type = 2;    // empty: all
+}
+
+message ListOutputsResponse {
+  repeated Output outputs = 1;
+}
+
+message GetOutputRequest {
+  string notebook_dir = 1;
+  string output_id = 2;
+}
+
+message Provider {
+  string name = 1;
+  string base_url = 2;
+  string api_key_ref = 3;
+}
+
+message ModelRef {
+  string provider = 1;
+  string model = 2;
+}
+
+message Alias {
+  string name = 1;
+  repeated ModelRef chain = 2;
+  repeated string fallback_on = 3;
+  int32 max_retries = 4;
+}
+
+message Settings {
+  repeated Provider providers = 1;
+  repeated Alias aliases = 2;
+  RunSettings defaults = 3;
+}
+
+message GetSettingsRequest {}
+
+message ListModelsRequest {
+  string provider = 1;
+}
+
+message ListModelsResponse {
+  repeated string model_ids = 1;
+}

@@ -1,0 +1,24 @@
+name: tessivo_desktop
+description: Tessivo desktop app — analyze, summarize, document and report with self-hosted models.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+  flutter: ">=3.47.0"
+
+# Dependency policy (docs/adr/0003): official SDK packages only unless building
+# it ourselves makes no sense. material_ui is Flutter's Material library, which
+# moved out of the framework in Flutter 3.47. State uses ChangeNotifier (SDK).
+dependencies:
+  flutter:
+    sdk: flutter
+  material_ui: ^1.11.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

@@ -34,4 +34,13 @@ below with its reason in the same change that adds it.
 
 ## Current direct dependencies
 
-None — standard library only.
+Go: none — standard library only.
+
+Flutter (`desktop/pubspec.yaml`):
+
+| Dependency | Reason |
+| --- | --- |
+| `material_ui` | Flutter's official Material library, moved out of the framework in Flutter 3.47 |
+| `flutter_lints` (dev) | Official lint set for `flutter analyze` |
+
+State management uses the SDK's `ChangeNotifier`; no third-party state package.
