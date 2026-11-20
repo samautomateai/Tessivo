@@ -22,11 +22,28 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks/{id}/outputs/{outputId}` | — | `Output` with `data` and `markdown` |
 | `GET /v1/settings` | — | config (key references only) |
 | `GET /v1/models?provider=` | — | `{"models": {"provider": ["model", …]}}` |
+| `GET /v1/notebooks/{id}/schedules` | — | `{"schedules": [Schedule]}` |
+| `POST /v1/notebooks/{id}/schedules` | `{cron, prompt?, promptName?, vars?, missed?, enabled?}` | `201 Schedule` |
+| `PATCH /v1/notebooks/{id}/schedules/{scheduleId}` | `{enabled}` | `Schedule` |
+| `DELETE /v1/notebooks/{id}/schedules/{scheduleId}` | — | `204` |
+| `GET /v1/events` | — | SSE stream of scheduler events (keepalive comments every 25 s) |
 
 `Notebook`: `{id, name, workType, settings, createdAt, outputs, context: [{id, label, path,
 inPlace, enabled, addedAt, sources, estimatedTokens}]}`.
 
 `Output`: `{id, runId, workType, title, createdAt, notebookId, notebookName, data?, markdown?}`.
+
+`Schedule`: `{id, cron, prompt, promptName, vars, overrides, missed: "skip"|"run_once", enabled,
+createdAt, notebookId, nextRun, history: [{scheduledFor, startedAt, durationMs, status, runId,
+outputId, error}]}`. Cron: five fields, names, ranges, steps, lists, `@daily`-style macros and an
+optional `CRON_TZ=Area/City` prefix; otherwise the core's local time zone.
+
+## Events stream
+
+Each event is `event: event` with `data: {kind, notebookId, notebookName, scheduleId,
+scheduledFor, runId?, outputId?, title?, error?, time}` where `kind` is `schedule.started`,
+`schedule.finished`, `schedule.failed` or `schedule.skipped`. Slow subscribers drop events;
+at most 16 streams at once.
 
 ## Run stream
 

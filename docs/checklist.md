@@ -30,9 +30,23 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |
 | Agent executor on Eino + MCP tools | WT/E11 | ☐ |
 
+## M2: scheduling
+
+| Item | Stories | Status |
+| --- | --- | --- |
+| Cron parser (names, steps, macros, CRON_TZ, DST-safe), fuzzed | SCH-1 | ☑ |
+| Schedules per notebook; scheduler inside `tess serve` with no overlap and bounded concurrency | SCH-1 | ☑ |
+| Missed-run policy (skip / run_once) after downtime | SCH-2 | ☑ |
+| Events stream for notifications (`/v1/events`) | SCH-3 | ☑ |
+| Desktop notifications and schedules screen | SCH-3, SCH-4 | ☐ |
+| Schedule history (newest 50 per schedule) via API and `tess schedule list` | SCH-4 | ☑ |
+| Templates | TPL-1–TPL-6 | ☐ |
+| Chat | CHAT-1–CHAT-7 | ☐ |
+
 ## CLI reference (current)
 
 `tess new`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
 `--prompt-name`, `--var`, `--model`, `--thinking`, `--json`, `--out`, `--no-save`), `tess outputs`,
+`tess schedule add|list|remove|enable|disable|next`, `tess serve`, `tess secret`, `tess audit`,
 `tess models`, `tess worktypes`, `tess config init|show|path`, `tess version`.
 Exit codes: 0 ok, 1 error, 2 usage, 3 output failed schema validation.

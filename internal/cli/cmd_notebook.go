@@ -41,11 +41,11 @@ func cmdContext(args []string, env Env) error {
 		return contextAdd(nb, rest, env)
 	case "list":
 		return contextList(nb, env)
-	case "enable", "disable":
+	case subEnable, "disable":
 		if len(rest) != 1 {
 			return usagef("context %s: want <notebook> <id-or-label>", sub)
 		}
-		return nb.SetEnabled(rest[0], sub == "enable")
+		return nb.SetEnabled(rest[0], sub == subEnable)
 	default:
 		return usagef("context: unknown subcommand %q", sub)
 	}

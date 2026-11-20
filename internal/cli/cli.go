@@ -63,6 +63,8 @@ Usage:
   tess worktypes                            list work types
   tess audit verify|show [<notebook-or-file>] [--last N]   check or read the tamper-evident audit log
   tess serve [--network unix|tcp] [--addr A]   run the local API for the desktop app
+  tess schedule add <notebook> --cron EXPR [--prompt P] [--missed skip|run_once]
+  tess schedule list|remove|enable|disable <notebook> [id]   tess schedule next "<cron>"
   tess secret set|delete|check <ref>          store API keys in the OS keychain (value read from stdin)
   tess config init|show|path
   tess version
@@ -140,6 +142,8 @@ func dispatch(ctx context.Context, args []string, env Env) error {
 		return cmdServe(ctx, rest, env)
 	case "secret":
 		return cmdSecret(ctx, rest, env)
+	case "schedule":
+		return cmdSchedule(rest, env)
 	default:
 		return usagef("unknown command %q", cmd)
 	}

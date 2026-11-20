@@ -21,6 +21,9 @@ const MaxConcurrentRuns = 4
 
 // Server is the HTTP API.
 type Server struct {
+	// Events, when set, backs GET /v1/events (scheduler notifications).
+	Events *Broker
+
 	svc     *service.Service
 	token   string
 	version string
@@ -50,6 +53,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/outputs", s.listOutputs)
 	mux.HandleFunc("GET /v1/settings", s.settings)
 	mux.HandleFunc("GET /v1/models", s.models)
+	mux.HandleFunc("GET /v1/events", s.events)
+	mux.HandleFunc("GET /v1/notebooks/{id}/schedules", s.listSchedules)
+	mux.HandleFunc("POST /v1/notebooks/{id}/schedules", s.addSchedule)
+	mux.HandleFunc("PATCH /v1/notebooks/{id}/schedules/{sid}", s.setSchedule)
+	mux.HandleFunc("DELETE /v1/notebooks/{id}/schedules/{sid}", s.deleteSchedule)
 	return s.secure(mux)
 }
 

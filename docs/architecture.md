@@ -25,6 +25,8 @@
 | `audit` | Tamper-evident audit log: append-only JSONL, each entry's SHA-256 covers the previous one; secrets redacted, prompts stored as digests; `Verify` detects edits, deletions and reordering. |
 | `service` | Application layer shared by CLI and server: workspace notebooks by validated ID, runs (settings, audit, records), outputs, settings, models. |
 | `server` | Local API: routes, auth/host/origin checks, strict JSON, SSE runs, listeners, endpoint file. See [api.md](api.md). |
+| `cron` | Five-field cron parser; DST-safe next-time computation in the schedule's zone. |
+| `scheduler` | Runs notebook schedules inside `tess serve`: records each occurrence before running, no overlap, bounded concurrency, skip/run_once after downtime, history and events. |
 | `cli` | `tess` commands (including `tess serve`); `cmd/tess` only calls it. |
 
 ## Notebook folder
@@ -36,6 +38,8 @@
   context/           copied files (code bases and folders are referenced in place)
   runs/<run-id>.json run record: inputs, effective settings, model used, tokens, timing, result
   outputs/<id>.json  validated structured output (+ rendered .md)
+  schedules.json     schedule definitions (user-edited)
+  schedule-state.json  last handled occurrence and run history (scheduler-only)
   audit.jsonl        tamper-evident log of runs, model attempts, tool calls, saved outputs
 ```
 

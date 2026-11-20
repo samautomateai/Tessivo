@@ -46,6 +46,13 @@ func (s *sseWriter) send(event string, data any) {
 	s.f.Flush()
 }
 
+func (s *sseWriter) comment(text string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, _ = fmt.Fprintf(s.w, ": %s\n\n", text)
+	s.f.Flush()
+}
+
 // Endpoint tells the desktop app how to reach the core. It is written 0600
 // and removed on shutdown; the token never appears in argv or logs.
 type Endpoint struct {
