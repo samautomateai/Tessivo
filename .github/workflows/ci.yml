@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "m*-**", "feat/**", "fix/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - name: Lengths
+        run: go run ./tools/lencheck -max-line 120 -max-file 500 -max-test-file 800 .
+      - name: Tidy
+        run: go mod tidy && git diff --exit-code go.mod go.sum
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+      - name: Test with race detector
+        run: go test -race -count=1 ./...
+      - name: Coverage gate (80%)
+        run: |
+          go test -count=1 -covermode=atomic -coverprofile=coverage.out ./...
+          go run ./tools/covercheck -profile coverage.out -min 80
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - name: Build
+        run: go build -trimpath ./...
+
+  gosec:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gosec
+        run: go run github.com/securego/gosec/v2/cmd/gosec@latest -no-fail -fmt sarif -out gosec.sarif ./...
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gosec.sarif
+
+  desktop:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze --fatal-infos
+      - run: flutter test --coverage
+      - name: Coverage gate (80%)
+        run: |
+          total=$(awk -F: '/^LF:/{t+=$2} /^LH:/{h+=$2}
+            END{if(t==0)print 100; else printf "%.1f", h*100/t}' coverage/lcov.info)
+          echo "desktop coverage: ${total}%"
+          awk -v t="$total" 'BEGIN{exit (t+0 < 80)}'
