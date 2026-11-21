@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/samautomateai/tessivo/internal/mcp/mcptest"
+	"github.com/samautomateai/tessivo/internal/notebook"
 )
 
 // addFake runs `tess mcp add` for the fake server in mode.
@@ -69,5 +71,26 @@ func TestMCPUsage(t *testing.T) {
 	}
 	if code := h.run("mcp", "remove", "missing"); code != ExitError {
 		t.Errorf("remove missing: %d", code)
+	}
+}
+
+func TestMCPAttachDetach(t *testing.T) {
+	h := newHarness(t)
+	h.initConfig()
+	h.addFake("fake", mcptest.ModeOK)
+	dir := filepath.Join(h.dir, "nb")
+	h.mustRun("new", dir, "--type", "summarize")
+	h.mustRun("mcp", "attach", dir, "fake")
+	nb, _ := notebook.Open(dir)
+	if len(nb.Manifest.Agent.MCPServers) != 1 {
+		t.Fatalf("attach: %+v", nb.Manifest.Agent)
+	}
+	h.mustRun("mcp", "detach", dir, "fake")
+	nb, _ = notebook.Open(dir)
+	if len(nb.Manifest.Agent.MCPServers) != 0 {
+		t.Fatalf("detach: %+v", nb.Manifest.Agent)
+	}
+	if code := h.run("mcp", "attach", dir, "nope"); code != ExitUsage {
+		t.Fatalf("attach unknown: %d", code)
 	}
 }

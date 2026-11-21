@@ -8,16 +8,16 @@ import (
 	"github.com/samautomateai/tessivo/internal/mcp/mcptest"
 )
 
-func fakeBody(t *testing.T, name, mode string) string {
+func fakeBody(t *testing.T) string {
 	t.Helper()
-	prog, args, env := mcptest.Command(t, mode)
-	b, _ := json.Marshal(map[string]any{"name": name, "command": prog, "args": args, "env": env})
+	prog, args, env := mcptest.Command(t, mcptest.ModeOK)
+	b, _ := json.Marshal(map[string]any{"name": "fake", "command": prog, "args": args, "env": env})
 	return string(b)
 }
 
 func TestMCPServersAPI(t *testing.T) {
 	ts, _ := newTestServer(t, "")
-	if code, body := call(t, ts, "POST", "/v1/mcp/servers", fakeBody(t, "fake", mcptest.ModeOK)); code != 201 ||
+	if code, body := call(t, ts, "POST", "/v1/mcp/servers", fakeBody(t)); code != 201 ||
 		!strings.Contains(body, `"name":"fake"`) {
 		t.Fatalf("add: %d %s", code, body)
 	}
@@ -35,8 +35,8 @@ func TestMCPServersAPI(t *testing.T) {
 
 func TestMCPAddConflict409(t *testing.T) {
 	ts, _ := newTestServer(t, "")
-	call(t, ts, "POST", "/v1/mcp/servers", fakeBody(t, "fake", mcptest.ModeOK))
-	if code, _ := call(t, ts, "POST", "/v1/mcp/servers", fakeBody(t, "fake", mcptest.ModeOK)); code != 409 {
+	call(t, ts, "POST", "/v1/mcp/servers", fakeBody(t))
+	if code, _ := call(t, ts, "POST", "/v1/mcp/servers", fakeBody(t)); code != 409 {
 		t.Fatalf("duplicate: %d", code)
 	}
 	if code, _ := call(t, ts, "POST", "/v1/mcp/servers", `{"name":"Bad Name","command":"x"}`); code != 400 {
@@ -51,5 +51,24 @@ func TestMCPTestUnknown404(t *testing.T) {
 	}
 	if code, _ := call(t, ts, "DELETE", "/v1/mcp/servers/nope", ""); code != 404 {
 		t.Fatalf("delete unknown: %d", code)
+	}
+}
+
+func TestNotebookMCPAPI(t *testing.T) {
+	ts, _ := newTestServer(t, "")
+	call(t, ts, "POST", "/v1/mcp/servers", fakeBody(t))
+	code, body := call(t, ts, "POST", "/v1/notebooks", `{"name":"Ops","workType":"summarize"}`)
+	if code != 201 {
+		t.Fatalf("create: %d %s", code, body)
+	}
+	if code, body = call(t, ts, "PUT", "/v1/notebooks/ops/mcp", `{"servers":["fake"]}`); code != 200 ||
+		!strings.Contains(body, `"mcpServers":["fake"]`) {
+		t.Fatalf("attach: %d %s", code, body)
+	}
+	if code, _ = call(t, ts, "DELETE", "/v1/mcp/servers/fake", ""); code != 409 {
+		t.Fatalf("remove attached: %d", code)
+	}
+	if code, _ = call(t, ts, "PUT", "/v1/notebooks/ops/mcp", `{"servers":["nope"]}`); code != 400 {
+		t.Fatalf("unknown: %d", code)
 	}
 }

@@ -11,6 +11,7 @@ func (s *Server) mcpRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/mcp/servers", s.addMCP)
 	mux.HandleFunc("DELETE /v1/mcp/servers/{name}", s.removeMCP)
 	mux.HandleFunc("POST /v1/mcp/servers/{name}/test", s.testMCP)
+	mux.HandleFunc("PUT /v1/notebooks/{id}/mcp", s.setNotebookMCP)
 }
 
 func (s *Server) listMCP(w http.ResponseWriter, _ *http.Request) {
@@ -53,4 +54,21 @@ func (s *Server) testMCP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, res)
+}
+
+// setNotebookMCP sets the servers a notebook's agent runs may use.
+func (s *Server) setNotebookMCP(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Servers []string `json:"servers"`
+	}
+	if err := decode(w, r, &body); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	info, err := s.svc.SetNotebookMCP(r.PathValue("id"), body.Servers)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, info)
 }

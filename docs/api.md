@@ -52,6 +52,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/mcp/servers` | `MCPServer` | `201 MCPServer` (`400` invalid or a credential written as text, `409` name taken) |
 | `DELETE /v1/mcp/servers/{name}` | — | `204` (`404` unknown, `409` attached to a notebook) |
 | `POST /v1/mcp/servers/{name}/test` | — | `{tools: [{name, description}], resources: [{uri, name, mimeType}], prompts: [{name, description}]}` |
+| `PUT /v1/notebooks/{id}/mcp` | `{servers: [name]}` | `Notebook` (`400` for a server that is not configured; at most 20) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/thread` | — | `ChatSession` of the output's thread (empty if none yet) |
 | `PATCH …/outputs/{outputId}/thread` | `{model?, thinkingEffort?}` | `ChatSession` |
 | `POST …/outputs/{outputId}/thread/messages` | `{text, attachments?}` | SSE stream (see Output threads) |
@@ -61,7 +62,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST …/outputs/{outputId}/suggestions/{suggestionId}/dismiss` | — | `{suggestion}` |
 | `POST …/outputs/{outputId}/versions` | `{fromMessageId?}` | `201 Output` (`422` if the revision fails validation) |
 
-`Notebook`: `{id, name, workType, settings, createdAt, outputs, memory, template?, context: [{id, label, path,
+`Notebook`: `{id, name, workType, settings, createdAt, outputs, memory, template?, mcpServers, context: [{id, label, path,
 inPlace, enabled, addedAt, sources, estimatedTokens}]}`.
 
 `Template`: `{id, name, description, workType, version, parent?, prompts: [{name, text, settings}],
@@ -207,3 +208,10 @@ key, secret, password, auth, cookie, credential), is refused with `400`. Values 
 `test` starts or dials the server, completes the handshake and lists up to 500 tools, 500 resources and 200
 prompts (a server without resources or prompts lists none). It takes a run slot (`429` when all are busy) and has a
 60 s limit. Errors are redacted, including the values the placeholders resolved to.
+
+**Notebook attachment.** A notebook's agent runs connect to its attached servers when they start (or resume) and
+stop them when they finish or pause. Each server tool is offered as `mcp__<server>__<tool>` (lower case,
+characters outside `a-z0-9_` replaced with `_`, at most 64; a clash gets `_2`, `_3`, …), with the server's input
+schema when it is a JSON object of at most 16 KiB. Like every tool that is not read-only, MCP tools default to
+`ask`; rules can name them exactly or with `mcp__<server>__*`. A server that cannot be reached fails the run and
+names the server. Results are capped and redacted like other tool results.

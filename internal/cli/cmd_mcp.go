@@ -3,16 +3,20 @@ package cli
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"slices"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/samautomateai/tessivo/internal/config"
+	"github.com/samautomateai/tessivo/internal/notebook"
 	"github.com/samautomateai/tessivo/internal/service"
 )
 
 const mcpHelp = `tess mcp add <name> (--command PROG [--arg A]... | --url URL) [--env K=V]... [--header K=V]...
     [--allow-insecure-http]     values may hold ${secret:NAME}; credentials are refused as text
-tess mcp list | test <name> | remove <name>`
+tess mcp list | test <name> | remove <name>
+tess mcp attach|detach <notebook> <name>   let the notebook's agent runs use the server's tools`
 
 func cmdMCP(ctx context.Context, args []string, env Env) error {
 	if len(args) == 0 {
@@ -21,6 +25,7 @@ func cmdMCP(ctx context.Context, args []string, env Env) error {
 	sub, rest := args[0], args[1:]
 	run, ok := map[string]func(context.Context, *service.Service, []string, Env) error{
 		subAdd: mcpAdd, subList: mcpList, "test": mcpTest, subRemove: mcpRemove,
+		subAttach: mcpAttach, subDetach: mcpAttach,
 	}[sub]
 	if !ok {
 		return usagef("mcp: unknown subcommand %q\n%s", sub, mcpHelp)
@@ -32,6 +37,9 @@ func cmdMCP(ctx context.Context, args []string, env Env) error {
 	svc, err := newService(f, env)
 	if err != nil {
 		return err
+	}
+	if sub == subAttach || sub == subDetach {
+		rest = append([]string{sub}, rest...)
 	}
 	return cliErr(run(ctx, svc, rest, env))
 }
@@ -148,3 +156,36 @@ func mcpRemove(_ context.Context, svc *service.Service, args []string, env Env) 
 	_, err := fmt.Fprintln(env.Stdout, "removed "+args[0])
 	return wrapWrite(err)
 }
+
+// mcpAttach handles attach and detach; args[0] says which.
+func mcpAttach(_ context.Context, svc *service.Service, args []string, env Env) error {
+	if len(args) != 3 {
+		return usagef("mcp %s: want <notebook> <name>", args[0])
+	}
+	dir, err := filepath.Abs(args[1])
+	if err != nil {
+		return fmt.Errorf("notebook %s: %w", args[1], err)
+	}
+	nb, err := notebook.Open(dir)
+	if err != nil {
+		return err
+	}
+	name, list := args[2], slices.Clone(nb.Manifest.Agent.MCPServers)
+	if args[0] == subAttach {
+		list = append(list, name)
+	} else {
+		list = slices.DeleteFunc(list, func(s string) bool { return s == name })
+	}
+	svc.NotebookDirs = []string{dir}
+	if _, err := svc.SetNotebookMCP(dir, list); err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(env.Stdout, "%sed %s\n", args[0], name)
+	return wrapWrite(err)
+}
+
+// Attach and detach subcommand words.
+const (
+	subAttach = "attach"
+	subDetach = "detach"
+)
