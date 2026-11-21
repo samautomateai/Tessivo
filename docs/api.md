@@ -48,6 +48,10 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/runs/{runId}/resume` | — | `202 {"status": "resuming"}` (interrupted runs, or paused runs with every approval answered) |
 | `POST /v1/runs/{runId}/cancel` | — | `204` |
 | `GET /v1/runs/{runId}/events` | — | SSE of a live run, always ending with a `status` event `{runId, status}`; a run not executing gets only that event |
+| `GET /v1/mcp/servers` | — | `{"servers": [MCPServer]}` |
+| `POST /v1/mcp/servers` | `MCPServer` | `201 MCPServer` (`400` invalid or a credential written as text, `409` name taken) |
+| `DELETE /v1/mcp/servers/{name}` | — | `204` (`404` unknown, `409` attached to a notebook) |
+| `POST /v1/mcp/servers/{name}/test` | — | `{tools: [{name, description}], resources: [{uri, name, mimeType}], prompts: [{name, description}]}` |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/thread` | — | `ChatSession` of the output's thread (empty if none yet) |
 | `PATCH …/outputs/{outputId}/thread` | `{model?, thinkingEffort?}` | `ChatSession` |
 | `POST …/outputs/{outputId}/thread/messages` | `{text, attachments?}` | SSE stream (see Output threads) |
@@ -187,3 +191,19 @@ audited as `suggestion.apply` (IDs, kind and a digest only).
 pipeline with the notebook's current context, memory, prompt and model, also for agent-mode notebooks. The result
 is validated and saved as a new output with `parentId`; the parent never changes. Invalid output answers `422` and
 saves no output.
+
+## MCP servers
+
+`MCPServer`: `{name, command?, args?, env?, url?, headers?, allow_insecure_http?}`; exactly one of `command` (a
+program started over stdio, no shell) or `url` (Streamable HTTP; `https`, or `http` to loopback unless
+`allow_insecure_http`). Names use `a-z`, `0-9`, `_` and `-` (at most 32); at most 50 servers. Servers are saved in
+the config file under `mcp.servers`.
+
+Credentials never go in the config: `env` and `headers` values may hold `${secret:NAME}` placeholders, resolved
+from the environment or the OS keychain only when the server starts. A value that looks like a credential, or any
+text besides placeholders and a scheme word (`Bearer`, `Basic`, `Token`) under a name that looks sensitive (token,
+key, secret, password, auth, cookie, credential), is refused with `400`. Values are returned as stored.
+
+`test` starts or dials the server, completes the handshake and lists up to 500 tools, 500 resources and 200
+prompts (a server without resources or prompts lists none). It takes a run slot (`429` when all are busy) and has a
+60 s limit. Errors are redacted, including the values the placeholders resolved to.

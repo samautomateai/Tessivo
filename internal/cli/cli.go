@@ -66,6 +66,7 @@ Usage:
   tess outputs <notebook>                   list saved outputs, newest first
   tess output ask|suggest|suggestions|apply|dismiss|refine <notebook> <output-id> ...
                                             talk to an output, refine it, improve the notebook
+  tess mcp add|list|test|remove ...        MCP servers notebooks can attach (see 'tess mcp -h')
   tess models [--provider NAME]             list models from configured providers
   tess worktypes                            list work types
   tess audit verify|show [<notebook-or-file>] [--last N]   check or read the tamper-evident audit log
@@ -145,7 +146,7 @@ var commands = map[string]handler{
 	"new": noCtx(cmdNew), "context": noCtx(cmdContext), "run": cmdRun, "outputs": noCtx(cmdOutputs),
 	"models": cmdModels, "config": noCtx(cmdConfig), "audit": noCtx(cmdAudit), "serve": cmdServe,
 	"secret": cmdSecret, "schedule": noCtx(cmdSchedule), "template": noCtx(cmdTemplate),
-	"memory": noCtx(cmdMemory), "chat": cmdChat, "notify": cmdNotify, "output": cmdOutput,
+	"memory": noCtx(cmdMemory), "chat": cmdChat, "notify": cmdNotify, "output": cmdOutput, "mcp": cmdMCP,
 	"worktypes": func(_ context.Context, _ []string, env Env) error { return cmdWorkTypes(env) },
 }
 
