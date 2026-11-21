@@ -147,6 +147,9 @@ func TestWriteAtomicErrors(t *testing.T) {
 func TestIsText(t *testing.T) {
 	for name, want := range map[string]bool{
 		"a.go": true, "A.MD": true, "pre-commit": true, ".gitattributes": true, "x.png": false, "coverage.out": false,
+		// Flutter and Xcode files in desktop/.
+		".metadata": true, "pubspec.lock": true, "project.pbxproj": true, "Runner.xcscheme": true,
+		"contents.xcworkspacedata": true, "MainMenu.xib": true, "Release.entitlements": true, "app_icon.ico": false,
 	} {
 		if isText(name) != want {
 			t.Errorf("isText(%q) != %v", name, want)

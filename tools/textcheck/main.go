@@ -31,12 +31,16 @@ var textExt = map[string]bool{
 	".json": true, ".arb": true, ".proto": true, ".sh": true, ".ps1": true, ".txt": true, ".toml": true,
 	".html": true, ".css": true, ".js": true, ".xml": true, ".plist": true, ".xcconfig": true,
 	".cmake": true, ".c": true, ".cc": true, ".cpp": true, ".h": true, ".swift": true, ".m": true,
-	".rc": true, ".manifest": true, ".bat": true, ".cmd": true,
+	".rc": true, ".manifest": true, ".bat": true, ".cmd": true, ".lock": true,
+	// Xcode project files in the macOS runner.
+	".pbxproj": true, ".xcscheme": true, ".xcworkspacedata": true, ".xib": true, ".storyboard": true,
+	".entitlements": true, ".strings": true,
 }
 
 var textNames = map[string]bool{
 	".editorconfig": true, ".gitignore": true, ".gitattributes": true, "pre-commit": true,
 	"Dockerfile": true, "Makefile": true, "CMakeLists.txt": true, "LICENSE": true, "Podfile": true,
+	".metadata": true, // Flutter project metadata
 }
 
 var skippedDirs = map[string]bool{
