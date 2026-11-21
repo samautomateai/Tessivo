@@ -37,6 +37,9 @@ func newHTTPClient(timeout time.Duration) *http.Client {
 	}
 }
 
+// NewHTTPClient is newHTTPClient for other packages (the MCP transport).
+func NewHTTPClient(timeout time.Duration) *http.Client { return newHTTPClient(timeout) }
+
 // ErrIdleTimeout reports a stream that stopped sending data.
 var ErrIdleTimeout = errors.New("stream idle timeout")
 
