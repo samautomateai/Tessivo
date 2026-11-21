@@ -68,6 +68,9 @@ abstract interface class CoreClient {
 
   /// Stops an agent run (running, paused or interrupted).
   Future<void> cancelRun(String runId);
+
+  /// Resumes an interrupted run (or a paused one whose approvals are answered).
+  Future<void> resumeRun(String runId);
 }
 
 const builtInWorkTypes = <WorkType>[
@@ -273,6 +276,9 @@ class DemoCoreClient with DemoChat implements CoreClient {
 
   @override
   Future<void> cancelRun(String runId) async => _approvals.removeWhere((a) => a.runId == runId);
+
+  @override
+  Future<void> resumeRun(String runId) async => _approvals.removeWhere((a) => a.runId == runId);
 
   Notebook _find(String id) =>
       _notebooks.firstWhere((n) => n.id == id, orElse: () => throw StateError('unknown notebook $id'));

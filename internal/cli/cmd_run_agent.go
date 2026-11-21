@@ -157,12 +157,17 @@ func (a *agentCLI) pending() error {
 		return wrapWrite(err)
 	}
 	tw := tabwriter.NewWriter(a.env.Stdout, 0, 2, 2, ' ', 0)
-	_, _ = fmt.Fprintln(tw, "RUN\tAPPROVAL\tNOTEBOOK\tTOOL\tREQUESTED\tEXPIRES")
+	_, _ = fmt.Fprintln(tw, "RUN\tSTATUS\tAPPROVAL\tNOTEBOOK\tTOOL\tREQUESTED\tEXPIRES")
 	for _, p := range list {
-		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", p.RunID, p.ApprovalID, p.NotebookName, p.Tool,
-			p.RequestedAt, p.ExpiresAt)
+		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", p.RunID, p.Status, dash(p.ApprovalID), p.NotebookName,
+			dash(p.Tool), p.RequestedAt, dash(p.ExpiresAt))
 	}
-	return wrapWrite(tw.Flush())
+	if err := tw.Flush(); err != nil {
+		return wrapWrite(err)
+	}
+	_, err = fmt.Fprintln(a.env.Stdout,
+		"\nanswer: tess run approve|deny <run> <approval>; interrupted runs: tess run resume|cancel <run>")
+	return wrapWrite(err)
 }
 
 // parseToolRules turns --tool name=rule flags into rules.
@@ -192,4 +197,11 @@ func firstArg(args []string) string {
 		return ""
 	}
 	return args[0]
+}
+
+func dash(s string) string {
+	if s == "" {
+		return "-"
+	}
+	return s
 }

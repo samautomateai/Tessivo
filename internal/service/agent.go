@@ -58,7 +58,8 @@ type PendingApproval struct {
 	NotebookID   string `json:"notebookId"`
 	NotebookName string `json:"notebookName"`
 	ScheduleID   string `json:"scheduleId,omitempty"`
-	ApprovalID   string `json:"approvalId"`
+	Status       string `json:"status"` // waiting_approval, or interrupted (resume or cancel the run)
+	ApprovalID   string `json:"approvalId,omitempty"`
 	Tool         string `json:"tool"`
 	Args         string `json:"args"`
 	RequestedAt  string `json:"requestedAt"`

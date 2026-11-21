@@ -16,10 +16,27 @@ class RecordingCore extends DemoCoreClient {
   RecordingCore() : super(tick: Duration.zero);
 
   final answers = <String>[];
+  final resumed = <String>[];
   bool pauseRuns = false;
+  bool failAnswers = false;
+  bool interrupted = false;
+
+  @override
+  Future<List<PendingApproval>> pendingApprovals() async => [
+    ...await super.pendingApprovals(),
+    if (interrupted)
+      const PendingApproval(runId: 'r-int', approvalId: '', tool: '', notebookName: 'Ops', status: 'interrupted'),
+  ];
+
+  @override
+  Future<void> resumeRun(String runId) async {
+    resumed.add(runId);
+    interrupted = false;
+  }
 
   @override
   Future<void> answerApproval(String runId, String approvalId, {required bool allow, String? remember}) {
+    if (failAnswers) throw const CoreException(409, 'approval expired');
     answers.add('$approvalId:$allow:${remember ?? ''}');
     return super.answerApproval(runId, approvalId, allow: allow, remember: remember);
   }
@@ -62,6 +79,7 @@ Future<(AppState, RecordingCore)> pumpWith(WidgetTester tester) async {
 }
 
 void main() {
+  moreTests();
   testWidgets('approvals badge shows count', (tester) async {
     final (state, _) = await pumpWith(tester);
     expect(state.approvals, hasLength(1));
@@ -189,5 +207,31 @@ void main() {
       expect(paused.runId, 'r1');
       expect(paused.approvals.single.approvalId, 'a1');
     });
+  });
+}
+
+void moreTests() {
+  testWidgets('interrupted runs can be resumed from the sheet', (tester) async {
+    final (state, core) = await pumpWith(tester);
+    core.interrupted = true;
+    await state.refreshApprovals();
+    await tester.pumpAndSettle();
+    expect(find.text('Approvals (2)'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('approvals-badge')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Interrupted'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('resume-run')));
+    await tester.pumpAndSettle();
+    expect(core.resumed, ['r-int']);
+  });
+
+  testWidgets('a failed answer shows a notice', (tester) async {
+    final (state, core) = await pumpWith(tester);
+    core.failAnswers = true;
+    await tester.tap(find.byKey(const Key('approvals-badge')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('approve-once')).first);
+    await tester.pumpAndSettle();
+    expect(state.notices.last, contains('approval expired'));
   });
 }

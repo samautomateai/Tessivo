@@ -259,29 +259,65 @@ func (s *Service) close(nb *notebook.Notebook, st *storedRun, status string, cau
 	return nil
 }
 
-// Pending lists unanswered approvals across the workspace.
+// Pending lists what waits for the user across the workspace: unanswered
+// approvals, and interrupted runs (to resume or cancel). Expired approvals
+// fail their run here, so they expire while the core runs, not only at start.
 func (s *Service) Pending() ([]PendingApproval, error) {
 	out := []PendingApproval{}
 	err := s.eachStored(func(nb *notebook.Notebook, st *storedRun) error {
-		if st.Check.Status == notebook.StatusWaiting {
+		if closed, err := s.expireIfDue(nb, st); closed || err != nil {
+			return err
+		}
+		switch st.Check.Status {
+		case notebook.StatusWaiting:
 			out = append(out, s.pendingOf(nb, st)...)
+		case notebook.StatusInterrupted:
+			out = append(out, PendingApproval{
+				RunID: st.Check.RunID, NotebookID: st.Check.NotebookID, NotebookName: nb.Manifest.Name,
+				ScheduleID: st.Check.ScheduleID, Status: notebook.StatusInterrupted, RequestedAt: st.Check.UpdatedAt,
+			})
 		}
 		return nil
 	})
 	return out, err
 }
 
-// PendingForSchedule reports whether a run of the schedule is paused or
-// interrupted, which blocks the schedule's next occurrence.
-func (s *Service) PendingForSchedule(notebookID, scheduleID string) bool {
-	found := false
+// PendingForSchedule reports whether a paused or interrupted run of the
+// schedule blocks its next occurrence, and why.
+func (s *Service) PendingForSchedule(notebookID, scheduleID string) (reason string, blocked bool) {
 	_ = s.eachStored(func(nb *notebook.Notebook, st *storedRun) error {
-		if st.Check.NotebookID == notebookID && st.Check.ScheduleID == scheduleID {
-			found = true
+		if st.Check.NotebookID != notebookID || st.Check.ScheduleID != scheduleID {
+			return nil
+		}
+		if closed, err := s.expireIfDue(nb, st); closed || err != nil {
+			return err
+		}
+		blocked = true
+		reason = "previous run awaiting approval"
+		if st.Check.Status == notebook.StatusInterrupted {
+			reason = "previous run interrupted; resume or cancel it"
 		}
 		return nil
 	})
-	return found
+	return reason, blocked
+}
+
+// expireIfDue fails a waiting run whose oldest unanswered approval expired.
+func (s *Service) expireIfDue(nb *notebook.Notebook, st *storedRun) (bool, error) {
+	if st.Check.Status != notebook.StatusWaiting {
+		return false, nil
+	}
+	for _, a := range st.Check.Approvals {
+		if a.Answer == "" && s.expired(a.RequestedAt) {
+			unlock, err := nb.LockRun(st.Check.RunID)
+			if err != nil {
+				return false, nil //nolint:nilerr // in use elsewhere: the holder or a later pass expires it
+			}
+			defer unlock()
+			return true, s.close(nb, st, notebook.StatusFailed, errors.New("approval expired"), RunFailed)
+		}
+	}
+	return false, nil
 }
 
 // Recover runs at startup: runs that were executing become interrupted (they
@@ -303,11 +339,8 @@ func (s *Service) Recover() error {
 			_, saveErr := s.saveAgentRun(nb, st, spec, executor.Result{}, nil)
 			return errors.Join(saveErr, nb.SaveCheckpoint(st.Check.RunID, st))
 		case notebook.StatusWaiting:
-			for _, a := range st.Check.Approvals {
-				if a.Answer == "" && s.expired(a.RequestedAt) {
-					return s.close(nb, st, notebook.StatusFailed, errors.New("approval expired"), RunFailed)
-				}
-			}
+			_, err := s.expireIfDue(nb, st)
+			return err
 		}
 		return nil
 	})

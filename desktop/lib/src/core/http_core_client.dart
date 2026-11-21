@@ -290,6 +290,11 @@ class HttpCoreClient with _HttpChat implements CoreClient {
   }
 
   @override
+  Future<void> resumeRun(String runId) async {
+    await _json('POST', '${_run(runId)}/resume');
+  }
+
+  @override
   Stream<CoreEvent> events() async* {
     final resp = await _send('GET', '/v1/events');
     if (resp.statusCode >= 400) {

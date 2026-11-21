@@ -173,8 +173,8 @@ func (s *Scheduler) checkNotebook(ctx context.Context, id string, nb *notebook.N
 		if occ.IsZero() || s.isRunning(id, sch.ID) {
 			continue
 		}
-		if s.Svc.PendingForSchedule(id, sch.ID) {
-			s.skip(id, nb, sch, occ, "previous run awaiting approval")
+		if reason, blocked := s.Svc.PendingForSchedule(id, sch.ID); blocked {
+			s.skip(id, nb, sch, occ, reason)
 			continue
 		}
 		s.handle(ctx, id, nb, sch, occ, run, missed)

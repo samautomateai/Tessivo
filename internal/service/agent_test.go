@@ -417,3 +417,35 @@ func TestShutdownInterruptsRun(t *testing.T) {
 		t.Fatalf("an interrupted run must be resumable: %v", err)
 	}
 }
+
+func TestApprovalExpiresWhileCoreRuns(t *testing.T) {
+	e := newAgentEnv(t, askCall())
+	out := e.start(t, context.Background())
+	e.svc.Now = func() time.Time { return time.Now().Add(8 * 24 * time.Hour) }
+	list, err := e.svc.Pending()
+	if err != nil || len(list) != 0 {
+		t.Fatalf("an expired approval must not be listed: %+v %v", list, err)
+	}
+	nb, _ := e.svc.OpenNotebook(e.nbID)
+	r, _ := nb.LoadRun(out.RunID)
+	if r.Status != notebook.StatusFailed || !strings.Contains(r.Error, "approval expired") {
+		t.Fatalf("run: %+v", r)
+	}
+}
+
+func TestPendingListsInterruptedRuns(t *testing.T) {
+	e := newAgentEnv(t, askCall())
+	out := e.start(t, context.Background())
+	setStatus(t, e, out.RunID, notebook.StatusRunning, 0)
+	if err := e.svc.Recover(); err != nil {
+		t.Fatal(err)
+	}
+	list, err := e.svc.Pending()
+	if err != nil || len(list) != 1 || list[0].Status != notebook.StatusInterrupted || list[0].RunID != out.RunID {
+		t.Fatalf("pending: %+v %v", list, err)
+	}
+	reason, blocked := e.svc.PendingForSchedule(e.nbID, "")
+	if !blocked || !strings.Contains(reason, "interrupted") {
+		t.Fatalf("schedule blocker: %q %v", reason, blocked)
+	}
+}

@@ -39,6 +39,7 @@ PendingApproval approvalFromJson(Map<String, Object?> j) => PendingApproval(
   args: j['args'] as String? ?? '',
   requestedAt: j['requestedAt'] as String? ?? '',
   expiresAt: j['expiresAt'] as String? ?? '',
+  status: j['status'] as String? ?? 'waiting_approval',
 );
 
 TemplateInfo templateFromJson(Map<String, Object?> j) {

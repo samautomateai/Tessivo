@@ -43,7 +43,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/chats/{chatId}/messages/{messageId}/output` | `{workType}` | `201 {notebookId, outputId, runId, title, markdown}` |
 | `GET /v1/chat-memory` | — | `{"memory": [string]}` |
 | `PUT /v1/chat-memory` | `{memory: [string]}` (≤ 50 items, ≤ 1000 chars) | `{"memory": [string]}` |
-| `GET /v1/approvals` | — | `{"approvals": [PendingApproval]}` (unanswered, across the workspace) |
+| `GET /v1/approvals` | — | `{"approvals": [PendingApproval]}` (unanswered approvals and interrupted runs) |
 | `POST /v1/runs/{runId}/approvals/{approvalId}` | `{decision, remember?}`: decision `allow` or `deny`; remember `run` or `notebook` | `202 {"status": "resuming"}` or `{"status": "answered"}` when another approval is still open |
 | `POST /v1/runs/{runId}/resume` | — | `202 {"status": "resuming"}` (interrupted runs, or paused runs with every approval answered) |
 | `POST /v1/runs/{runId}/cancel` | — | `204` |
@@ -98,8 +98,10 @@ connection does not stop an agent run: cancel it with `POST /v1/runs/{runId}/can
 `GET /v1/runs/{runId}/events`. Errors: `404` unknown run or approval; `409` already answered, expired, still
 waiting for an approval, not paused, or in use by another process; `429` too many runs.
 
-`PendingApproval`: `{runId, notebookId, notebookName, scheduleId?, approvalId, tool, args, requestedAt, expiresAt}`.
-Approvals expire after `agent.approval_expiry_days` (default 7); the run then fails.
+`PendingApproval`: `{runId, notebookId, notebookName, scheduleId?, status, approvalId?, tool?, args?, requestedAt,
+expiresAt?}`. `status` is `waiting_approval`, or `interrupted` for a run that stopped when the core shut down or
+crashed (resume or cancel it; it blocks its schedule until then). Approvals expire after
+`agent.approval_expiry_days` (default 7), checked whenever pending runs are listed; the run then fails.
 
 ## Chat
 

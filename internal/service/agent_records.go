@@ -77,7 +77,8 @@ func (s *Service) pendingOf(nb *notebook.Notebook, st *storedRun) []PendingAppro
 		req, _ := time.Parse(time.RFC3339, rec.RequestedAt)
 		out = append(out, PendingApproval{
 			RunID: st.Check.RunID, NotebookID: st.Check.NotebookID, NotebookName: nb.Manifest.Name,
-			ScheduleID: st.Check.ScheduleID, ApprovalID: p.ApprovalID, Tool: rec.Tool, Args: rec.Args,
+			ScheduleID: st.Check.ScheduleID, Status: notebook.StatusWaiting, ApprovalID: p.ApprovalID,
+			Tool: rec.Tool, Args: rec.Args,
 			RequestedAt: rec.RequestedAt, ExpiresAt: req.Add(time.Duration(days) * 24 * time.Hour).Format(time.RFC3339),
 		})
 	}

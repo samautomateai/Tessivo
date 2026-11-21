@@ -39,6 +39,7 @@ class ApprovalTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (approval.isInterrupted) return _interrupted(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -70,6 +71,39 @@ class ApprovalTile extends StatelessWidget {
                 child: const Text('Allow for this notebook'),
               ),
               TextButton(key: const Key('deny'), onPressed: () => _answer(allow: false), child: const Text('Deny')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A run that stopped when the core shut down or crashed: resume or cancel.
+  Widget _interrupted(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Interrupted run · ${approval.notebookName}', style: Theme.of(context).textTheme.titleSmall),
+          const Text(
+            'The core stopped while this run was working. A tool call in progress then is not repeated.',
+            style: TextStyle(color: Tokens.textMuted, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              FilledButton(
+                key: const Key('resume-run'),
+                onPressed: () => unawaited(state.resumeRun(approval)),
+                child: const Text('Resume'),
+              ),
+              TextButton(
+                key: const Key('cancel-run'),
+                onPressed: () => unawaited(state.cancelRun(approval)),
+                child: const Text('Cancel run'),
+              ),
             ],
           ),
         ],

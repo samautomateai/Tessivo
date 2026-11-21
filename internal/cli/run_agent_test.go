@@ -123,7 +123,7 @@ func TestRunPendingTable(t *testing.T) {
 	h.run("run", nb, "--mode", "agent", "--tool", "grep=ask")
 	run, aid := pauseIDs(t, h.errOut.String())
 	out := h.mustRun("run", "pending", "--notebook", nb)
-	for _, want := range []string{"RUN", run, aid, "grep"} {
+	for _, want := range []string{"RUN", "STATUS", "waiting_approval", run, aid, "grep"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("pending lacks %q: %s", want, out)
 		}

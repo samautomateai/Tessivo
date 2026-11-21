@@ -232,6 +232,7 @@ class PendingApproval {
     this.args = '',
     this.requestedAt = '',
     this.expiresAt = '',
+    this.status = 'waiting_approval',
   });
   final String runId;
   final String notebookId;
@@ -241,6 +242,11 @@ class PendingApproval {
   final String args;
   final String requestedAt;
   final String expiresAt;
+
+  /// `waiting_approval`, or `interrupted`: the run stopped (core shut down or crashed) and can be resumed.
+  final String status;
+
+  bool get isInterrupted => status == 'interrupted';
 }
 
 /// A context slot a template asks the user to fill (never filled data).
