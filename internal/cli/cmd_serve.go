@@ -79,9 +79,11 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 	defer func() { _ = os.Remove(*epPath) }()
 	_, _ = fmt.Fprintf(env.Stderr, "tessivo core listening on %s %s (endpoint: %s)\n", *network, ep.Address, *epPath)
 	api := server.New(svc, token, Version)
+	api.Background = ctx // resumed runs stop (interrupted) when the core stops
 	schedDone := startBackground(ctx, svc, api, !*noSched, *notes, env)
 	err = server.Serve(ctx, ln, api.Handler())
 	<-schedDone
+	api.Wait()
 	return err
 }
 

@@ -47,7 +47,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/runs/{runId}/approvals/{approvalId}` | `{decision, remember?}`: decision `allow` or `deny`; remember `run` or `notebook` | `202 {"status": "resuming"}` or `{"status": "answered"}` when another approval is still open |
 | `POST /v1/runs/{runId}/resume` | — | `202 {"status": "resuming"}` (interrupted runs, or paused runs with every approval answered) |
 | `POST /v1/runs/{runId}/cancel` | — | `204` |
-| `GET /v1/runs/{runId}/events` | — | SSE of a live run; otherwise one `status` event `{runId, status}` |
+| `GET /v1/runs/{runId}/events` | — | SSE of a live run, always ending with a `status` event `{runId, status}`; a run not executing gets only that event |
 
 `Notebook`: `{id, name, workType, settings, createdAt, outputs, memory, template?, context: [{id, label, path,
 inPlace, enabled, addedAt, sources, estimatedTokens}]}`.

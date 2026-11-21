@@ -316,7 +316,7 @@ func TestDetachedSurvivesCancel(t *testing.T) {
 func waitForJob(t *testing.T, s *Service) string {
 	t.Helper()
 	for range 200 {
-		if ids := s.liveRuns(); len(ids) == 1 {
+		if ids := s.LiveRuns(); len(ids) == 1 {
 			return ids[0]
 		}
 		time.Sleep(10 * time.Millisecond)

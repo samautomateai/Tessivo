@@ -53,6 +53,7 @@ func grepCall() llm.Response {
 
 type agentServer struct {
 	ts    *httptest.Server
+	srv   *Server
 	svc   *service.Service
 	model *agentModel
 }
@@ -86,7 +87,8 @@ func newAgentServer(t *testing.T, replies ...llm.Response) *agentServer {
 	if code, out := call(t, ts, "POST", "/v1/notebooks/repo/context", string(body)); code != 200 {
 		t.Fatalf("add context: %d %s", code, out)
 	}
-	return &agentServer{ts: ts, svc: svc, model: m}
+	t.Cleanup(s.Wait) // background resumes finish before the temp folders go
+	return &agentServer{ts: ts, srv: s, svc: svc, model: m}
 }
 
 const agentBody = `{"overrides":{"mode":"agent"}}`
@@ -206,5 +208,61 @@ func TestCancelHTTP(t *testing.T) {
 	waitStatus(t, a, runID, notebook.StatusCancelled)
 	if code, _ := call(t, a.ts, "POST", "/v1/runs/"+runID+"/cancel", ""); code != 409 {
 		t.Fatalf("cancelling twice: %d", code)
+	}
+}
+
+func TestRunEventsEndWithFinalStatus(t *testing.T) {
+	a := newAgentServer(t, llm.Response{Content: "done"}, llm.Response{Content: summary})
+	a.model.gate = make(chan struct{}, 2)
+	go func() { _ = runRequest(t, a.ts, "repo", agentBody) }()
+	var runID string
+	for range 200 {
+		if list := a.svcLive(); len(list) == 1 {
+			runID = list[0]
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if runID == "" {
+		t.Fatal("no live run")
+	}
+	req, _ := http.NewRequest("GET", a.ts.URL+"/v1/runs/"+runID+"/events", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := a.ts.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	a.model.gate <- struct{}{}
+	a.model.gate <- struct{}{}
+	evs := readEvents(t, resp.Body)
+	if len(evs) == 0 || evs[len(evs)-1].name != "status" || !strings.Contains(evs[len(evs)-1].data, `"finished"`) {
+		t.Fatalf("a re-attached stream must end with the run's final status: %+v", evs)
+	}
+}
+
+func (a *agentServer) svcLive() []string { return a.svc.LiveRuns() }
+
+func TestBackgroundResumeStopsWithServer(t *testing.T) {
+	a := newAgentServer(t, grepCall())
+	runID, aid := pausedRun(t, a)
+	ctx, cancel := context.WithCancel(context.Background())
+	a.srv.Background = ctx
+	a.model.gate = make(chan struct{}) // the resumed run blocks in its next model call
+	path := fmt.Sprintf("/v1/runs/%s/approvals/%s", runID, aid)
+	if code, _ := call(t, a.ts, "POST", path, `{"decision":"allow"}`); code != 202 {
+		t.Fatalf("answer: %d", code)
+	}
+	time.Sleep(50 * time.Millisecond)
+	cancel() // tess serve is stopping
+	done := make(chan struct{})
+	go func() { a.srv.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Wait must return once background resumes stop")
+	}
+	if st, _ := a.svc.RunStatus(runID); st != notebook.StatusInterrupted {
+		t.Fatalf("a resume stopped by shutdown must be interrupted, got %q", st)
 	}
 }

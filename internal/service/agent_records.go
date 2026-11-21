@@ -197,8 +197,8 @@ func (s *Service) Subscribe(runID string) (events <-chan executor.Event, stop fu
 	}, true
 }
 
-// liveRuns lists runs executing in this process.
-func (s *Service) liveRuns() []string {
+// LiveRuns lists runs executing in this process.
+func (s *Service) LiveRuns() []string {
 	t := s.jobTable()
 	t.mu.Lock()
 	defer t.mu.Unlock()

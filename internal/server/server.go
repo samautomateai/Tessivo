@@ -4,10 +4,12 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/samautomateai/tessivo/internal/config"
@@ -23,6 +25,12 @@ const MaxConcurrentRuns = 4
 type Server struct {
 	// Events, when set, backs GET /v1/events (scheduler notifications).
 	Events *Broker
+	// Background is the context of runs resumed in the background; cancel it
+	// on shutdown (the runs become interrupted) and call Wait. Default:
+	// a context detached from the request.
+	Background context.Context
+
+	bg sync.WaitGroup
 
 	svc     *service.Service
 	token   string

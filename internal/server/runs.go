@@ -35,7 +35,7 @@ func (s *Server) answerApproval(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	s.startResume(w, r, runID)
+	s.startResume(r.Context(), w, runID)
 }
 
 func (s *Server) resumeRun(w http.ResponseWriter, r *http.Request) {
@@ -44,12 +44,12 @@ func (s *Server) resumeRun(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	s.startResume(w, r, runID)
+	s.startResume(r.Context(), w, runID)
 }
 
 // startResume continues the run detached from the request when it is ready.
 // A run still waiting on another approval answers 202 without resuming.
-func (s *Server) startResume(w http.ResponseWriter, r *http.Request, runID string) {
+func (s *Server) startResume(reqCtx context.Context, w http.ResponseWriter, runID string) {
 	if err := s.svc.ResumeCheck(runID); err != nil {
 		writeJSON(w, http.StatusAccepted, map[string]string{keyStatus: "answered"})
 		return
@@ -60,8 +60,18 @@ func (s *Server) startResume(w http.ResponseWriter, r *http.Request, runID strin
 		writeError(w, http.StatusTooManyRequests, fmt.Sprintf("at most %d runs at once", MaxConcurrentRuns))
 		return
 	}
-	ctx := context.WithoutCancel(r.Context())
+	// The run outlives the request (it is the core's job) but stops with the server.
+	ctx, cancel := context.WithCancel(context.WithoutCancel(reqCtx))
+	stopOnShutdown := func() bool { return true }
+	if s.Background != nil {
+		//nolint:contextcheck // deliberate: watches the server's shutdown context, not the request's
+		stopOnShutdown = context.AfterFunc(s.Background, cancel)
+	}
+	s.bg.Add(1)
 	go func() {
+		defer s.bg.Done()
+		defer cancel()
+		defer stopOnShutdown()
 		defer func() { <-s.runs }()
 		if _, err := s.svc.Resume(ctx, runID, nil); err != nil {
 			s.log.Info("resumed run ended with an error", "run", runID, "err", secrets.RedactPatterns(err.Error()))
@@ -110,9 +120,17 @@ func (s *Server) runEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		case e, open := <-ch:
 			if !open {
+				// The run ended (or was ending when we attached): always close
+				// with its stored status, so a client never sees an empty stream.
+				if st, err := s.svc.RunStatus(runID); err == nil {
+					sse.send(keyStatus, map[string]string{keyRunID: runID, keyStatus: st})
+				}
 				return
 			}
 			sse.send(e.Kind, eventPayload(e))
 		}
 	}
 }
+
+// Wait blocks until runs resumed in the background have stopped.
+func (s *Server) Wait() { s.bg.Wait() }
