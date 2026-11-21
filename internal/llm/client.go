@@ -23,8 +23,10 @@ const (
 
 // Message is one chat message.
 type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role       string     `json:"role"`
+	Content    string     `json:"content"`
+	ToolCalls  []ToolCall `json:"toolCalls,omitempty"`  // assistant: tools the model called
+	ToolCallID string     `json:"toolCallId,omitempty"` // tool: the call this result answers
 }
 
 // ResponseFormat requests JSON output that matches Schema.
@@ -41,6 +43,8 @@ type Request struct {
 	MaxTokens       *int
 	ReasoningEffort string // "", "low", "medium", "high"; "off" sends nothing
 	Format          *ResponseFormat
+	Tools           []ToolDef
+	ToolChoice      string // "", "auto", "none" or "required"
 }
 
 // Usage is token accounting reported by the provider.
@@ -56,6 +60,7 @@ type Response struct {
 	Content      string
 	FinishReason string
 	Usage        Usage
+	ToolCalls    []ToolCall
 }
 
 // Model is one entry from the provider's /models list.
@@ -95,7 +100,9 @@ func NewClient(baseURL, apiKey string, timeout time.Duration) *Client {
 
 type wireRequest struct {
 	Model           string          `json:"model"`
-	Messages        []Message       `json:"messages"`
+	Messages        []wireMessage   `json:"messages"`
+	Tools           []wireTool      `json:"tools,omitempty"`
+	ToolChoice      string          `json:"tool_choice,omitempty"`
 	Temperature     *float64        `json:"temperature,omitempty"`
 	MaxTokens       *int            `json:"max_tokens,omitempty"`
 	ReasoningEffort string          `json:"reasoning_effort,omitempty"`
@@ -122,16 +129,19 @@ type wireStreamOpts struct {
 type wireResponse struct {
 	Model   string `json:"model"`
 	Choices []struct {
-		Message      Message `json:"message"`
-		FinishReason string  `json:"finish_reason"`
+		Message      wireMessage `json:"message"`
+		FinishReason string      `json:"finish_reason"`
 	} `json:"choices"`
 	Usage Usage `json:"usage"`
 }
 
 func toWire(req Request, stream bool) wireRequest {
 	w := wireRequest{
-		Model: req.Model, Messages: req.Messages, Temperature: req.Temperature, MaxTokens: req.MaxTokens,
-		Stream: stream,
+		Model: req.Model, Messages: toWireMessages(req.Messages), Temperature: req.Temperature,
+		MaxTokens: req.MaxTokens, Stream: stream, ToolChoice: req.ToolChoice,
+	}
+	if len(req.Tools) > 0 {
+		w.Tools = toWireTools(req.Tools)
 	}
 	if req.ReasoningEffort != "" && req.ReasoningEffort != "off" {
 		w.ReasoningEffort = req.ReasoningEffort
@@ -156,7 +166,7 @@ func (c *Client) Chat(ctx context.Context, req Request) (Response, error) {
 	}
 	resp, err := c.do(ctx, http.MethodPost, "/chat/completions", toWire(req, false))
 	if err != nil {
-		return Response{}, err
+		return Response{}, toolsError(req, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	var w wireResponse
@@ -166,9 +176,13 @@ func (c *Client) Chat(ctx context.Context, req Request) (Response, error) {
 	if len(w.Choices) == 0 {
 		return Response{}, fmt.Errorf("chat response has no choices")
 	}
+	calls, err := fromWireCalls(w.Choices[0].Message.ToolCalls)
+	if err != nil {
+		return Response{}, err
+	}
 	return Response{
 		Model: w.Model, Content: w.Choices[0].Message.Content,
-		FinishReason: w.Choices[0].FinishReason, Usage: w.Usage,
+		FinishReason: w.Choices[0].FinishReason, Usage: w.Usage, ToolCalls: calls,
 	}, nil
 }
 

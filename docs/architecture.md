@@ -15,7 +15,7 @@
 | `config` | Layered settings: app → notebook → work type → prompt → run. Most specific wins; records the source of each value. |
 | `secrets` | Secret lookup and redaction; the default chain is environment variables, then the OS keychain. |
 | `keychain` | OS credential stores: macOS keychain, Linux Secret Service, Windows Credential Manager. Values pass through stdin or memory, never argv. |
-| `llm` | OpenAI-compatible client: models list, chat completions, SSE streaming, JSON-schema `response_format`, reasoning effort. |
+| `llm` | OpenAI-compatible client: models list, chat completions, SSE streaming, JSON-schema `response_format`, reasoning effort, tool calling (≤ 16 calls and 64 KiB of arguments per call, streamed deltas assembled). |
 | `llm/fallback` logic (in `llm`) | Alias → ordered model chain; retry with backoff; falls back on timeout, rate limit, 5xx, context overflow; reports which model answered. |
 | `worktype` | Built-in work types (Analyze, Summarize, Document, Report): starter prompt, suggested context, output schema. |
 | `schema` | Validates model output against a JSON-schema subset. |

@@ -35,7 +35,7 @@ func TestChatSendsWireFormat(t *testing.T) {
 	})
 	c.Headers = map[string]string{"X-Team": "ops"}
 	resp, err := c.Chat(context.Background(), Request{
-		Model: "m1", Messages: []Message{{"user", "hello"}}, Temperature: config.Ptr(0.1),
+		Model: "m1", Messages: []Message{{Role: "user", Content: "hello"}}, Temperature: config.Ptr(0.1),
 		ReasoningEffort: "high", Format: &ResponseFormat{Name: "report", Schema: json.RawMessage(`{"type":"object"}`)},
 	})
 	if err != nil {
