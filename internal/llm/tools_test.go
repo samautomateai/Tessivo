@@ -150,6 +150,9 @@ func TestStreamToolCallLimits(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("want error mentioning %q, got %v", tc.want, err)
 			}
+			if !errors.Is(err, ErrToolCallLimit) {
+				t.Fatalf("want ErrToolCallLimit, got %v", err)
+			}
 		})
 	}
 }

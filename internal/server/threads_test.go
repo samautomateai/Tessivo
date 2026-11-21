@@ -82,7 +82,7 @@ func TestThreadMessageStreams(t *testing.T) {
 		reply{text: "Noted.", calls: []llm.ToolCall{
 			{ID: "c1", Name: "suggest_memory", Arguments: `{"text":"cite files"}`},
 		}},
-		reply{text: " Done."})
+		reply{text: "Done."})
 	code, body := call(t, ts.ts, "POST", ts.base+"/thread/messages", `{"text":"always cite files"}`)
 	ev := sseEvents(body)
 	kinds := make([]string, 0, len(ev))
@@ -93,7 +93,7 @@ func TestThreadMessageStreams(t *testing.T) {
 		t.Fatalf("send: %d %v\n%s", code, kinds, body)
 	}
 	var fin service.ThreadReply
-	if err := json.Unmarshal([]byte(ev[3][1]), &fin); err != nil || fin.Assistant.Content != "Noted. Done." ||
+	if err := json.Unmarshal([]byte(ev[3][1]), &fin); err != nil || fin.Assistant.Content != "Noted.\n\nDone." ||
 		len(fin.Suggestions) != 1 {
 		t.Fatalf("finished: %v %+v", err, fin)
 	}

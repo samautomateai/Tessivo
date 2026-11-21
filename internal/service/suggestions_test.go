@@ -19,7 +19,7 @@ func (f threadFixture) addSuggestion(t *testing.T, kind, text string) notebook.S
 	}
 	sg := notebook.Suggestion{ID: notebook.NewID(), Kind: kind, Text: text, Status: notebook.SuggestOpen}
 	if kind == notebook.SuggestPrompt {
-		tg, err := f.s.promptTarget(ref.nb, ref.run)
+		tg, err := f.s.currentTarget(ref)
 		if err != nil {
 			t.Fatal(err)
 		}

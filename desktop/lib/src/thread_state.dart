@@ -8,7 +8,7 @@ import 'core/models.dart';
 /// One output's thread: the output, its conversation, the reply streaming in
 /// and the suggestions it produced. Failures go to [onError] as one message.
 class ThreadState extends ChangeNotifier {
-  ThreadState(this.core, this.notebookId, this.outputId, {this.onError, this.onApplied});
+  ThreadState(this.core, this.notebookId, this.outputId, {this.onError, this.onNotice, this.onApplied});
 
   final CoreClient core;
   final String notebookId;
@@ -16,6 +16,9 @@ class ThreadState extends ChangeNotifier {
 
   /// Reports a failure (the app shows it as a notice).
   final void Function(String message)? onError;
+
+  /// Reports something the user should know (for example a prompt that was created).
+  final void Function(String message)? onNotice;
 
   /// Called after a suggestion changed the notebook (memory or prompt).
   final Future<void> Function()? onApplied;
@@ -145,7 +148,10 @@ class ThreadState extends ChangeNotifier {
   });
 
   Future<void> apply(String id) => _busy(() async {
-    await core.applySuggestion(notebookId, outputId, id);
+    final r = await core.applySuggestion(notebookId, outputId, id);
+    if (r.promptName case final name?) {
+      onNotice?.call('Saved as prompt "$name". Later suggestions and versions of this output use it.');
+    }
     suggestions = await core.listSuggestions(notebookId, outputId);
     await onApplied?.call();
   });

@@ -89,7 +89,7 @@ func (s *Service) acceptCalls(ref outputRef, messageID string, calls []llm.ToolC
 ) ([]notebook.Suggestion, []llm.Message) {
 	redact := s.redactor()
 	base := sync.OnceValue(func() string {
-		if tg, err := s.promptTarget(ref.nb, ref.run); err == nil {
+		if tg, err := s.currentTarget(ref); err == nil {
 			return promptDigest(tg.Current)
 		}
 		return ""
@@ -118,13 +118,14 @@ func (s *Service) acceptCalls(ref outputRef, messageID string, calls []llm.ToolC
 }
 
 // recordSuggestions stores up to maxSuggestionsPerReply valid suggestions
-// (redacted) and returns them with one tool result per call.
+// (redacted) and returns them with one tool result per call. A store failure
+// (ErrConflict when the open cap is reached) is returned; nothing is recorded.
 func (s *Service) recordSuggestions(ref outputRef, messageID string, calls []llm.ToolCall,
 	onSuggestion func(notebook.Suggestion),
-) ([]notebook.Suggestion, []llm.Message) {
+) ([]notebook.Suggestion, []llm.Message, error) {
 	accepted, results := s.acceptCalls(ref, messageID, calls)
 	if len(accepted) == 0 {
-		return nil, results
+		return nil, results, nil
 	}
 	if err := ref.nb.UpdateSuggestions(ref.out.ID, func(list []notebook.Suggestion) ([]notebook.Suggestion, error) {
 		return append(list, accepted...), nil
@@ -134,12 +135,15 @@ func (s *Service) recordSuggestions(ref outputRef, messageID string, calls []llm
 				results[i].Content = "not recorded: " + err.Error()
 			}
 		}
-		return nil, results
+		if errors.Is(err, notebook.ErrTooManySuggestions) {
+			err = fmt.Errorf("%w: %w; dismiss some first", ErrConflict, err)
+		}
+		return nil, results, err
 	}
 	for _, sg := range accepted {
 		if onSuggestion != nil {
 			onSuggestion(sg)
 		}
 	}
-	return accepted, results
+	return accepted, results, nil
 }

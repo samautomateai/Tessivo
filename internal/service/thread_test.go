@@ -153,7 +153,7 @@ func TestSendThreadStoresToolSuggestions(t *testing.T) {
 		t.Fatalf("suggestion %+v", sg)
 	}
 	reqs := f.model.requests()
-	if len(reqs) != 2 || len(reqs[0].Tools) != 2 || len(reqs[1].Tools) != 0 {
+	if len(reqs) != 2 || len(reqs[0].Tools) != 2 || reqs[1].ToolChoice != "none" {
 		t.Fatalf("requests: %d, tools %d then %d", len(reqs), len(reqs[0].Tools), len(reqs[1].Tools))
 	}
 	last := reqs[1].Messages[len(reqs[1].Messages)-1]

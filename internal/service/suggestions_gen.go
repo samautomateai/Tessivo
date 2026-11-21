@@ -72,13 +72,16 @@ func (s *Service) GenerateSuggestions(ctx context.Context, notebookID, outputID 
 	if err != nil {
 		return nil, err
 	}
-	sugs, _ := s.recordSuggestions(ref, "", calls, nil)
+	sugs, _, err := s.recordSuggestions(ref, "", calls, nil)
+	if err != nil {
+		return nil, err
+	}
 	return s.describeSuggestions(ref, sugs), nil
 }
 
 func (s *Service) suggestInput(ref outputRef, transcript string) string {
 	current := ref.run.Prompt
-	if tg, err := s.promptTarget(ref.nb, ref.run); err == nil {
+	if tg, err := s.currentTarget(ref); err == nil {
 		current = tg.Current
 	}
 	var sb strings.Builder
@@ -86,7 +89,11 @@ func (s *Service) suggestInput(ref outputRef, transcript string) string {
 	for _, m := range ref.nb.Manifest.Memory {
 		sb.WriteString("- " + m + "\n")
 	}
-	sb.WriteString("\n<source name=\"output\">\n" + truncateBytes(ref.md, maxTranscript) + "\n</source>\n\n")
+	output := ref.md
+	if output == "" {
+		output = string(ref.out.Data) // outputs saved without Markdown
+	}
+	sb.WriteString("\n<source name=\"output\">\n" + truncateBytes(output, maxTranscript) + "\n</source>\n\n")
 	sb.WriteString("<source name=\"conversation\">\n" + transcript + "\n</source>")
 	return sb.String()
 }

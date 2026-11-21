@@ -19,6 +19,10 @@ const (
 // ErrToolsUnsupported means the provider rejected a request because of its tools.
 var ErrToolsUnsupported = errors.New("model does not support tool calling")
 
+// ErrToolCallLimit means the model asked for more tool calls, or larger
+// arguments, than MaxToolCalls and MaxToolCallArgs allow.
+var ErrToolCallLimit = errors.New("tool call limit exceeded")
+
 // ToolDef describes a tool the model may call. Parameters is a JSON schema.
 type ToolDef struct {
 	Name        string
@@ -87,7 +91,9 @@ func toWireTools(defs []ToolDef) []wireTool {
 
 func fromWireCalls(calls []wireToolCall) ([]ToolCall, error) {
 	if len(calls) > MaxToolCalls {
-		return nil, fmt.Errorf("model asked for %d tool calls; at most %d are allowed", len(calls), MaxToolCalls)
+		return nil, fmt.Errorf("%w: model asked for %d tool calls; at most %d are allowed", ErrToolCallLimit,
+			len(calls),
+			MaxToolCalls)
 	}
 	out := make([]ToolCall, 0, len(calls))
 	for _, c := range calls {
@@ -100,7 +106,7 @@ func fromWireCalls(calls []wireToolCall) ([]ToolCall, error) {
 }
 
 func errTooLargeArgs(name string) error {
-	return fmt.Errorf("arguments for tool %q exceed 64 KiB", name)
+	return fmt.Errorf("%w: arguments for tool %q exceed 64 KiB", ErrToolCallLimit, name)
 }
 
 // toolAccumulator assembles streamed tool-call fragments keyed by index.
@@ -120,7 +126,7 @@ func (a *toolAccumulator) add(d wireToolCall) error {
 	c, ok := a.parts[idx]
 	if !ok {
 		if len(a.order) >= MaxToolCalls {
-			return fmt.Errorf("model asked for more than %d tool calls", MaxToolCalls)
+			return fmt.Errorf("%w: model asked for more than %d tool calls", ErrToolCallLimit, MaxToolCalls)
 		}
 		c = &ToolCall{}
 		a.parts[idx] = c

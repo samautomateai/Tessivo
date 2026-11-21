@@ -26,6 +26,8 @@ type Suggestion struct {
 	Status    string `json:"status"`              // SuggestOpen, SuggestApplied or SuggestDismissed
 	CreatedAt string `json:"createdAt"`
 	DecidedAt string `json:"decidedAt,omitempty"`
+	// CreatedPrompt names the saved prompt applying this suggestion created.
+	CreatedPrompt string `json:"createdPrompt,omitempty"`
 }
 
 // Suggestion kinds and statuses.

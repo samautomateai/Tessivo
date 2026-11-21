@@ -170,13 +170,17 @@ createdAt, decidedAt?, target?}`. `target` (prompt suggestions) says what applyi
 - `saved`: the saved prompt the run used (directly or through its schedule); every schedule in `schedules`
   uses it and changes with it.
 - `schedule`: that schedule's own prompt.
-- `new`: an ad-hoc run; applying saves a new prompt `refined-<n>` and returns its `promptName`.
+- `new`: an ad-hoc run; applying saves a new prompt `refined-<n>` and returns its `promptName`. Later suggestions
+  and versions of that output then target that prompt.
+
+Runs recorded before prompt names and schedules were tracked are matched by exact prompt text when exactly one
+saved prompt or schedule prompt has it; a saved prompt that no longer exists falls back to the schedule or `new`.
 
 Suggestions come from the model's `suggest_memory` and `suggest_prompt` tools (at most 3 per reply) or from
 `suggestions/generate` (one structured call, for models without tool support). An output keeps at most 20 open
-suggestions. Applying a memory suggestion appends it to pinned memory (`409` when memory is full). Applying a
+suggestions; `suggestions/generate` answers `409` when that cap is reached. Applying a memory suggestion appends it to pinned memory (`409` when memory is full). Applying a
 prompt suggestion answers `409` if the prompt changed after the suggestion was made, and `400` if it adds a
-`{{variable}}` the runs do not set. Applying or dismissing a resolved suggestion answers `409`. Applies are
+`{{variable}}` that the run, or any schedule the change reaches, does not set. Applying or dismissing a resolved suggestion answers `409`. Applies are
 audited as `suggestion.apply` (IDs, kind and a digest only).
 
 **New version.** The output's data and the thread up to `fromMessageId` (default: the latest reply) go through the

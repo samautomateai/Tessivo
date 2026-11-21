@@ -53,10 +53,34 @@ void main() {
     expect(t.session!.messages.last.role, 'note');
   });
 
+  test('applying tells the user which prompt it created', () async {
+    final notes = <String>[];
+    final created = ThreadState(_CreatingCore(), 'nb-1', 'o1', onError: errors.add, onNotice: notes.add);
+    await created.load();
+    await created.apply('sg1');
+    expect(notes.single, contains('refined-1'));
+    created.dispose();
+  });
+
   test('errors from the core become one message', () async {
     final missing = ThreadState(core, 'nb-1', 'nope', onError: errors.add);
     await missing.load();
     expect(errors.single, contains('not found'));
     missing.dispose();
   });
+}
+
+/// Applying creates a new saved prompt, as the core does for ad-hoc runs.
+class _CreatingCore extends DemoCoreClient {
+  _CreatingCore() : super(tick: Duration.zero);
+
+  @override
+  Future<({Suggestion suggestion, String? promptName})> applySuggestion(
+    String notebookId,
+    String outputId,
+    String suggestionId,
+  ) async {
+    final r = await super.applySuggestion(notebookId, outputId, suggestionId);
+    return (suggestion: r.suggestion, promptName: 'refined-1');
+  }
 }

@@ -81,7 +81,10 @@ func (s *Service) NewVersion(ctx context.Context, notebookID, outputID, fromMess
 	if err != nil {
 		return out, err
 	}
-	return out, s.noteVersion(st, ref, out.OutputID)
+	// The version is saved; the note in the parent thread is only a pointer to
+	// it, so failing to write it must not report the version as failed.
+	_ = s.noteVersion(st, ref, out.OutputID)
+	return out, nil
 }
 
 // revisionPoint returns the message a version is made from: the given
@@ -103,7 +106,7 @@ func revisionPoint(sess chat.Session, id string) (string, error) {
 // today, the run's vars, forced to the pipeline.
 func (s *Service) versionSpec(ref outputRef, sess chat.Session, msgID string) (RunRequest, executor.Spec, error) {
 	prompt := ref.run.Prompt
-	tg, err := s.promptTarget(ref.nb, ref.run)
+	tg, err := s.currentTarget(ref)
 	if err == nil && tg.Current != "" {
 		prompt = tg.Current
 	}
@@ -111,7 +114,10 @@ func (s *Service) versionSpec(ref outputRef, sess chat.Session, msgID string) (R
 		Notebook: ref.nb, Prompt: prompt, Vars: ref.run.Vars, Save: true,
 		PromptName: tg.PromptName, ScheduleID: ref.run.ScheduleID,
 	}
-	spec, err := s.buildSpec(RunRequest{Notebook: ref.nb, Prompt: prompt, Vars: ref.run.Vars})
+	// A saved prompt brings its own settings layer, as in a fresh run of it.
+	spec, err := s.buildSpec(RunRequest{
+		Notebook: ref.nb, Prompt: prompt, PromptName: tg.PromptName, Vars: ref.run.Vars,
+	})
 	if err != nil {
 		return req, executor.Spec{}, err
 	}
@@ -125,6 +131,9 @@ func (s *Service) versionSpec(ref outputRef, sess chat.Session, msgID string) (R
 
 // noteVersion tells the parent thread's reader where the version went.
 func (s *Service) noteVersion(st *chat.Store, ref outputRef, outputID string) error {
+	if noteFail != nil {
+		return noteFail()
+	}
 	outs, err := ref.nb.ListOutputs()
 	if err != nil {
 		return err
@@ -138,3 +147,6 @@ func (s *Service) noteVersion(st *chat.Store, ref outputRef, outputID string) er
 	})
 	return chatErr(err)
 }
+
+// noteFail, when set by a test, makes noteVersion fail.
+var noteFail func() error

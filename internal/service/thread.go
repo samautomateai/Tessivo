@@ -7,9 +7,11 @@ import (
 	"io/fs"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/samautomateai/tessivo/internal/chat"
 	"github.com/samautomateai/tessivo/internal/config"
+	"github.com/samautomateai/tessivo/internal/executor"
 	"github.com/samautomateai/tessivo/internal/extract"
 	"github.com/samautomateai/tessivo/internal/llm"
 	"github.com/samautomateai/tessivo/internal/notebook"
@@ -231,7 +233,9 @@ func threadDocs(ref outputRef) ([]extract.Document, error) {
 }
 
 // threadReply runs the model with the suggestion tools, records any
-// suggestions, and makes one more call (without tools) for the text answer.
+// suggestions, and makes one more call for the text answer. A model that
+// rejects tools, or asks for more than the tool limits allow, is asked again
+// without tools.
 func (s *Service) threadReply(ctx context.Context, ref outputRef, alias config.Alias, req llm.Request,
 	onDelta func(string), onSuggestion func(notebook.Suggestion),
 ) (chat.Message, []notebook.Suggestion, error) {
@@ -242,28 +246,53 @@ func (s *Service) threadReply(ctx context.Context, ref outputRef, alias config.A
 		return reply, nil, err
 	}
 	res, text, err := streamText(ctx, model, req, 0, onDelta)
-	if errors.Is(err, llm.ErrToolsUnsupported) {
+	if errors.Is(err, llm.ErrToolsUnsupported) || errors.Is(err, llm.ErrToolCallLimit) {
 		req.Tools = nil
 		res, text, err = streamText(ctx, model, req, 0, onDelta)
 	}
 	var sugs []notebook.Suggestion
 	if err == nil && len(res.ToolCalls) > 0 {
 		var results []llm.Message
-		sugs, results = s.recordSuggestions(ref, reply.ID, res.ToolCalls, onSuggestion)
-		follow := req
-		follow.Tools = nil
-		follow.Messages = append(slices.Clone(req.Messages),
-			llm.Message{Role: llm.RoleAssistant, Content: res.Content, ToolCalls: res.ToolCalls})
-		follow.Messages = append(follow.Messages, results...)
-		more, moreText, moreErr := streamText(ctx, model, follow, len(text), onDelta)
-		text, err = text+moreText, moreErr
-		res.Usage.CompletionTokens += more.Usage.CompletionTokens
-		if more.Target != "" {
-			res.Target = more.Target
-		}
+		sugs, results, _ = s.recordSuggestions(ref, reply.ID, res.ToolCalls, onSuggestion) // results say why
+		text, err = followUp(ctx, model, req, &res, results, text, onDelta)
 	}
 	reply.Model, reply.Content, reply.Tokens = res.Target, text, res.Usage.CompletionTokens
 	return reply, sugs, finishReply(&reply, err)
+}
+
+// followUp sends the tool results back for the text answer. The tools stay
+// defined (some providers require them once the history holds tool calls)
+// but tool_choice "none" forbids new calls, so there is one extra round only.
+// The rounds' texts are joined by a blank line; res gains the usage.
+func followUp(ctx context.Context, model executor.Model, req llm.Request, res *llm.Result, results []llm.Message,
+	text string, onDelta func(string),
+) (string, error) {
+	follow := req
+	follow.ToolChoice = "none"
+	follow.Messages = append(slices.Clone(req.Messages),
+		llm.Message{Role: llm.RoleAssistant, Content: res.Content, ToolCalls: res.ToolCalls})
+	follow.Messages = append(follow.Messages, results...)
+	sep := ""
+	if strings.TrimSpace(text) != "" {
+		sep = "\n\n"
+	}
+	started := false
+	more, moreText, err := streamText(ctx, model, follow, len(text)+len(sep), func(d string) {
+		if !started {
+			d, started = sep+d, true
+		}
+		if onDelta != nil {
+			onDelta(d)
+		}
+	})
+	res.Usage.CompletionTokens += more.Usage.CompletionTokens
+	if more.Target != "" {
+		res.Target = more.Target
+	}
+	if moreText == "" {
+		return text, err
+	}
+	return text + sep + moreText, err
 }
 
 // Settings layer names.

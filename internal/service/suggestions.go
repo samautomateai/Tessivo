@@ -3,6 +3,8 @@ package service
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/samautomateai/tessivo/internal/audit"
 	"github.com/samautomateai/tessivo/internal/executor"
@@ -28,7 +30,10 @@ type PromptTarget struct {
 }
 
 // promptTarget resolves the prompt behind run: its saved prompt, else its
-// schedule's saved prompt, else its schedule's inline prompt, else a new one.
+// schedule's saved prompt, else its schedule's inline prompt. Older runs that
+// recorded neither are matched by exact text when exactly one saved prompt or
+// inline schedule prompt has it. A saved prompt that no longer exists falls
+// back to the schedule or to a new prompt. Otherwise a new prompt is saved.
 func (s *Service) promptTarget(nb *notebook.Notebook, run notebook.Run) (PromptTarget, error) {
 	schedules, err := nb.Schedules()
 	if err != nil {
@@ -44,28 +49,80 @@ func (s *Service) promptTarget(nb *notebook.Notebook, run notebook.Run) (PromptT
 	if name == "" && sch != nil {
 		name = sch.PromptName
 	}
-	switch {
-	case name != "":
-		p, err := nb.LoadPrompt(name)
-		if err != nil {
-			return PromptTarget{}, err
+	if name != "" {
+		if p, err := nb.LoadPrompt(name); err == nil {
+			return savedTarget(name, p.Text, schedules), nil
 		}
-		tg := PromptTarget{Kind: targetSaved, PromptName: name, Current: p.Text}
-		for _, sc := range schedules {
-			if sc.PromptName == name {
-				tg.Schedules = append(tg.Schedules, sc.ID)
-			}
-		}
-		return tg, nil
-	case sch != nil:
+	}
+	if sch != nil {
 		current := sch.Prompt
 		if current == "" {
 			current = run.Prompt
 		}
 		return PromptTarget{Kind: targetSchedule, ScheduleID: sch.ID, Current: current}, nil
-	default:
-		return PromptTarget{Kind: targetNew, Current: run.Prompt}, nil
 	}
+	if run.PromptName == "" && run.ScheduleID == "" && run.Prompt != "" {
+		if tg, ok := matchByText(nb, schedules, run.Prompt); ok {
+			return tg, nil
+		}
+	}
+	return PromptTarget{Kind: targetNew, Current: run.Prompt}, nil
+}
+
+func savedTarget(name, text string, schedules []notebook.Schedule) PromptTarget {
+	tg := PromptTarget{Kind: targetSaved, PromptName: name, Current: text}
+	for _, sc := range schedules {
+		if sc.PromptName == name {
+			tg.Schedules = append(tg.Schedules, sc.ID)
+		}
+	}
+	return tg
+}
+
+// matchByText finds the one saved prompt or inline schedule prompt whose text
+// is exactly text; no match or several matches is no answer.
+func matchByText(nb *notebook.Notebook, schedules []notebook.Schedule, text string) (PromptTarget, bool) {
+	var found []PromptTarget
+	names, _ := nb.ListPrompts()
+	for _, n := range names {
+		if p, err := nb.LoadPrompt(n); err == nil && p.Text == text {
+			found = append(found, savedTarget(n, text, schedules))
+		}
+	}
+	for _, sc := range schedules {
+		if sc.PromptName == "" && sc.Prompt == text {
+			found = append(found, PromptTarget{Kind: targetSchedule, ScheduleID: sc.ID, Current: text})
+		}
+	}
+	if len(found) != 1 {
+		return PromptTarget{}, false
+	}
+	return found[0], true
+}
+
+// outputTarget is promptTarget for an output: a prompt created by applying an
+// earlier suggestion of this output (list) takes the place of the run's
+// inline prompt, so later suggestions and versions use it.
+func (s *Service) outputTarget(ref outputRef, list []notebook.Suggestion) (PromptTarget, error) {
+	run := ref.run
+	if run.PromptName == "" {
+		for i := len(list) - 1; i >= 0; i-- {
+			if list[i].Status == notebook.SuggestApplied && list[i].CreatedPrompt != "" {
+				run.PromptName = list[i].CreatedPrompt
+				break
+			}
+		}
+	}
+	return s.promptTarget(ref.nb, run)
+}
+
+// currentTarget reads the output's suggestions and resolves its target.
+func (s *Service) currentTarget(ref outputRef) (PromptTarget, error) {
+	list, err := ref.nb.Suggestions(ref.out.ID)
+	if err != nil {
+		return PromptTarget{}, err
+	}
+	return s.outputTarget(ref, list)
 }
 
 // SuggestionInfo is a suggestion plus, for a prompt suggestion, what applying
@@ -97,7 +154,7 @@ func (s *Service) ListSuggestions(notebookID, outputID string) ([]SuggestionInfo
 
 func (s *Service) describeSuggestions(ref outputRef, list []notebook.Suggestion) []SuggestionInfo {
 	var target *PromptTarget
-	if tg, err := s.promptTarget(ref.nb, ref.run); err == nil {
+	if tg, err := s.currentTarget(ref); err == nil {
 		target = &tg
 	}
 	out := make([]SuggestionInfo, 0, len(list))
@@ -161,10 +218,11 @@ func (s *Service) ApplySuggestion(notebookID, outputID, suggestionID string) (Ap
 		if err != nil {
 			return nil, err
 		}
-		if res.PromptName, err = s.applyChange(ref, list[i]); err != nil {
+		if res.PromptName, err = s.applyChange(ref, list[i], list); err != nil {
 			return nil, err
 		}
 		list[i].Status, list[i].DecidedAt = notebook.SuggestApplied, nowRFC3339()
+		list[i].CreatedPrompt = res.PromptName
 		done = list[i]
 		return list, nil
 	})
@@ -175,7 +233,7 @@ func (s *Service) ApplySuggestion(notebookID, outputID, suggestionID string) (Ap
 	return res, s.auditApply(ref.nb, outputID, done)
 }
 
-func (s *Service) applyChange(ref outputRef, sg notebook.Suggestion) (string, error) {
+func (s *Service) applyChange(ref outputRef, sg notebook.Suggestion, list []notebook.Suggestion) (string, error) {
 	if sg.Kind == notebook.SuggestMemory {
 		nb, err := notebook.Open(ref.nb.Dir)
 		if err != nil {
@@ -188,24 +246,32 @@ func (s *Service) applyChange(ref outputRef, sg notebook.Suggestion) (string, er
 		nb.Manifest.Memory = append(nb.Manifest.Memory, sg.Text)
 		return "", nb.Save()
 	}
-	return s.applyPrompt(ref, sg)
+	return s.applyPrompt(ref, sg, list)
 }
 
 // applyPrompt replaces the target prompt after checking it has not changed
-// since the suggestion was made and that no unset variable is introduced.
-func (s *Service) applyPrompt(ref outputRef, sg notebook.Suggestion) (string, error) {
+// since the suggestion was made (an unknown base, from a target that could
+// not be read then, is accepted: the user saw the current text) and that no
+// variable is introduced that a run or a reached schedule does not set.
+func (s *Service) applyPrompt(ref outputRef, sg notebook.Suggestion, list []notebook.Suggestion) (string, error) {
 	nb, err := notebook.Open(ref.nb.Dir)
 	if err != nil {
 		return "", err
 	}
-	tg, err := s.promptTarget(nb, ref.run)
+	fresh := ref
+	fresh.nb = nb
+	tg, err := s.outputTarget(fresh, list)
 	if err != nil {
 		return "", err
 	}
-	if promptDigest(tg.Current) != sg.Base {
+	if sg.Base != "" && promptDigest(tg.Current) != sg.Base {
 		return "", fmt.Errorf("%w: the prompt changed after this suggestion was made", ErrConflict)
 	}
-	if err := checkNewVariables(tg.Current, sg.Text, ref.run.Vars); err != nil {
+	schedules, err := nb.Schedules()
+	if err != nil {
+		return "", err
+	}
+	if err := checkNewVariables(tg, sg.Text, ref.run.Vars, schedules); err != nil {
 		return "", err
 	}
 	switch tg.Kind {
@@ -227,16 +293,28 @@ func (s *Service) applyPrompt(ref outputRef, sg notebook.Suggestion) (string, er
 	}
 }
 
-// checkNewVariables rejects variables the new prompt adds that the run does
-// not set: every later run would fail to fill them.
-func checkNewVariables(current, next string, vars map[string]string) error {
+// checkNewVariables rejects a variable the new prompt adds unless the run
+// that produced the output and every schedule the change reaches set it:
+// their next runs would fail to fill it.
+func checkNewVariables(tg PromptTarget, next string, runVars map[string]string, schedules []notebook.Schedule) error {
 	have := map[string]bool{}
-	for _, v := range executor.Variables(current) {
+	for _, v := range executor.Variables(tg.Current) {
 		have[v] = true
 	}
+	reached := map[string]map[string]string{"its runs": runVars}
+	for _, sc := range schedules {
+		if slices.Contains(tg.Schedules, sc.ID) || (tg.Kind == targetSchedule && sc.ID == tg.ScheduleID) {
+			reached["schedule "+sc.ID] = sc.Vars
+		}
+	}
 	for _, v := range executor.Variables(next) {
-		if _, set := vars[v]; !have[v] && !set {
-			return invalidf("the suggested prompt adds {{%s}}, which its runs do not set", v)
+		if have[v] {
+			continue
+		}
+		for _, who := range slices.Sorted(maps.Keys(reached)) {
+			if _, set := reached[who][v]; !set {
+				return invalidf("the suggested prompt adds {{%s}}, which %s does not set", v, who)
+			}
 		}
 	}
 	return nil

@@ -287,7 +287,14 @@ class AppState extends ChangeNotifier {
     selectedOutputId = id;
     final nb = selected;
     if (id != null && nb != null) {
-      final t = thread = ThreadState(core, nb.id, id, onError: _notice, onApplied: () => _refresh(nb.id));
+      final t = thread = ThreadState(
+        core,
+        nb.id,
+        id,
+        onError: _notice,
+        onNotice: _notice,
+        onApplied: () => _refresh(nb.id),
+      );
       unawaited(t.load());
     }
     if (!_disposed) notifyListeners();
