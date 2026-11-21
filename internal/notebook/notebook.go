@@ -26,7 +26,15 @@ const (
 	ContextDir = "context"
 	RunsDir    = "runs"
 	OutputsDir = "outputs"
+	// ThreadsDir and SuggestionsDir hold one file per output (0700, created on first use).
+	ThreadsDir     = "threads"
+	SuggestionsDir = "suggestions"
 )
+
+var idPattern = regexp.MustCompile(`^\d{8}T\d{6}-[0-9a-f]{6}$`)
+
+// ValidID reports whether id has the NewID format, so it is safe in a path.
+func ValidID(id string) bool { return idPattern.MatchString(id) }
 
 // ContextItem is one input attached to a notebook.
 type ContextItem struct {

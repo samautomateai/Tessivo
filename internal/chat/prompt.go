@@ -36,7 +36,7 @@ func Build(sess Session, memory []string, docs []extract.Document, budget int) [
 		system += "\n\nWhat the user wants you to remember (from their global memory):\n- " +
 			strings.Join(memory, "\n- ")
 	}
-	msgs := sess.Messages
+	msgs := withoutNotes(sess.Messages)
 	if len(msgs) == 0 {
 		return []llm.Message{{Role: llm.RoleSystem, Content: system}}
 	}
@@ -52,6 +52,16 @@ func Build(sess Session, memory []string, docs []extract.Document, budget int) [
 	out = append(out, llm.Message{Role: llm.RoleSystem, Content: system})
 	out = append(out, history...)
 	return append(out, llm.Message{Role: RoleUser, Content: final})
+}
+
+func withoutNotes(msgs []Message) []Message {
+	out := make([]Message, 0, len(msgs))
+	for _, m := range msgs {
+		if m.Role != RoleNote {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 // recent keeps the newest turns that fit in budget tokens, oldest first, and

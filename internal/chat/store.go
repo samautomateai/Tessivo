@@ -23,6 +23,9 @@ const (
 // same directory (CLI and server in one process) stay consistent.
 type Store struct {
 	Dir string
+
+	flat  bool              // sessions live directly in Dir (keyed stores)
+	valid func(string) bool // key check for keyed stores; nil uses ValidID
 }
 
 // locks holds one mutex per store directory plus the sessions with a reply in
@@ -44,6 +47,43 @@ func Open(dir string) (*Store, error) {
 	return &Store{Dir: dir}, nil
 }
 
+// OpenKeyed opens a store whose sessions are named by caller-chosen keys (for
+// example output IDs) and kept directly in dir as <key>.json. valid decides
+// which keys are accepted; it must reject anything path-like.
+func OpenKeyed(dir string, valid func(string) bool) (*Store, error) {
+	if dir == "" || valid == nil {
+		return nil, errors.New("chat store: empty directory or key check")
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return nil, fmt.Errorf("chat store: %w", err)
+	}
+	return &Store{Dir: dir, flat: true, valid: valid}, nil
+}
+
+func (s *Store) validID(id string) bool {
+	if s.valid != nil {
+		return s.valid(id)
+	}
+	return ValidID(id)
+}
+
+// Ensure returns the keyed session, creating an empty one if it is missing.
+func (s *Store) Ensure(key, model, effort string) (Session, error) {
+	if !s.validID(key) {
+		return Session{}, ErrNotFound
+	}
+	m := s.mu()
+	m.Lock()
+	defer m.Unlock()
+	sess, err := s.Get(key)
+	if !errors.Is(err, ErrNotFound) {
+		return sess, err
+	}
+	t := now()
+	sess = Session{ID: key, Model: model, ThinkingEffort: effort, CreatedAt: t, UpdatedAt: t, Messages: []Message{}}
+	return sess, writeJSON(s.path(key), sess)
+}
+
 func (s *Store) mu() *sync.Mutex {
 	locks.Lock()
 	defer locks.Unlock()
@@ -57,6 +97,9 @@ func (s *Store) mu() *sync.Mutex {
 
 // Acquire marks a session as streaming; the returned func releases it.
 func (s *Store) Acquire(id string) (func(), error) {
+	if !s.validID(id) {
+		return nil, ErrNotFound
+	}
 	key := filepath.Join(s.Dir, id)
 	locks.Lock()
 	defer locks.Unlock()
@@ -71,7 +114,12 @@ func (s *Store) Acquire(id string) (func(), error) {
 	}, nil
 }
 
-func (s *Store) path(id string) string { return filepath.Join(s.Dir, sessionsDir, id+".json") }
+func (s *Store) path(id string) string {
+	if s.flat {
+		return filepath.Join(s.Dir, id+".json")
+	}
+	return filepath.Join(s.Dir, sessionsDir, id+".json")
+}
 
 // Create starts an empty session.
 func (s *Store) Create(title, model, effort string) (Session, error) {
@@ -91,7 +139,7 @@ func (s *Store) Create(title, model, effort string) (Session, error) {
 
 // Get loads a session.
 func (s *Store) Get(id string) (Session, error) {
-	if !ValidID(id) {
+	if !s.validID(id) {
 		return Session{}, ErrNotFound
 	}
 	var sess Session
@@ -129,7 +177,7 @@ func (s *Store) Update(id string, edit func(*Session) error) (Session, error) {
 
 // Delete removes a session.
 func (s *Store) Delete(id string) error {
-	if !ValidID(id) {
+	if !s.validID(id) {
 		return ErrNotFound
 	}
 	m := s.mu()

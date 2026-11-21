@@ -20,6 +20,7 @@ import (
 const (
 	RoleUser      = llm.RoleUser
 	RoleAssistant = llm.RoleAssistant
+	RoleNote      = "note" // stored for the reader only; never sent to the model
 )
 
 // Attachment kinds.

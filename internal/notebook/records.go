@@ -2,7 +2,9 @@ package notebook
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -32,6 +34,7 @@ type Run struct {
 	DurationMS  int64             `json:"durationMs"`
 	WorkType    string            `json:"workType"`
 	Prompt      string            `json:"prompt"`
+	PromptName  string            `json:"promptName,omitempty"` // the saved prompt the run used, if any
 	Vars        map[string]string `json:"vars,omitempty"`
 	Context     []string          `json:"context"`
 	Settings    config.Effective  `json:"settings"`
@@ -96,12 +99,31 @@ func TruncateRecord(s string) string {
 
 // Output is a saved, structured result filed by work type.
 type Output struct {
-	ID        string          `json:"id"`
-	RunID     string          `json:"runId"`
-	WorkType  string          `json:"workType"`
-	Title     string          `json:"title"`
-	CreatedAt string          `json:"createdAt"`
-	Data      json.RawMessage `json:"data"`
+	ID         string          `json:"id"`
+	RunID      string          `json:"runId"`
+	WorkType   string          `json:"workType"`
+	Title      string          `json:"title"`
+	CreatedAt  string          `json:"createdAt"`
+	Data       json.RawMessage `json:"data"`
+	ParentID   string          `json:"parentId,omitempty"`   // the output this version revises
+	FromThread string          `json:"fromThread,omitempty"` // the thread message the version was made from
+}
+
+// GetOutput returns one output and its Markdown (empty if none was saved).
+// A missing output wraps fs.ErrNotExist.
+func (n *Notebook) GetOutput(id string) (Output, string, error) {
+	if !ValidID(id) {
+		return Output{}, "", fmt.Errorf("output id %q is not valid", id)
+	}
+	var o Output
+	if err := readJSON(filepath.Join(n.Dir, OutputsDir, id+".json"), &o); err != nil {
+		return Output{}, "", err
+	}
+	md, err := os.ReadFile(filepath.Join(n.Dir, OutputsDir, id+".md")) //nolint:gosec // G304: validated ID
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return Output{}, "", fmt.Errorf("read output markdown: %w", err)
+	}
+	return o, string(md), nil
 }
 
 // Check validates the prompt name and settings.
