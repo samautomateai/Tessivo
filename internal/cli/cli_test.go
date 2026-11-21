@@ -22,12 +22,18 @@ type fakeModel struct {
 	reply string
 	err   error
 	reqs  []llm.Request
+	calls []llm.ToolCall // returned once, to the first request that offers tools
 }
 
 func (f *fakeModel) ChatStream(_ context.Context, req llm.Request, _ func(string)) (llm.Result, error) {
 	f.reqs = append(f.reqs, req)
 	if f.err != nil {
 		return llm.Result{}, f.err
+	}
+	if len(req.Tools) > 0 && f.calls != nil {
+		calls := f.calls
+		f.calls = nil
+		return llm.Result{Response: llm.Response{ToolCalls: calls}, Target: "litellm/m"}, nil
 	}
 	return llm.Result{
 		Response: llm.Response{Content: f.reply, Usage: llm.Usage{TotalTokens: 5}},

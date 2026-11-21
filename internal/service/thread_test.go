@@ -332,3 +332,21 @@ func TestThreadNotesAreKept(t *testing.T) {
 		}
 	}
 }
+
+func TestThreadNotebookByListedFolder(t *testing.T) {
+	f := newThreadFixture(t)
+	if _, err := f.s.GetThread(f.nb.Dir, f.output); err == nil {
+		t.Fatal("an unlisted folder must not be opened")
+	}
+	f.s.NotebookDirs = []string{f.nb.Dir}
+	if _, err := f.s.GetThread(f.nb.Dir, f.output); err != nil {
+		t.Fatalf("listed folder: %v", err)
+	}
+	sg := f.addSuggestion(t, notebook.SuggestMemory, "from the cli")
+	if _, err := f.s.ApplySuggestion(f.nb.Dir, f.output, sg.ID); err != nil {
+		t.Fatalf("apply through a folder: %v", err)
+	}
+	if mem := f.reopen(t).Manifest.Memory; mem[len(mem)-1] != "from the cli" {
+		t.Fatalf("memory %v", mem)
+	}
+}

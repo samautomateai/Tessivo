@@ -14,10 +14,10 @@ import (
 // maxVersionDepth bounds the walk up a chain of versions.
 const maxVersionDepth = 1000
 
-// versions numbers outputs by their revision chain: an original is 1 and each
+// Versions numbers outputs by their revision chain: an original is 1 and each
 // revision is its parent's number plus one. Missing parents end the chain;
 // cycles and very long chains are cut, so the walk always ends.
-func versions(outs []notebook.Output) map[string]int {
+func Versions(outs []notebook.Output) map[string]int {
 	parent := make(map[string]string, len(outs))
 	for _, o := range outs {
 		parent[o.ID] = o.ParentID
@@ -129,7 +129,7 @@ func (s *Service) noteVersion(st *chat.Store, ref outputRef, outputID string) er
 	if err != nil {
 		return err
 	}
-	text := fmt.Sprintf("Saved as v%d (%s)", versions(outs)[outputID], outputID)
+	text := fmt.Sprintf("Saved as v%d (%s)", Versions(outs)[outputID], outputID)
 	_, err = st.Update(ref.out.ID, func(sess *chat.Session) error {
 		sess.Messages = append(sess.Messages, chat.Message{
 			ID: chat.NewMessageID(), Role: chat.RoleNote, Content: text, CreatedAt: nowRFC3339(),

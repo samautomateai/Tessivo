@@ -161,7 +161,7 @@ func (s *Service) ApplySuggestion(notebookID, outputID, suggestionID string) (Ap
 		if err != nil {
 			return nil, err
 		}
-		if res.PromptName, err = s.applyChange(notebookID, ref, list[i]); err != nil {
+		if res.PromptName, err = s.applyChange(ref, list[i]); err != nil {
 			return nil, err
 		}
 		list[i].Status, list[i].DecidedAt = notebook.SuggestApplied, nowRFC3339()
@@ -175,9 +175,9 @@ func (s *Service) ApplySuggestion(notebookID, outputID, suggestionID string) (Ap
 	return res, s.auditApply(ref.nb, outputID, done)
 }
 
-func (s *Service) applyChange(notebookID string, ref outputRef, sg notebook.Suggestion) (string, error) {
+func (s *Service) applyChange(ref outputRef, sg notebook.Suggestion) (string, error) {
 	if sg.Kind == notebook.SuggestMemory {
-		nb, err := s.OpenNotebook(notebookID)
+		nb, err := notebook.Open(ref.nb.Dir)
 		if err != nil {
 			return "", err
 		}
@@ -185,8 +185,8 @@ func (s *Service) applyChange(notebookID string, ref outputRef, sg notebook.Sugg
 			return "", fmt.Errorf("%w: the notebook's memory is full (%d items); remove one first",
 				ErrConflict, template.MaxMemory)
 		}
-		_, err = s.SetMemory(notebookID, append(nb.Manifest.Memory, sg.Text))
-		return "", err
+		nb.Manifest.Memory = append(nb.Manifest.Memory, sg.Text)
+		return "", nb.Save()
 	}
 	return s.applyPrompt(ref, sg)
 }

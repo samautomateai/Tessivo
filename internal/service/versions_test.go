@@ -146,7 +146,7 @@ func TestNewVersionBusyThread(t *testing.T) {
 func TestVersionChainCycle(t *testing.T) {
 	a, b := notebook.NewID(), notebook.NewID()
 	outs := []notebook.Output{{ID: a, ParentID: b}, {ID: b, ParentID: a}, {ID: "c", ParentID: "gone"}}
-	v := versions(outs)
+	v := Versions(outs)
 	if v[a] < 1 || v[a] > 3 || v[b] < 1 || v[b] > 3 || v["c"] != 2 {
 		t.Fatalf("versions %v", v)
 	}

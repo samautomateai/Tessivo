@@ -34,7 +34,7 @@ type outputRef struct {
 
 // loadOutput opens a notebook's output and the run that produced it.
 func (s *Service) loadOutput(notebookID, outputID string) (outputRef, error) {
-	nb, err := s.OpenNotebook(notebookID)
+	nb, err := s.openNotebookRef(notebookID)
 	if err != nil {
 		return outputRef{}, err
 	}
@@ -271,3 +271,15 @@ const (
 	layerApp      = "app"
 	layerNotebook = "notebook"
 )
+
+// openNotebookRef opens a workspace notebook by ID, or a folder the caller
+// listed in NotebookDirs (the CLI does, for notebooks outside the workspace;
+// the HTTP API never does, so clients cannot name arbitrary folders).
+func (s *Service) openNotebookRef(ref string) (*notebook.Notebook, error) {
+	for _, d := range s.NotebookDirs {
+		if filepath.Clean(d) == filepath.Clean(ref) {
+			return notebook.Open(d)
+		}
+	}
+	return s.OpenNotebook(ref)
+}
