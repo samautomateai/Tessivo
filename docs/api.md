@@ -15,7 +15,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks` | — | `{"notebooks": [Notebook]}` (no context stats) |
 | `POST /v1/notebooks` | `{name, workType}` or `{templateId, name?}` | `201 Notebook` |
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |
-| `POST /v1/notebooks/{id}/context` | `{path}` (absolute) | `Notebook` |
+| `POST /v1/notebooks/{id}/context` | `{path}` (absolute), or `{server, uri, label?}` for an MCP resource | `Notebook` |
 | `PATCH /v1/notebooks/{id}/context/{contextId}` | `{enabled}` | `Notebook` |
 | `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?, toolRules?}` | SSE stream |
 | `GET /v1/outputs?notebook=&workType=` | — | `{"outputs": [Output]}` (no data) |
@@ -52,6 +52,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/mcp/servers` | `MCPServer` | `201 MCPServer` (`400` invalid or a credential written as text, `409` name taken) |
 | `DELETE /v1/mcp/servers/{name}` | — | `204` (`404` unknown, `409` attached to a notebook) |
 | `POST /v1/mcp/servers/{name}/test` | — | `{tools: [{name, description}], resources: [{uri, name, mimeType}], prompts: [{name, description}]}` |
+| `PUT /v1/notebooks/{id}/mcp` | `{servers: [name]}` | `Notebook` (`400` for a server that is not configured; at most 20) |
 | `PUT /v1/notebooks/{id}/mcp` | `{servers: [name]}` | `Notebook` (`400` for a server that is not configured; at most 20) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/thread` | — | `ChatSession` of the output's thread (empty if none yet) |
 | `PATCH …/outputs/{outputId}/thread` | `{model?, thinkingEffort?}` | `ChatSession` |
@@ -215,3 +216,10 @@ characters outside `a-z0-9_` replaced with `_`, at most 64; a clash gets `_2`, `
 schema when it is a JSON object of at most 16 KiB. Like every tool that is not read-only, MCP tools default to
 `ask`; rules can name them exactly or with `mcp__<server>__*`. A server that cannot be reached fails the run and
 names the server. Results are capped and redacted like other tool results.
+
+**MCP resources as sources.** A context item with `kind: "mcp-resource"` names a configured server and a resource
+URI (at most 2048 bytes). It is read on every run (pipeline and agent) and in threads and chats that attach the
+notebook, through one connection per server, and counts toward the context budget like any other source; its
+`estimatedTokens` is 0 until then. Only text is accepted (or a blob whose type is text or JSON), at most 2 MiB. A
+resource that cannot be read fails the run with the server and URI in the message. Runs record it as
+`mcp:<server>/<uri>`. The CLI form is `tess context add <notebook> mcp://<server>/<uri>`.

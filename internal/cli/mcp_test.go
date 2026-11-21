@@ -94,3 +94,30 @@ func TestMCPAttachDetach(t *testing.T) {
 		t.Fatalf("attach unknown: %d", code)
 	}
 }
+
+func TestContextAddMCPResource(t *testing.T) {
+	h := newHarness(t)
+	h.initConfig()
+	h.addFake("fake", mcptest.ModeOK)
+	dir := filepath.Join(h.dir, "nb")
+	h.mustRun("new", dir, "--type", "summarize")
+	out := h.mustRun("context", "add", dir, "mcp://fake/file:///notes.md")
+	if !strings.Contains(out, "read at run time") {
+		t.Fatalf("add: %q", out)
+	}
+	nb, _ := notebook.Open(dir)
+	if c := nb.Manifest.Context[0]; !c.IsMCP() || c.Server != "fake" || c.URI != "file:///notes.md" {
+		t.Fatalf("item: %+v", c)
+	}
+	h.model.reply = summary
+	h.mustRun("run", dir, "--prompt", "Summarize.")
+	if !strings.Contains(h.model.reqs[len(h.model.reqs)-1].Messages[1].Content, "Ship in March") {
+		t.Fatal("resource not read by the run")
+	}
+	if code := h.run("context", "add", dir, "mcp://nope/x"); code != ExitUsage {
+		t.Fatalf("unknown server: %d", code)
+	}
+	if code := h.run("context", "add", dir, "mcp://fake"); code != ExitUsage {
+		t.Fatalf("no uri: %d", code)
+	}
+}

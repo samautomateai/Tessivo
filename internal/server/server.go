@@ -166,13 +166,28 @@ func (s *Server) getNotebook(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) addContext(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Path string `json:"path"`
+		Path   string `json:"path"`
+		Server string `json:"server"`
+		URI    string `json:"uri"`
+		Label  string `json:"label"`
 	}
 	if err := decode(w, r, &body); err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	info, err := s.svc.AddContext(r.PathValue("id"), body.Path)
+	var (
+		info service.NotebookInfo
+		err  error
+	)
+	switch {
+	case body.Server != "" && body.Path != "":
+		writeError(w, http.StatusBadRequest, "give a path or an MCP server and URI, not both")
+		return
+	case body.Server != "":
+		info, err = s.svc.AddMCPContext(r.PathValue("id"), body.Server, body.URI, body.Label)
+	default:
+		info, err = s.svc.AddContext(r.PathValue("id"), body.Path)
+	}
 	if err != nil {
 		s.fail(w, r, err)
 		return

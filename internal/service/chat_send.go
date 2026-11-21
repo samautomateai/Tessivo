@@ -72,7 +72,7 @@ func (s *Service) SendChat(ctx context.Context, id string, in ChatSend, onDelta 
 	if err != nil {
 		return ChatReply{}, &InvalidError{err.Error()}
 	}
-	atts, docs, err := s.resolveAttachments(in.Attachments)
+	atts, docs, err := s.resolveAttachments(ctx, in.Attachments)
 	if err != nil {
 		return ChatReply{}, err
 	}
@@ -92,7 +92,7 @@ func (s *Service) SendChat(ctx context.Context, id string, in ChatSend, onDelta 
 	if err != nil {
 		return ChatReply{}, chatErr(err)
 	}
-	docs = append(docs, s.sessionDocs(sess, user.ID)...)
+	docs = append(docs, s.sessionDocs(ctx, sess, user.ID)...)
 	req := llm.Request{
 		Model: settings.Model, MaxTokens: settings.MaxOutputTokens, Temperature: settings.Temperature,
 		ReasoningEffort: settings.ThinkingEffort,
@@ -214,11 +214,12 @@ func (s *Service) auditMessage(kind, id string, user, reply chat.Message, r conf
 func nowRFC3339() string { return time.Now().UTC().Format(time.RFC3339) }
 
 // resolveAttachments loads each attachment's text and records its size.
-func (s *Service) resolveAttachments(in []chat.Attachment) ([]chat.Attachment, []extract.Document, error) {
+func (s *Service) resolveAttachments(ctx context.Context, in []chat.Attachment,
+) ([]chat.Attachment, []extract.Document, error) {
 	out := make([]chat.Attachment, 0, len(in))
 	var docs []extract.Document
 	for _, a := range in {
-		d, label, err := s.attachmentDocs(a)
+		d, label, err := s.attachmentDocs(ctx, a)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -235,7 +236,7 @@ func (s *Service) resolveAttachments(in []chat.Attachment) ([]chat.Attachment, [
 	return out, docs, nil
 }
 
-func (s *Service) attachmentDocs(a chat.Attachment) ([]extract.Document, string, error) {
+func (s *Service) attachmentDocs(ctx context.Context, a chat.Attachment) ([]extract.Document, string, error) {
 	switch a.Kind {
 	case chat.AttachPath:
 		if !filepath.IsAbs(a.Ref) {
@@ -251,7 +252,7 @@ func (s *Service) attachmentDocs(a chat.Attachment) ([]extract.Document, string,
 		if err != nil {
 			return nil, "", err
 		}
-		d, err := notebookDocs(nb)
+		d, err := s.notebookDocs(ctx, nb)
 		return d, nb.Manifest.Name, err
 	default: // chat.AttachOutput; CheckMessage rejects other kinds
 		nbID, outID, ok := strings.Cut(a.Ref, "/")
@@ -268,7 +269,7 @@ func (s *Service) attachmentDocs(a chat.Attachment) ([]extract.Document, string,
 
 // sessionDocs re-reads context attached to earlier messages so later turns can
 // still see it. Attachments that no longer resolve are skipped, not fatal.
-func (s *Service) sessionDocs(sess chat.Session, skipID string) []extract.Document {
+func (s *Service) sessionDocs(ctx context.Context, sess chat.Session, skipID string) []extract.Document {
 	seen := map[string]bool{}
 	var docs []extract.Document
 	for _, m := range sess.Messages {
@@ -281,7 +282,7 @@ func (s *Service) sessionDocs(sess chat.Session, skipID string) []extract.Docume
 				continue
 			}
 			seen[key] = true
-			if d, _, err := s.attachmentDocs(a); err == nil {
+			if d, _, err := s.attachmentDocs(ctx, a); err == nil {
 				docs = append(docs, d...)
 			}
 		}

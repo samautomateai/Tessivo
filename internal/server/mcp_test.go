@@ -72,3 +72,20 @@ func TestNotebookMCPAPI(t *testing.T) {
 		t.Fatalf("unknown: %d", code)
 	}
 }
+
+func TestAddMCPContextAPI(t *testing.T) {
+	ts, _ := newTestServer(t, "")
+	call(t, ts, "POST", "/v1/mcp/servers", fakeBody(t))
+	call(t, ts, "POST", "/v1/notebooks", `{"name":"Ops","workType":"summarize"}`)
+	code, body := call(t, ts, "POST", "/v1/notebooks/ops/context", `{"server":"fake","uri":"file:///notes.md"}`)
+	if code != 200 || !strings.Contains(body, `"kind":"mcp-resource"`) {
+		t.Fatalf("add: %d %s", code, body)
+	}
+	if code, _ = call(t, ts, "POST", "/v1/notebooks/ops/context", `{"server":"nope","uri":"x"}`); code != 400 {
+		t.Fatalf("unknown server: %d", code)
+	}
+	body = `{"path":"/x","server":"fake","uri":"y"}`
+	if code, _ = call(t, ts, "POST", "/v1/notebooks/ops/context", body); code != 400 {
+		t.Fatalf("both path and server: %d", code)
+	}
+}

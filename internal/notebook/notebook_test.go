@@ -210,3 +210,38 @@ func TestSchedulesAndState(t *testing.T) {
 		t.Fatal("want parse error")
 	}
 }
+
+func TestContextItemOldManifestLoads(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "old")
+	nb, err := Create(dir, "old", worktype.Analyze)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw := `{"id":"x","name":"old","workType":"analyze","createdAt":"","settings":{},` +
+		`"context":[{"id":"c1","label":"a.md","path":"context/a.md","inPlace":false,"enabled":true,"addedAt":""}]}`
+	if err := os.WriteFile(filepath.Join(nb.Dir, ManifestFile), []byte(raw), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Open(dir)
+	if err != nil || got.Manifest.Context[0].Kind != "" || got.Manifest.Context[0].IsMCP() {
+		t.Fatalf("%v %+v", err, got.Manifest.Context)
+	}
+	item, err := got.AddMCPResource("fake", "file:///n.md", "")
+	if err != nil || !item.IsMCP() || item.Label != "file:///n.md" || item.Server != "fake" {
+		t.Fatalf("%v %+v", err, item)
+	}
+}
+
+func TestMCPResourceHasNoPath(t *testing.T) {
+	nb, err := Create(filepath.Join(t.TempDir(), "nb"), "nb", worktype.Analyze)
+	if err != nil {
+		t.Fatal(err)
+	}
+	item, err := nb.AddMCPResource("fake", "file:///n.md", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := nb.ContextPath(item); p != "" {
+		t.Fatalf("an MCP resource must have no local path, got %q", p)
+	}
+}
