@@ -21,7 +21,8 @@ below with its reason in the same change that adds it.
 | CLI flags | `flag` package is enough |
 | OS keychain (macOS `security -i` with hex secrets on stdin, Linux `secret-tool` via stdin, Windows `CredReadW`/`CredWriteW` via `syscall`) | Each is a small wrapper over an OS-provided tool or API; no third-party code needed |
 | Desktop ↔ core API (JSON + SSE over Unix socket/loopback) | `net/http` and `dart:io` cover it; see ADR 0004 |
-| Length and coverage gates | Tiny tools in `tools/` |
+| Length, text-file (encoding, line endings), coverage (Go and LCOV) gates; fuzz runner | Tiny tools in `tools/` |
+| Dev tool setup (`task install/doctor/update`) | `tools/devtools` runs `go install …@latest`, `git` and `flutter`; tools are installed binaries, never module dependencies |
 
 ## Planned dependencies (added when their story starts)
 

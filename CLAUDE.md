@@ -4,17 +4,22 @@ Tessivo is a native desktop + CLI app that analyzes, summarizes, documents and r
 self-hosted OpenAI-compatible models (LiteLLM). Go core and CLI (`tess`), Flutter desktop UI,
 Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
 
-## Non-negotiable quality gates (`task check`)
+## Non-negotiable quality gates (`task check`; `task ci` runs every CI gate locally, desktop included)
 
-- `task fmt:check`: gofmt -s, gofumpt (extra rules) and goimports must report no diff. Fix with `task fmt`.
+- `task fmt:check`: gofmt -s, gofumpt (extra: group-params, clothe-returns) and goimports must report no diff.
+  Fix with `task fmt`.
 - `task lengths`: lines ≤ 120 characters; files ≤ 500 lines (tests ≤ 800). Split files, don't wrap hacks.
+- `task text`: text files are UTF-8 without BOM, LF line endings (CRLF only for `.bat`/`.cmd`), end with a newline,
+  no trailing whitespace. `.gitattributes` makes git check out LF on every OS; fix with `task text:fix`.
 - `task lint`: golangci-lint v2 with gosec, lll, funlen (80 lines), gocyclo (15), wrapcheck, errorlint.
   `//nolint` needs a specific linter and an explanation.
-- `task cover`: total Go coverage ≥ 80%. Flutter: `task desktop:check`, also ≥ 80%.
+- `task cover`: total Go coverage ≥ 80%. Flutter: `task desktop:check`, also ≥ 80% (`covercheck -format lcov`).
 - `task vuln`: govulncheck clean.
-- Race detector on in tests.
-- `task audit`: `go mod verify`, govulncheck, gosec. `task fuzz` for parsers; `task bench` for hot paths.
-- Install hooks once: `task hooks:install` (format, lengths, lint on commit).
+- Race detector on in tests (needs cgo + a C compiler; without one `task test` warns, CI still enforces it).
+- `task audit`: `go mod verify`, govulncheck, gosec. `task fuzz` (tools/fuzzall) for parsers; `task bench` for hot paths.
+- Set up once: `task install` (or `go run ./tools/devtools install` before Task exists) installs Task,
+  golangci-lint v2, govulncheck, gosec and the git hooks (format, lengths, lint on commit).
+  `task doctor` diagnoses and repairs; `task update` moves go.mod to the latest Go toolchain and upgrades every tool.
 
 ## Security and performance rules
 
@@ -26,6 +31,17 @@ Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
 
 ## Engineering rules
 
+- **OS independent by default**: everything we build — product code, tests, tooling, Taskfile, hooks, CI — must
+  work the same on Windows, macOS and Linux. Use Go and the standard library (`filepath`, `os.UserHomeDir`,
+  `os.TempDir`, `os.CreateTemp`), not shell tools (`sh`, `grep`, `sed`, `awk`, `true`) or hard-coded paths
+  (`/proc`, `/tmp`, `/home`, `/`-joined paths). Repo tooling is a Go program in `tools/`, not a shell script.
+  Tests use `internal/testutil`: `AssertPerm` (no Unix permission bits on Windows), `Unwritable` (instead of
+  `/proc` or chmod), `HelperCommand` (the test binary instead of POSIX tools).
+- **Anything OS-specific needs explicit approval first**: a `runtime.GOOS` branch, build tags, an OS tool or API
+  (keychain, notifications, sockets, file permissions), or anything that runs on only some OSes. Stop, explain
+  why it is needed and the portable alternatives, and wait for the user's approval before writing it. When
+  approved: keep it behind an interface in its own file (`*_windows.go`, `*_unix.go`), give every OS a working
+  path or a clear "unsupported" error, test each branch, and note the decision in the relevant doc or ADR.
 - **Latest stable toolchains**: Go version pinned in `go.mod` (`toolchain` line); Flutter stable channel.
 - **Standard library first.** Add a dependency only when building it ourselves makes no sense
   (protocols, OS integration, databases, agent framework). Record every direct dependency and its
@@ -41,6 +57,7 @@ Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
 
 - `cmd/tess` — CLI entry point (thin).
 - `internal/` — core packages (see `docs/architecture.md`).
-- `tools/` — repo tooling (length and coverage gates).
+- `tools/` — repo tooling in Go (dev setup, length, text, coverage gates, fuzz runner).
+- `internal/testutil` — OS-independent test helpers (imported only from tests).
 - `docs/api.md` — local JSON API contract between the desktop UI and the core (ADR 0004).
 - `desktop/` — Flutter app.

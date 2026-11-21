@@ -18,6 +18,10 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | `tess` CLI: init, notebook, context, run, models | CLI-1, CLI-2, CLI-3 | ☑ |
 | Tamper-evident audit log of runs, model attempts and outputs; `tess audit verify/show` | NFR Security | ☑ |
 | Formatting gate (gofmt -s, gofumpt, goimports), `task audit`, fuzz and bench tasks | NFR Quality | ☑ |
+| Portable text files: `.gitattributes` (LF everywhere), `task text` / `text:fix` gate (UTF-8, no BOM, LF, final newline) | NFR Quality | ☑ |
+| `task ci`: every CI gate locally; portable fuzz runner (`tools/fuzzall`); desktop LCOV coverage gate in `covercheck`; doctor checks the race detector | NFR Quality | ☑ |
+| OS-independent tests (`internal/testutil`: permissions, unwritable paths, helper process instead of `sh`); CI tests on Windows and macOS too; OS-specific work needs approval (CLAUDE.md) | NFR Quality | ☑ |
+| Dev setup: `task install` (tools + hooks), `task doctor` (diagnose and repair), `task update` (latest Go toolchain and tools) | NFR Quality | ☑ |
 | Hardened HTTP: TLS 1.2+, no redirects, bounded timeouts, idle-stream timeout; plaintext to remote hosts refused | NFR Security | ☑ |
 | Parallel code-base extraction (bounded pool); benchmarks; fuzz targets for schema, CSV/JSON, Office, audit | NFR Performance | ☑ |
 | Desktop ↔ core contract: local JSON API + SSE (ADR 0004, docs/api.md) | — | ☑ |

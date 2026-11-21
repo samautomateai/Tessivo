@@ -11,6 +11,21 @@ tasks:
     cmds:
       - task --list
 
+  install:
+    desc: Install every dev tool at its latest version (Task, golangci-lint v2, govulncheck, gosec), git hooks
+    cmds:
+      - go run ./tools/devtools install
+
+  doctor:
+    desc: Diagnose the dev setup and repair what it can (task doctor -- -check only reports)
+    cmds:
+      - go run ./tools/devtools doctor {{.CLI_ARGS}}
+
+  update:
+    desc: Move go.mod to the latest Go toolchain and upgrade every dev tool and Flutter
+    cmds:
+      - go run ./tools/devtools update
+
   build:
     desc: Build the tess CLI
     cmds:
@@ -40,11 +55,7 @@ tasks:
     vars:
       FUZZTIME: '{{.FUZZTIME | default "20s"}}'
     cmds:
-      - |
-        for f in $(grep -rhoE "^func Fuzz[A-Za-z0-9_]+" --include='*_test.go' . | sed 's/^func //'); do
-          dir=$(dirname "$(grep -rl "^func $f(" --include='*_test.go' . | head -1)")
-          go test -run '^$' -fuzz "^$f\$" -fuzztime {{.FUZZTIME}} "./$dir" || exit 1
-        done
+      - go run ./tools/fuzzall -fuzztime {{.FUZZTIME}} ./...
 
   bench:
     desc: Run benchmarks with allocation stats
@@ -57,9 +68,14 @@ tasks:
       - git config core.hooksPath scripts/hooks
 
   test:
-    desc: Run Go tests with the race detector
+    desc: Run Go tests with the race detector (needs cgo and a C compiler; task doctor explains)
+    vars:
+      CGO:
+        sh: go env CGO_ENABLED
     cmds:
-      - go test -race -count=1 ./...
+      - |
+        {{if ne .CGO "1"}}echo "warn: no -race (cgo off, no C compiler); CI still runs it. See: task doctor"{{end}}
+        go test {{if eq .CGO "1"}}-race {{end}}-count=1 ./...
 
   cover:
     desc: Run tests with coverage and enforce the {{.COVER_MIN}}% gate
@@ -77,6 +93,16 @@ tasks:
     cmds:
       - go run ./tools/lencheck -max-line 120 -max-file 500 -max-test-file 800 .
 
+  text:
+    desc: Enforce portable text files (UTF-8 without BOM, LF endings, final newline, no trailing whitespace)
+    cmds:
+      - go run ./tools/textcheck .
+
+  text:fix:
+    desc: Rewrite text files to UTF-8 without BOM, LF endings, a final newline and no trailing whitespace
+    cmds:
+      - go run ./tools/textcheck -fix .
+
   vuln:
     desc: Scan dependencies and stdlib for known vulnerabilities
     cmds:
@@ -91,7 +117,7 @@ tasks:
     desc: Check go.mod and go.sum are tidy
     cmds:
       - go mod tidy
-      - git diff --exit-code go.mod go.sum
+      - git diff --exit-code -- go.mod go.sum
 
   desktop:init:
     desc: Generate Flutter platform runners (macOS, Windows, Linux) once
@@ -107,6 +133,7 @@ tasks:
       - dart format --output=none --set-exit-if-changed lib test
       - flutter analyze --fatal-infos
       - flutter test --coverage
+      - go run ../tools/covercheck -format lcov -profile coverage/lcov.info -min {{.COVER_MIN}}
 
   desktop:run:
     desc: Run the desktop app
@@ -114,11 +141,41 @@ tasks:
     cmds:
       - flutter run -d {{OS}}
 
+  desktop:ci:
+    desc: desktop:check when Flutter is installed; otherwise say loudly that it was skipped
+    vars:
+      FLUTTER:
+        sh: command -v flutter || true
+    cmds:
+      - >-
+        {{if .FLUTTER}}task desktop:check{{else}}echo
+        "SKIPPED desktop gates: Flutter is not installed (CI still runs them)"{{end}}
+
+  ci:
+    desc: "Every CI gate locally, fast ones first: text, lengths, tidy, format, lint, build, race tests,
+      coverage, go mod verify, govulncheck, fuzz smoke, desktop (gosec runs inside lint, as in CI)"
+    cmds:
+      - task: text
+      - task: lengths
+      - task: tidy
+      - task: fmt:check
+      - task: lint
+      - go build -trimpath ./...
+      - task: test
+      - task: cover
+      - go mod verify
+      - task: vuln
+      - task: fuzz
+        vars:
+          FUZZTIME: 10s
+      - task: desktop:ci
+
   check:
     desc: Every quality gate (run before pushing)
     cmds:
       - task: fmt:check
       - task: lengths
+      - task: text
       - task: lint
       - task: cover
       - task: vuln

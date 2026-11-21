@@ -28,11 +28,16 @@ tess chat repeat <session> --name "Key rotation"                 # turn the chat
 
 ## Develop
 
-Requires the latest stable Go (see `go.mod`), [Task](https://taskfile.dev), golangci-lint v2 and,
-for the desktop app, Flutter stable.
+Requires Go (any recent release; it fetches the toolchain pinned in `go.mod`) and, for the desktop
+app, Flutter stable. Everything else is installed for you:
 
 ```sh
+go run ./tools/devtools install   # first time, before Task exists: Task, golangci-lint v2, govulncheck, gosec, git hooks
+task doctor         # diagnose the setup and repair what it can (task doctor -- -check only reports)
+task update         # move go.mod to the latest Go toolchain, upgrade every tool and Flutter
+task install        # reinstall every tool at its latest version
 task check          # every quality gate: lengths, lint, coverage ≥ 80%, govulncheck
+task ci             # everything CI runs, locally: + text, tidy, build, race tests, fuzz smoke, desktop
 task build          # bin/tess
 task desktop:init   # once: generate Flutter platform runners
 task desktop:check  # analyze, format, test the desktop app

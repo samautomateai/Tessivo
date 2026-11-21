@@ -25,6 +25,8 @@ jobs:
         run: go mod verify
       - name: Lengths
         run: go run ./tools/lencheck -max-line 120 -max-file 500 -max-test-file 800 .
+      - name: Text files (UTF-8, no BOM, LF, final newline, no trailing whitespace)
+        run: go run ./tools/textcheck .
       - name: Tidy
         # go.sum only exists once the module has dependencies.
         run: |
@@ -51,11 +53,27 @@ jobs:
       - name: Build
         run: go build -trimpath ./...
       - name: Fuzz (smoke, 10s per target)
-        run: |
-          for f in $(grep -rhoE "^func Fuzz[A-Za-z0-9_]+" --include='*_test.go' . | sed 's/^func //'); do
-            dir=$(dirname "$(grep -rl "^func $f(" --include='*_test.go' . | head -1)")
-            go test -run '^$' -fuzz "^$f\$" -fuzztime 10s "./$dir"
-          done
+        run: go run ./tools/fuzzall -fuzztime 10s ./...
+
+  # Everything must work on every OS (CLAUDE.md); Linux runs the full gate set above.
+  go-os:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - name: Text files
+        run: go run ./tools/textcheck .
+      - name: Build
+        run: go build -trimpath ./...
+      - name: Test with race detector
+        run: go test -race -count=1 ./...
 
   gosec:
     runs-on: ubuntu-latest
@@ -93,9 +111,8 @@ jobs:
           fi
       - run: flutter analyze --fatal-infos
       - run: flutter test --coverage
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
       - name: Coverage gate (80%)
-        run: |
-          total=$(awk -F: '/^LF:/{t+=$2} /^LH:/{h+=$2}
-            END{if(t==0)print 100; else printf "%.1f", h*100/t}' coverage/lcov.info)
-          echo "desktop coverage: ${total}%"
-          awk -v t="$total" 'BEGIN{exit (t+0 < 80)}'
+        run: go run ../tools/covercheck -format lcov -profile coverage/lcov.info -min 80
