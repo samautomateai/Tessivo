@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/samautomateai/tessivo/internal/testutil"
+
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/worktype"
 )
@@ -77,7 +79,7 @@ func TestCreateAndOpenErrors(t *testing.T) {
 	if err := nb.Save(); err == nil {
 		t.Fatal("want invalid settings")
 	}
-	if _, err := Create("/proc/tessivo-nope", "x", worktype.Report); err == nil {
+	if _, err := Create(testutil.Unwritable(t, "nb"), "x", worktype.Report); err == nil {
 		t.Fatal("want mkdir error")
 	}
 }
@@ -145,7 +147,7 @@ func TestSanitizeAndIDs(t *testing.T) {
 	if a, b := NewID(), NewID(); a == b || len(a) != 22 {
 		t.Fatalf("ids %q %q", a, b)
 	}
-	if err := writeJSON("/proc/nope/x.json", 1); err == nil {
+	if err := writeJSON(testutil.Unwritable(t, "x.json"), 1); err == nil {
 		t.Fatal("want write error")
 	}
 	if err := writeJSON(filepath.Join(t.TempDir(), "x.json"), func() {}); err == nil {

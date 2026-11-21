@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/samautomateai/tessivo/internal/testutil"
+
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/executor"
 	"github.com/samautomateai/tessivo/internal/llm"
@@ -252,7 +254,8 @@ func TestRunWithoutDefaultModel(t *testing.T) {
 	if code := h.run("run", "--type", "summarize"); code != ExitUsage {
 		t.Fatalf("want usage error, got %d", code)
 	}
-	if code := h.run("run", "--type", "summarize", "--model", "litellm/m", "--out", "/proc/x/y"); code != ExitError {
+	out := testutil.Unwritable(t, "y")
+	if code := h.run("run", "--type", "summarize", "--model", "litellm/m", "--out", out); code != ExitError {
 		t.Fatal("want write error")
 	}
 }

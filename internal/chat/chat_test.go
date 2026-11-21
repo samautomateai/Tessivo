@@ -4,10 +4,11 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/samautomateai/tessivo/internal/testutil"
 
 	"github.com/samautomateai/tessivo/internal/extract"
 )
@@ -48,12 +49,7 @@ func TestSessionLifecycle(t *testing.T) {
 	if err != nil || len(got.Messages) != 1 || got.Model != "smart" {
 		t.Fatalf("get: %v %+v", err, got)
 	}
-	if runtime.GOOS != "windows" {
-		fi, _ := os.Stat(st.path(s.ID))
-		if fi.Mode().Perm() != 0o600 {
-			t.Fatalf("session file mode %v", fi.Mode().Perm())
-		}
-	}
+	testutil.AssertPerm(t, st.path(s.ID), 0o600)
 	if err := st.Delete(s.ID); err != nil {
 		t.Fatal(err)
 	}

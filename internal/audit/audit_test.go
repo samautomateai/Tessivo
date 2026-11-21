@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/samautomateai/tessivo/internal/testutil"
 )
 
 func openTemp(t *testing.T) (*Log, string) {
@@ -41,9 +43,7 @@ func TestAppendVerifyAndResume(t *testing.T) {
 	if bytes.Contains(raw, []byte("sk-live-secret-value")) {
 		t.Fatal("secret written to audit log")
 	}
-	if info, _ := os.Stat(p); info.Mode().Perm() != 0o600 {
-		t.Fatalf("perm %v", info.Mode().Perm())
-	}
+	testutil.AssertPerm(t, p, 0o600)
 	l2, err := Open(p, "desktop")
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +124,7 @@ func TestLimitsAndErrors(t *testing.T) {
 	if _, err := Open(corrupt, "cli"); err == nil {
 		t.Fatal("want corrupt tail error")
 	}
-	if _, err := Open("/proc/tessivo/audit.jsonl", "cli"); err == nil {
+	if _, err := Open(testutil.Unwritable(t, "audit.jsonl"), "cli"); err == nil {
 		t.Fatal("want open error")
 	}
 	if _, err := VerifyFile(filepath.Join(dir, "missing")); err == nil {

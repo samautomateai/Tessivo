@@ -3,12 +3,15 @@ package notify
 import (
 	"context"
 	"errors"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/samautomateai/tessivo/internal/testutil"
 )
 
 type call struct {
@@ -104,18 +107,23 @@ func TestClean(t *testing.T) {
 	}
 }
 
+func TestMain(m *testing.M) {
+	testutil.RunHelper()
+	os.Exit(m.Run())
+}
+
 func TestExecRun(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("uses POSIX tools")
-	}
-	if err := execRun(context.Background(), "true", nil, []string{"X=1"}, nil); err != nil {
+	name, args := testutil.HelperCommand(t, "exit", "0")
+	if err := execRun(context.Background(), name, args, []string{"X=1"}, nil); err != nil {
 		t.Fatal(err)
 	}
-	err := execRun(context.Background(), "sh", []string{"-c", "echo nope >&2; exit 3"}, nil, nil)
+	name, args = testutil.HelperCommand(t, "fail", "nope", "3")
+	err := execRun(context.Background(), name, args, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "nope") {
 		t.Fatalf("stderr not reported: %v", err)
 	}
-	if err := execRun(context.Background(), "false", nil, nil, nil); err == nil {
+	name, args = testutil.HelperCommand(t, "exit", "1")
+	if err := execRun(context.Background(), name, args, nil, nil); err == nil {
 		t.Fatal("failure not reported")
 	}
 }

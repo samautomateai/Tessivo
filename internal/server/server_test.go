@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samautomateai/tessivo/internal/testutil"
+
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/executor"
 	"github.com/samautomateai/tessivo/internal/llm"
@@ -296,9 +298,7 @@ func TestUnixSocketEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info, _ := os.Stat(sock); info.Mode().Perm() != 0o600 {
-		t.Fatalf("socket perm %v", info.Mode().Perm())
-	}
+	testutil.AssertPerm(t, sock, 0o600)
 	_, err = Listen(context.Background(), "unix", sock)
 	if err == nil || !strings.Contains(err.Error(), "already listening") {
 		t.Fatalf("want already listening, got %v", err)
@@ -368,10 +368,8 @@ func TestListenTCPAndEndpoint(t *testing.T) {
 	if err := WriteEndpoint(p, Endpoint{Network: "tcp", Address: "127.0.0.1:1", Token: tok}); err != nil {
 		t.Fatal(err)
 	}
-	if info, _ := os.Stat(p); info.Mode().Perm() != 0o600 {
-		t.Fatalf("endpoint perm %v", info.Mode().Perm())
-	}
-	if err := WriteEndpoint("/proc/tessivo/endpoint.json", Endpoint{}); err == nil {
+	testutil.AssertPerm(t, p, 0o600)
+	if err := WriteEndpoint(testutil.Unwritable(t, "endpoint.json"), Endpoint{}); err == nil {
 		t.Fatal("want write error")
 	}
 }

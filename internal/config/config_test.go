@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/samautomateai/tessivo/internal/testutil"
 )
 
 func TestResolveLayers(t *testing.T) {
@@ -59,13 +61,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	if err := f.Save(p); err != nil {
 		t.Fatal(err)
 	}
-	info, err := os.Stat(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if info.Mode().Perm() != 0o600 {
-		t.Fatalf("perm %v, want 0600", info.Mode().Perm())
-	}
+	testutil.AssertPerm(t, p, 0o600)
 	got, err := Load(p)
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +94,7 @@ func TestSaveRejectsInvalid(t *testing.T) {
 		t.Fatal("want error")
 	}
 	g := validFile()
-	if err := g.Save(filepath.Join("/proc", "nope", "c.json")); err == nil {
+	if err := g.Save(testutil.Unwritable(t, "nope", "c.json")); err == nil {
 		t.Fatal("want error writing to an unwritable dir")
 	}
 }
@@ -200,8 +196,10 @@ func TestWorkspace(t *testing.T) {
 	if w, _ := (File{WorkspaceDir: "/data/nb"}).Workspace(); w != "/data/nb" {
 		t.Fatal(w)
 	}
-	t.Setenv("HOME", "/home/x")
-	if w, err := (File{}).Workspace(); err != nil || w != filepath.Join("/home/x", "Tessivo", "notebooks") {
+	home := t.TempDir()
+	t.Setenv("HOME", home)        // Unix
+	t.Setenv("USERPROFILE", home) // Windows
+	if w, err := (File{}).Workspace(); err != nil || w != filepath.Join(home, "Tessivo", "notebooks") {
 		t.Fatalf("%q %v", w, err)
 	}
 }

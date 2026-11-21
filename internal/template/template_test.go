@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/samautomateai/tessivo/internal/testutil"
+
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/notebook"
 )
@@ -38,9 +40,7 @@ func TestLibrarySaveGetDelete(t *testing.T) {
 	if err != nil || saved.Version != 1 || saved.Parent != "change-risk-review@1" {
 		t.Fatalf("save: %v %+v", err, saved)
 	}
-	if info, _ := os.Stat(filepath.Join(lib.Dir, "payments-risk.json")); info.Mode().Perm() != 0o600 {
-		t.Fatal("template file must be 0600")
-	}
+	testutil.AssertPerm(t, filepath.Join(lib.Dir, "payments-risk.json"), 0o600)
 	again, _ := lib.Save(saved)
 	if again.Version != 2 {
 		t.Fatalf("want version bump, got %d", again.Version)

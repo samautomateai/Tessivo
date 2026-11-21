@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/samautomateai/tessivo/internal/testutil"
 
 	"github.com/samautomateai/tessivo/internal/secrets"
 )
@@ -25,9 +28,16 @@ type fakeTool struct {
 	exit  map[string]int
 }
 
+func TestMain(m *testing.M) {
+	testutil.RunHelper()
+	os.Exit(m.Run())
+}
+
+// exitErr returns a real *exec.ExitError with the given status, on any OS.
 func exitErr(t *testing.T, code int) error {
 	t.Helper()
-	err := exec.Command("sh", "-c", "exit "+strconv.Itoa(code)).Run()
+	name, args := testutil.HelperCommand(t, "exit", strconv.Itoa(code))
+	err := exec.Command(name, args...).Run()
 	if err == nil {
 		t.Fatal("expected exit error")
 	}
@@ -146,11 +156,13 @@ func TestValidation(t *testing.T) {
 }
 
 func TestExecRunner(t *testing.T) {
-	out, err := execRunner(context.Background(), "sh", []string{"-c", "cat"}, []byte("piped"))
+	name, args := testutil.HelperCommand(t, "cat")
+	out, err := execRunner(context.Background(), name, args, []byte("piped"))
 	if err != nil || string(out) != "piped" {
 		t.Fatalf("%q %v", out, err)
 	}
-	_, err = execRunner(context.Background(), "sh", []string{"-c", "echo token=abcdefghijk >&2; exit 7"}, nil)
+	name, args = testutil.HelperCommand(t, "fail", "token=abcdefghijk", "7")
+	_, err = execRunner(context.Background(), name, args, nil)
 	if exitCode(err) != 7 || strings.Contains(err.Error(), "abcdefghijk") {
 		t.Fatalf("want exit 7 with redacted stderr, got %v", err)
 	}
