@@ -146,3 +146,20 @@ func TestRunRecordCompat(t *testing.T) {
 		t.Fatalf("round trip: %+v %v", back, err)
 	}
 }
+
+func TestCheckpointRetriesBusyRename(t *testing.T) {
+	nb := newNB(t)
+	fails := 2
+	old := rename
+	rename = func(from, to string) error {
+		if fails > 0 {
+			fails--
+			return &os.LinkError{Op: "rename", Old: from, New: to, Err: errors.New("access is denied")}
+		}
+		return old(from, to)
+	}
+	t.Cleanup(func() { rename = old })
+	if err := nb.SaveCheckpoint("r1", map[string]int{"step": 1}); err != nil {
+		t.Fatalf("a briefly busy target must be retried: %v", err)
+	}
+}

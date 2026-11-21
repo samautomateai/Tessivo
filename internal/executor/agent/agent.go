@@ -140,6 +140,12 @@ func (a *Agent) step(ctx context.Context, spec executor.Spec, cp *Checkpoint,
 	}
 	cp.Steps++
 	cp.Tokens += out.Usage.TotalTokens
+	// Some self-hosted backends omit call ids; the next request needs them to pair results with calls.
+	for i := range out.ToolCalls {
+		if out.ToolCalls[i].ID == "" {
+			out.ToolCalls[i].ID = fmt.Sprintf("call_%d_%d", cp.Steps, i)
+		}
+	}
 	reply := llm.Message{Role: llm.RoleAssistant, Content: out.Content, ToolCalls: out.ToolCalls}
 	cp.Messages = append(cp.Messages, reply)
 	if len(out.ToolCalls) == 0 {

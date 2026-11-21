@@ -339,3 +339,26 @@ func TestAgentCompactsOldResults(t *testing.T) {
 		t.Fatalf("the oldest result must be elided once the prompt is large, got %d bytes", len(got))
 	}
 }
+
+func TestAgentFillsMissingToolCallIDs(t *testing.T) {
+	h := newHarness(
+		calls(call("", "read_file", `{}`)),
+		llm.Response{Content: "done"},
+		llm.Response{Content: goodSummary},
+	)
+	if _, err := h.agent.Start(context.Background(), spec(t), &Checkpoint{RunID: "r1"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	var callID, resultID string
+	for _, m := range h.model.reqs[1].Messages {
+		if m.Role == llm.RoleAssistant && len(m.ToolCalls) == 1 {
+			callID = m.ToolCalls[0].ID
+		}
+		if m.Role == llm.RoleTool {
+			resultID = m.ToolCallID
+		}
+	}
+	if callID == "" || callID != resultID {
+		t.Fatalf("a call without an id must get one, used by its result: call %q result %q", callID, resultID)
+	}
+}
