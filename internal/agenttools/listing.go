@@ -105,27 +105,35 @@ func (t globTool) Run(ctx context.Context, args json.RawMessage) (string, error)
 
 // matchGlob matches a slash-separated name against a pattern in which a "**"
 // segment matches zero or more segments and other segments use path.Match.
+// Matching is memoized on (pattern index, name index), so any pattern costs at
+// most len(pattern) × len(name)² steps, however many "**" it repeats.
 func matchGlob(pattern, name string) bool {
-	return matchSegs(strings.Split(pattern, "/"), strings.Split(name, "/"))
+	m := globMatcher{pat: strings.Split(pattern, "/"), segs: strings.Split(name, "/"), memo: map[[2]int]bool{}}
+	return m.match(0, 0)
 }
 
-func matchSegs(pat, segs []string) bool {
-	for len(pat) > 0 {
-		if pat[0] == "**" {
-			for i := 0; i <= len(segs); i++ {
-				if matchSegs(pat[1:], segs[i:]) {
-					return true
-				}
-			}
-			return false
-		}
-		if len(segs) == 0 {
-			return false
-		}
-		if ok, err := path.Match(pat[0], segs[0]); err != nil || !ok {
-			return false
-		}
-		pat, segs = pat[1:], segs[1:]
+type globMatcher struct {
+	pat, segs []string
+	memo      map[[2]int]bool
+}
+
+func (m *globMatcher) match(pi, si int) bool {
+	key := [2]int{pi, si}
+	if v, ok := m.memo[key]; ok {
+		return v
 	}
-	return len(segs) == 0
+	var ok bool
+	switch {
+	case pi == len(m.pat):
+		ok = si == len(m.segs)
+	case m.pat[pi] == "**":
+		for i := si; i <= len(m.segs) && !ok; i++ {
+			ok = m.match(pi+1, i)
+		}
+	case si < len(m.segs):
+		matched, err := path.Match(m.pat[pi], m.segs[si])
+		ok = err == nil && matched && m.match(pi+1, si+1)
+	}
+	m.memo[key] = ok
+	return ok
 }

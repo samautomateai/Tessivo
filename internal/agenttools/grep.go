@@ -61,7 +61,9 @@ func (t grepTool) Run(ctx context.Context, args json.RawMessage) (string, error)
 		return g.sb.String(), nil
 	}
 	err = walk(ctx, base, func(rel string, d fs.DirEntry) (bool, error) {
-		if d.IsDir() || (a.Glob != "" && !matchGlob(a.Glob, rel) && !matchGlob(a.Glob, d.Name())) {
+		// Symlinks are skipped: reading through one could leave the run's folders.
+		if d.IsDir() || d.Type()&fs.ModeSymlink != 0 ||
+			(a.Glob != "" && !matchGlob(a.Glob, rel) && !matchGlob(a.Glob, d.Name())) {
 			return true, nil
 		}
 		return g.file(filepath.Join(base, filepath.FromSlash(rel)), display(a.Path, rel), false), nil

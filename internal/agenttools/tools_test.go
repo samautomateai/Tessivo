@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func setup(t *testing.T) (string, *Registry) {
@@ -168,5 +170,38 @@ func TestMatchGlob(t *testing.T) {
 		if got := matchGlob(c.pattern, c.name); got != c.want {
 			t.Errorf("matchGlob(%q, %q) = %v, want %v", c.pattern, c.name, got, c.want)
 		}
+	}
+}
+
+func TestGrepSkipsSymlinksOutOfRoots(t *testing.T) {
+	root, reg := setup(t)
+	secret := mkfile(t, filepath.Join(t.TempDir(), "id_rsa"), "PRIVATE KEY material\n")
+	if err := os.Symlink(secret, filepath.Join(root, "notes.txt")); err != nil {
+		t.Skipf("symlinks unavailable here: %v", err)
+	}
+	out, err := run(t, reg, "grep", map[string]any{"pattern": "."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out, "PRIVATE KEY") {
+		t.Fatalf("grep read a file outside the roots through a symlink: %q", out)
+	}
+}
+
+func TestGlobRepeatedDoubleStarIsBounded(t *testing.T) {
+	deep := strings.Repeat("d/", 25) + "x"
+	pattern := strings.Repeat("**/", 30) + "y"
+	done := make(chan bool, 1)
+	go func() { done <- matchGlob(pattern, deep) }()
+	select {
+	case got := <-done:
+		if got {
+			t.Fatal("must not match")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("repeated ** must not backtrack exponentially")
+	}
+	if !matchGlob("**/**/a.go", "x/y/a.go") {
+		t.Fatal("collapsed ** must still match")
 	}
 }

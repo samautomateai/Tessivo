@@ -17,8 +17,11 @@ var ErrOutside = errors.New("outside the run's folders")
 
 // Roots are the folders (and single files) a run may read.
 type Roots struct {
-	dirs  []string
-	files []string
+	dirs  []string // resolved folder roots
+	files []string // resolved file roots
+	// The same roots as given (absolute, cleaned, not resolved), for the name-only
+	// check that runs before anything touches the filesystem.
+	givenDirs, givenFiles []string
 }
 
 // NewRoots resolves each path (absolute, symlinks evaluated). Folders become
@@ -42,9 +45,9 @@ func NewRoots(paths ...string) (*Roots, error) {
 			return nil, fmt.Errorf("root %s: %w", p, err)
 		}
 		if info.IsDir() {
-			r.dirs = append(r.dirs, real)
+			r.dirs, r.givenDirs = append(r.dirs, real), append(r.givenDirs, filepath.Clean(abs))
 		} else {
-			r.files = append(r.files, real)
+			r.files, r.givenFiles = append(r.files, real), append(r.givenFiles, filepath.Clean(abs))
 		}
 	}
 	return r, nil
@@ -78,24 +81,30 @@ func (r *Roots) Resolve(p string) (string, error) {
 		}
 		p = filepath.Join(r.dirs[0], p)
 	}
-	real, err := evalExisting(filepath.Clean(p))
+	p = filepath.Clean(p)
+	// Refuse by name first, so a path elsewhere (e.g. a UNC share) is never touched.
+	if !within(p, r.dirs, r.files) && !within(p, r.givenDirs, r.givenFiles) {
+		return "", fmt.Errorf("%q: %w", p, ErrOutside)
+	}
+	real, err := evalExisting(p)
 	if err != nil {
 		return "", fmt.Errorf("%q: %w", p, err)
 	}
-	if r.contains(real) {
+	if within(real, r.dirs, r.files) {
 		return real, nil
 	}
 	return "", fmt.Errorf("%q: %w", p, ErrOutside)
 }
 
-func (r *Roots) contains(real string) bool {
-	for _, f := range r.files {
-		if real == f {
+// within reports whether p is one of files or inside one of dirs.
+func within(p string, dirs, files []string) bool {
+	for _, f := range files {
+		if p == f {
 			return true
 		}
 	}
-	for _, d := range r.dirs {
-		rel, err := filepath.Rel(d, real)
+	for _, d := range dirs {
+		rel, err := filepath.Rel(d, p)
 		up := rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator))
 		if err == nil && !filepath.IsAbs(rel) && !up {
 			return true
@@ -104,13 +113,16 @@ func (r *Roots) contains(real string) bool {
 	return false
 }
 
+// evalSymlinks is filepath.EvalSymlinks; a variable so tests can see what gets touched.
+var evalSymlinks = filepath.EvalSymlinks
+
 // evalExisting evaluates symlinks on the longest existing prefix of p and
 // appends the rest, so new paths inside a root still resolve.
 func evalExisting(p string) (string, error) {
 	rest := ""
 	cur := p
 	for {
-		real, err := filepath.EvalSymlinks(cur)
+		real, err := evalSymlinks(cur)
 		if err == nil {
 			return filepath.Join(real, rest), nil
 		}

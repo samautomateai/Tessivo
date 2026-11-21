@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -81,5 +82,29 @@ func TestNewRootsErrors(t *testing.T) {
 	}
 	if _, err := NewRoots(filepath.Join(t.TempDir(), "missing")); err == nil {
 		t.Fatal("a missing root must be an error")
+	}
+}
+
+func TestResolveRefusesUNCBeforeTouchingIt(t *testing.T) {
+	r, err := NewRoots(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	touched := false
+	old := evalSymlinks
+	evalSymlinks = func(p string) (string, error) {
+		if strings.HasPrefix(p, `\\`) || strings.HasPrefix(p, "//") {
+			touched = true
+		}
+		return old(p)
+	}
+	t.Cleanup(func() { evalSymlinks = old })
+	for _, p := range []string{`\\attacker\share\x`, "//attacker/share/x"} {
+		if _, err := r.Resolve(p); !errors.Is(err, ErrOutside) {
+			t.Errorf("%q: want ErrOutside, got %v", p, err)
+		}
+	}
+	if touched {
+		t.Fatal("a UNC path must be refused before any filesystem access")
 	}
 }
