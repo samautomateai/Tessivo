@@ -28,6 +28,10 @@ holds credentials for model providers. Every control below exists in code and is
 | Prompt injection through attached chat context | Attached text sits in `<source>` tags the system prompt marks as data; closing tags inside it are escaped; context capped at 3/5 of the budget | `chat/prompt.go` |
 | Chat store abuse | Sessions addressed by 16-hex IDs only; messages ≤ 64 KiB, replies ≤ 512 KiB, ≤ 20 attachments, ≤ 2000 messages, session files read ≤ 32 MiB; one reply per session at a time | `chat`, `service` |
 | Injection through notification text | Text never becomes code or a command line: AppleScript literals are escaped and sent on stdin, PowerShell reads environment variables in a fixed script, `notify-send` gets argv after `--`; control characters removed; errors redacted | `notify`, `cli/cmd_notify.go` |
+| Agent tools reaching outside the run | Tool paths are cleaned, symlinks evaluated and refused outside the notebook's context folders; reads ≤ 256 KiB, listings ≤ 2,000, grep ≤ 500 matches (RE2, linear time) | `agenttools` |
+| Prompt injection through tool results | The system prompt marks tool output as data; tools that are not read-only default to ask; unknown tools and non-JSON arguments are answered without running | `executor/agent` |
+| Runaway or abusive agents | ≤ 40 steps, 400k tokens, 30 min per run; ≤ 16 tool calls and 64 KiB of arguments per reply; results ≤ 32 KiB; checkpoints ≤ 64 MiB | `llm`, `executor/agent`, `notebook` |
+| Unsupervised side effects | allow/ask/block per tool (run → notebook → app → built-in); "ask" pauses the run until answered (expires after 7 days); answers and tool calls are audited as digests; a call in flight at a crash is never replayed | `executor/agent`, `service` |
 | Vulnerable dependencies | Standard library first; `go mod verify`, govulncheck, osv-scanner (desktop `pubspec.lock`), gosec, CodeQL, Dependabot | CI, `task audit`, `task vuln` |
 
 ## Performance budgets

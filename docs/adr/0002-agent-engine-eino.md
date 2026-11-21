@@ -1,6 +1,6 @@
 # ADR 0002: Eino for agent mode, behind our own Executor interface
 
-- Status: accepted (2026-11-20)
+- Status: superseded by [ADR 0005](0005-agent-loop-mcp-acp.md) (2026-11-21); kept for the record
 
 ## Decision
 

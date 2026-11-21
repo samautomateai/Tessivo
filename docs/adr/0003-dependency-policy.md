@@ -22,14 +22,14 @@ below with its reason in the same change that adds it.
 | OS keychain (macOS `security -i` with hex secrets on stdin, Linux `secret-tool` via stdin, Windows `CredReadW`/`CredWriteW` via `syscall`) | Each is a small wrapper over an OS-provided tool or API; no third-party code needed |
 | Desktop ↔ core API (JSON + SSE over Unix socket/loopback) | `net/http` and `dart:io` cover it; see ADR 0004 |
 | Length, text-file (encoding, line endings), coverage (Go and LCOV) gates; fuzz runner | Tiny tools in `tools/` |
+| Agent loop, tool calling, code tools (ADR 0005) | Small and specific to our rules, checkpoints and validation; Eino/Fantasy would bypass our router. MCP client to come from Zero (MIT, stdlib-only) |
 | Dev tool setup (`task install/doctor/update`) | `tools/devtools` runs `go install …@latest`, `git` and `flutter`; tools are installed binaries, never module dependencies. It does not install Flutter: PATH and the native desktop toolchain (Visual Studio C++, Xcode + CocoaPods, clang/CMake/Ninja/GTK) differ per OS and need admin rights, so `doctor` prints per-OS install steps instead (approved OS-specific text, `tools/devtools/flutter.go`) |
 
 ## Planned dependencies (added when their story starts)
 
 | Dependency | Reason |
 | --- | --- |
-| `github.com/cloudwego/eino` (+ eino-ext openai, mcp) | Agent mode (ADR 0002) |
-| `github.com/modelcontextprotocol/go-sdk` | Official MCP client/server; protocol interop |
+| nca (bundled binary, not a Go module; MIT) | Coding agent the agent delegates code changes to over ACP (ADR 0005, phase 5); pinned release, checksums verified at build time |
 | `modernc.org/sqlite` | Embedded SQLite without cgo; writing a database makes no sense |
 | PDF text extraction library (TBD) | PDF parsing is large and error-prone; pick a maintained pure-Go one |
 

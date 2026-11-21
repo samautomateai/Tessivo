@@ -2,7 +2,7 @@
 
 Tessivo is a native desktop + CLI app that analyzes, summarizes, documents and reports using
 self-hosted OpenAI-compatible models (LiteLLM). Go core and CLI (`tess`), Flutter desktop UI,
-Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
+our own agent loop for agent mode (ADR 0005), MCP for tools. Spec: see `docs/README.md`.
 
 ## Non-negotiable quality gates (`task check` and `task ci` include the desktop gates when Flutter is installed)
 
@@ -51,7 +51,7 @@ Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
 - **Standard library first.** Add a dependency only when building it ourselves makes no sense
   (protocols, OS integration, databases, agent framework). Record every direct dependency and its
   reason in `docs/adr/0003-dependency-policy.md` in the same change.
-- **Core stays engine-agnostic**: Eino, SQLite and transport types never leak out of their adapter packages;
+- **Core stays engine-agnostic**: MCP, ACP, SQLite and transport types never leak out of their adapter packages;
   business logic lives in `internal/service`.
 - **Secrets** never in config, notebooks, templates, logs or test fixtures.
 - **Every change updates docs**: the relevant `docs/` page, `docs/checklist.md` (story status) and an
@@ -64,5 +64,6 @@ Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
 - `internal/` — core packages (see `docs/architecture.md`).
 - `tools/` — repo tooling in Go (dev setup, length, text, coverage gates, fuzz runner).
 - `internal/testutil` — OS-independent test helpers (imported only from tests).
+- `internal/executor/agent` — agent mode loop, rules, checkpoints; `internal/agenttools` — its rooted tools.
 - `docs/api.md` — local JSON API contract between the desktop UI and the core (ADR 0004).
 - `desktop/` — Flutter app.

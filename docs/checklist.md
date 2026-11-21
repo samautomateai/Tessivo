@@ -34,7 +34,10 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Extractors: DOCX (paragraphs, tables), XLSX (all sheets, computed stats), PPTX (slides + notes); zip-bomb, entry, size and XML-token limits; fuzzed | SRC-1 | ☑ |
 | OS keychain secrets, built in-house: `tess secret set/delete/check`; env then keychain lookup | SET-1 | ☑ |
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |
-| Agent executor on Eino + MCP tools | WT/E11 | ☐ |
+| Agent mode phase 1 (ADR 0005): our own loop with LLM tool calling, rooted read-only code tools, allow/ask/block rules, durable pause and resume across restarts, runs as jobs, `tess run` approve, deny, resume, cancel and pending, approval endpoints and events, desktop approvals | WT/E11 | ☑ |
+| Agent mode phase 2: commands from a per-notebook allow-list (no shell) | WT/E11 | ☐ |
+| MCP client: stdio and Streamable HTTP servers in settings, notebook attachment (phases 3–4) | MCP-1, MCP-2, MCP-3 | ☐ |
+| Code changes via ACP delegation to bundled nca in a worktree or snapshot; change sets and apply (phase 5) | WT/E11 | ☐ |
 
 ## M2: scheduling
 
