@@ -43,7 +43,9 @@ Future<HttpServer> fakeSchedules() async {
     } else if (req.method == 'POST' && path == base) {
       final m = jsonDecode(body) as Map<String, Object?>;
       res.statusCode = 201;
-      res.write(jsonEncode({'id': 's2', 'cron': m['cron'], 'missed': m['missed'], 'enabled': true, 'history': <Object>[]}));
+      res.write(
+        jsonEncode({'id': 's2', 'cron': m['cron'], 'missed': m['missed'], 'enabled': true, 'history': <Object>[]}),
+      );
     } else if (req.method == 'PATCH' && path == '$base/s1') {
       final m = jsonDecode(body) as Map<String, Object?>;
       res.write(jsonEncode({...scheduleJson, 'enabled': m['enabled']}));

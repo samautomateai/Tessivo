@@ -63,7 +63,6 @@ String defaultEndpointPath(Map<String, String> env, {String? os}) {
   return [base, 'tessivo', 'run', 'endpoint.json'].join(sep);
 }
 
-
 /// Talks to the Go core's local API (docs/api.md) over a Unix socket or a
 /// loopback port, with the session token on every request.
 class HttpCoreClient with _HttpChat implements CoreClient {
