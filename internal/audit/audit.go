@@ -31,6 +31,7 @@ const (
 	KindToolCall     = "tool.call"
 	KindToolDecision = "tool.decision"
 	KindRunResume    = "run.resume"
+	KindSuggestApply = "suggestion.apply"
 )
 
 // Limits keep entries small and lines bounded.

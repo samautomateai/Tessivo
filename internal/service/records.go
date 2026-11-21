@@ -33,7 +33,7 @@ func (s *Service) startAudit(nb *notebook.Notebook, spec executor.Spec, actor st
 		actor = s.Actor
 	}
 	if actor == "" {
-		actor = "core"
+		actor = defaultActor
 	}
 	l, err := audit.Open(s.AuditPath(nb), actor)
 	if err != nil {
@@ -127,3 +127,6 @@ func titleOf(data json.RawMessage) string {
 	_ = json.Unmarshal(data, &v)
 	return v.Title
 }
+
+// defaultActor names the core in audit entries when no actor is set.
+const defaultActor = "core"

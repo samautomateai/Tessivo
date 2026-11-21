@@ -193,7 +193,7 @@ func (s *Service) auditMessage(kind, id string, user, reply chat.Message, r conf
 	}
 	actor := s.Actor
 	if actor == "" {
-		actor = "core"
+		actor = defaultActor
 	}
 	l, err := audit.Open(s.UserAuditPath, actor)
 	if err != nil {
