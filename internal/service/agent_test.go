@@ -393,3 +393,27 @@ func TestAgentRedactsKnownSecrets(t *testing.T) {
 		}
 	}
 }
+
+func TestShutdownInterruptsRun(t *testing.T) {
+	e := newAgentEnv(t)
+	e.model.block = true
+	ctx, cancel := context.WithCancel(context.Background())
+	nb, _ := e.svc.OpenNotebook(e.nbID)
+	done := make(chan error, 1)
+	go func() {
+		req := RunRequest{Notebook: nb, Save: true, Overrides: config.RunSettings{Mode: config.ModeAgent}}
+		_, err := e.svc.Run(ctx, req, nil)
+		done <- err
+	}()
+	runID := waitForJob(t, e.svc)
+	cancel() // the core is stopping; nobody asked to cancel this run
+	if err := <-done; err == nil {
+		t.Fatal("the run must report that it stopped")
+	}
+	if st, err := e.svc.RunStatus(runID); err != nil || st != notebook.StatusInterrupted {
+		t.Fatalf("status %q %v: a run stopped by shutdown must be interrupted, not cancelled", st, err)
+	}
+	if err := e.svc.ResumeCheck(runID); err != nil {
+		t.Fatalf("an interrupted run must be resumable: %v", err)
+	}
+}

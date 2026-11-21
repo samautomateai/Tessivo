@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"sync"
 	"time"
@@ -103,6 +104,10 @@ func (s *Service) emit(nb *notebook.Notebook, cp *agent.Checkpoint, kind, approv
 	})
 }
 
+// errUserCancel is the cause of an explicit Cancel. Any other cancellation (the
+// core stopping, Ctrl+C) leaves the run interrupted and resumable.
+var errUserCancel = errors.New("cancelled by the user")
+
 // jobTable tracks runs executing in this process: their cancel functions and
 // event subscribers.
 type jobTable struct {
@@ -128,8 +133,8 @@ func (t *jobTable) track(ctx context.Context, runID string, detached bool, onEve
 	if detached {
 		ctx = context.WithoutCancel(ctx)
 	}
-	ctx, cancel := context.WithCancel(ctx)
-	j := &job{cancel: cancel, subs: map[chan executor.Event]struct{}{}}
+	ctx, cancel := context.WithCancelCause(ctx)
+	j := &job{cancel: func() { cancel(errUserCancel) }, subs: map[chan executor.Event]struct{}{}}
 	t.mu.Lock()
 	t.jobs[runID] = j
 	t.mu.Unlock()
@@ -147,7 +152,7 @@ func (t *jobTable) track(ctx context.Context, runID string, detached bool, onEve
 		}
 	}
 	return ctx, emit, func() {
-		cancel()
+		cancel(nil)
 		t.mu.Lock()
 		delete(t.jobs, runID)
 		t.mu.Unlock()

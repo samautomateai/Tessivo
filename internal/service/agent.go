@@ -167,7 +167,23 @@ func (s *Service) drive(ctx context.Context, nb *notebook.Notebook, st *storedRu
 	} else {
 		res, err = a.Continue(ctx, spec, st.Check, emit)
 	}
+	if errors.Is(err, context.Canceled) && !errors.Is(context.Cause(ctx), errUserCancel) {
+		return s.interrupt(nb, st, rec, spec, err)
+	}
 	return s.settle(nb, st, rec, spec, res, err)
+}
+
+// interrupt keeps a run that stopped without being cancelled (the core is
+// shutting down): its checkpoint stays, marked interrupted, for Resume.
+func (s *Service) interrupt(nb *notebook.Notebook, st *storedRun, rec *runAudit, spec executor.Spec,
+	runErr error,
+) (RunOutcome, error) {
+	defer func() { _ = rec.log.Close() }()
+	st.Check.Status = notebook.StatusInterrupted
+	auditErr := s.auditTools(rec, st)
+	_, saveErr := s.saveAgentRun(nb, st, spec, executor.Result{}, nil)
+	err := errors.Join(auditErr, nb.SaveCheckpoint(st.Check.RunID, st), saveErr)
+	return RunOutcome{RunID: st.Check.RunID, Spec: spec}, errors.Join(runErr, err)
 }
 
 func (s *Service) buildAgent(nb *notebook.Notebook, st *storedRun, model executor.Model) (*agent.Agent, error) {
