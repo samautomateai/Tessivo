@@ -363,3 +363,33 @@ func TestResumeCheckAndStatus(t *testing.T) {
 		t.Fatalf("unknown run: %v", err)
 	}
 }
+
+func TestAgentRedactsKnownSecrets(t *testing.T) {
+	const key = "lk-9f8e7d6c5b4a3210" // a configured key: not shaped like sk-…, so only value redaction finds it
+	e := newAgentEnv(t,
+		llm.Response{ToolCalls: []llm.ToolCall{{ID: "c0", Name: "read_file", Arguments: `{"path":"a.go"}`}}},
+		askCall(),
+	)
+	e.svc.Secrets = secrets.Map{"TESSIVO_LITELLM_KEY": key}
+	nb, _ := e.svc.OpenNotebook(e.nbID)
+	src := nb.ContextPath(nb.Manifest.Context[0])
+	if err := os.WriteFile(filepath.Join(src, "a.go"), []byte("package a // key "+key+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out := e.start(t, context.Background())
+	if len(out.Paused) != 1 {
+		t.Fatalf("want a pause, got %+v", out)
+	}
+	for _, name := range []string{out.RunID + ".checkpoint.json", out.RunID + ".json"} {
+		b, err := os.ReadFile(filepath.Join(nb.Dir, notebook.RunsDir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bytes.Contains(b, []byte(key)) {
+			t.Fatalf("%s holds the configured key", name)
+		}
+		if !bytes.Contains(b, []byte("[REDACTED]")) {
+			t.Fatalf("%s: the tool result should be kept, redacted", name)
+		}
+	}
+}

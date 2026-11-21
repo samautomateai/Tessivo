@@ -119,8 +119,11 @@ func (a *Agent) runTool(ctx context.Context, c llm.ToolCall) toolOutcome {
 	out, err := t.Run(ctx, json.RawMessage(orEmpty(c.Arguments)))
 	d := a.now().Sub(start)
 	if err != nil {
-		return toolOutcome{text: "error: " + err.Error(), errText: err.Error(), d: d}
+		msg := a.redact(err.Error())
+		return toolOutcome{text: "error: " + msg, errText: msg, d: d}
 	}
+	// Redact before the result goes anywhere: the model, the checkpoint, records, events.
+	out = a.redact(out)
 	if len(out) > maxResult {
 		out = out[:maxResult] + fmt.Sprintf("\n[result truncated at 32 KiB of %d bytes]", len(out))
 	}

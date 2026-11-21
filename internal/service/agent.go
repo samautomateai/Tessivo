@@ -14,6 +14,7 @@ import (
 	"github.com/samautomateai/tessivo/internal/executor/agent"
 	"github.com/samautomateai/tessivo/internal/notebook"
 	"github.com/samautomateai/tessivo/internal/render"
+	"github.com/samautomateai/tessivo/internal/secrets"
 	"github.com/samautomateai/tessivo/internal/worktype"
 )
 
@@ -194,8 +195,23 @@ func (s *Service) buildAgent(nb *notebook.Notebook, st *storedRun, model executo
 		Limits: agent.Limits{
 			MaxSteps: lim.MaxSteps, MaxTokens: lim.MaxTokens, MaxWall: time.Duration(lim.MaxMinutes) * time.Minute,
 		},
-		Save: func(*agent.Checkpoint) error { return nb.SaveCheckpoint(st.Check.RunID, st) },
+		Save:   func(*agent.Checkpoint) error { return nb.SaveCheckpoint(st.Check.RunID, st) },
+		Redact: s.redactor(),
 	}, nil
+}
+
+// redactor removes the configured provider keys and credential-shaped text.
+func (s *Service) redactor() func(string) string {
+	var known []string
+	for _, p := range s.Config.Providers {
+		if p.APIKeyRef == "" || s.Secrets == nil {
+			continue
+		}
+		if v, err := s.Secrets.Get(p.APIKeyRef); err == nil && v != "" {
+			known = append(known, v)
+		}
+	}
+	return func(text string) string { return secrets.RedactPatterns(secrets.Redact(text, known...)) }
 }
 
 // settle records the outcome: a paused run keeps its checkpoint; a finished,

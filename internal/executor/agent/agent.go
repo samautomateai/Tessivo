@@ -59,7 +59,7 @@ func (a *Agent) Start(ctx context.Context, spec executor.Spec, cp *Checkpoint,
 	}
 	cp.Messages = []llm.Message{
 		{Role: llm.RoleSystem, Content: a.systemPrompt(spec)},
-		{Role: llm.RoleUser, Content: openingMessage(prompt, spec, cp.Roots)},
+		{Role: llm.RoleUser, Content: a.redact(openingMessage(prompt, spec, cp.Roots))},
 	}
 	return a.loop(ctx, spec, cp, emitter(onEvent))
 }
