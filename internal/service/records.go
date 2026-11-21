@@ -108,6 +108,9 @@ func saveRun(nb *notebook.Notebook, runID string, spec executor.Spec, res execut
 			ID: notebook.NewID(), RunID: run.ID, WorkType: spec.WorkType.ID,
 			Title: titleOf(res.Data), CreatedAt: run.StartedAt, Data: res.Data,
 		}
+		if r := spec.Revise; r != nil {
+			out.ParentID, out.FromThread = r.ParentID, r.MessageID
+		}
 		md, _ := render.Markdown(res.Data, RequiredOrder(spec.WorkType))
 		if err := nb.SaveOutput(out, md); err != nil {
 			return "", err

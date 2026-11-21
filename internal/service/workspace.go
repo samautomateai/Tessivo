@@ -200,6 +200,7 @@ type OutputInfo struct {
 	NotebookID   string `json:"notebookId"`
 	NotebookName string `json:"notebookName"`
 	Markdown     string `json:"markdown,omitempty"`
+	Version      int    `json:"version"` // 1 for an original output, +1 for each revision
 }
 
 // ListOutputs lists outputs across notebooks (or one), newest first.
@@ -217,10 +218,11 @@ func (s *Service) ListOutputs(notebookID, workType string) ([]OutputInfo, error)
 		if err != nil {
 			continue
 		}
+		vs := versions(outs)
 		for _, o := range outs {
 			if workType == "" || o.WorkType == workType {
 				o.Data = nil // list view: keep payloads small
-				out = append(out, OutputInfo{Output: o, NotebookID: n.ID, NotebookName: n.Name})
+				out = append(out, OutputInfo{Output: o, NotebookID: n.ID, NotebookName: n.Name, Version: vs[o.ID]})
 			}
 		}
 	}
@@ -244,6 +246,7 @@ func (s *Service) GetOutput(notebookID, outputID string) (OutputInfo, error) {
 			md, _ := os.ReadFile(mdPath) //nolint:gosec // G304: ID comes from the notebook's own listing
 			return OutputInfo{
 				Output: o, NotebookID: notebookID, NotebookName: nb.Manifest.Name, Markdown: string(md),
+				Version: versions(outs)[o.ID],
 			}, nil
 		}
 	}

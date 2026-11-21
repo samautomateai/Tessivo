@@ -109,6 +109,14 @@ func (s *Service) Run(ctx context.Context, req RunRequest, onEvent func(executor
 	if spec.Settings.Mode == config.ModeAgent {
 		return s.runAgent(ctx, req, spec, model, onEvent)
 	}
+	return s.runPipeline(ctx, req, spec, model, onEvent)
+}
+
+// runPipeline runs spec through the pipeline, audits it and, if requested,
+// saves the run record and output.
+func (s *Service) runPipeline(ctx context.Context, req RunRequest, spec executor.Spec, model executor.Model,
+	onEvent func(executor.Event),
+) (RunOutcome, error) {
 	rec, err := s.startAudit(req.Notebook, spec, req.Actor)
 	if err != nil {
 		return RunOutcome{}, fmt.Errorf("audit: %w", err)

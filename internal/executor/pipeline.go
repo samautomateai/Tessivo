@@ -44,6 +44,7 @@ func (p *Pipeline) Run(ctx context.Context, spec Spec, onEvent func(Event)) (Res
 	if spec.Settings.ContextBudget != nil {
 		budget = *spec.Settings.ContextBudget
 	}
+	budget = reserveForRevision(budget, spec.Revise)
 	if contextTokens(docs) > budget {
 		res.Strategy = StrategyMapReduce
 		emit(EventStatus, fmt.Sprintf("context is larger than %d tokens: condensing %d sources", budget, len(docs)))
@@ -76,9 +77,13 @@ func SystemPrompt(wt worktype.WorkType) string {
 func (p *Pipeline) reduceStep(ctx context.Context, spec Spec, prompt string, docs []extract.Document,
 	_ *schema.Schema, res Result, onDelta func(string),
 ) (Result, error) {
+	user := userMessage(prompt, spec.Memory, docs)
+	if spec.Revise != nil {
+		user += spec.Revise.text()
+	}
 	msgs := []llm.Message{
 		{Role: llm.RoleSystem, Content: SystemPrompt(spec.WorkType)},
-		{Role: llm.RoleUser, Content: userMessage(prompt, spec.Memory, docs)},
+		{Role: llm.RoleUser, Content: user},
 	}
 	retries := p.MaxValidationRetries
 	if retries == 0 {
@@ -197,4 +202,14 @@ func jsonOrString(s string) string {
 	}
 	b, _ := json.Marshal(s)
 	return string(b)
+}
+
+// reserveForRevision takes the parent document and the requests out of the
+// context budget, leaving the sources at least a quarter of it.
+func reserveForRevision(budget int, r *Revision) int {
+	if r == nil {
+		return budget
+	}
+	left := budget - extract.EstimateTokens(string(r.Parent)+r.Requests)
+	return max(left, budget/4)
 }

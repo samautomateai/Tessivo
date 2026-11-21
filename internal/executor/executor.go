@@ -30,6 +30,7 @@ type Spec struct {
 	Documents []extract.Document
 	Memory    []string // pinned notebook facts
 	Settings  config.Effective
+	Revise    *Revision // set to revise an earlier output instead of starting fresh
 }
 
 // Event reports progress to the caller (UI, CLI).
@@ -118,4 +119,19 @@ func contextTokens(docs []extract.Document) int {
 		n += d.Tokens()
 	}
 	return n
+}
+
+// Revision turns a run into a revision of an earlier output: the model gets
+// the parent document and the requests and returns the full revised document.
+type Revision struct {
+	Parent    json.RawMessage // the output being revised
+	Requests  string          // the conversation, labelled as revision requests
+	ParentID  string
+	MessageID string // the thread message the revision was made from
+}
+
+// revisionText is appended to the user message of a revision run.
+func (r *Revision) text() string {
+	return "\n\nDocument to revise (JSON):\n" + string(r.Parent) + "\n\nRevision requests:\n" + r.Requests +
+		"\n\nReturn the full revised document. Change only what the requests ask for."
 }
