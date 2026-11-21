@@ -91,18 +91,25 @@ jobs:
         with:
           sarif_file: gosec.sarif
 
+  # Flutter analyze, format and tests on every OS, like the Go tests (CLAUDE.md).
   desktop:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: desktop
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
+      # Fails if pubspec.lock does not match pubspec.yaml instead of rewriting it.
+      - run: flutter pub get --enforce-lockfile
       - name: Format check (prints the patch to apply when it fails)
         run: |
           dart format lib test
@@ -116,3 +123,6 @@ jobs:
           go-version-file: go.mod
       - name: Coverage gate (80%)
         run: go run ../tools/covercheck -format lcov -profile coverage/lcov.info -min 80
+      - name: Dependency vulnerabilities (osv-scanner on pubspec.lock)
+        if: runner.os == 'Linux'
+        run: go run github.com/google/osv-scanner/v2/cmd/osv-scanner@latest scan source --lockfile=pubspec.lock

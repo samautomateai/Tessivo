@@ -28,7 +28,7 @@ Full threat model and controls: [docs/security-model.md](docs/security-model.md)
 | Check | Tool |
 | --- | --- |
 | Static security analysis | gosec (in golangci-lint and standalone SARIF), CodeQL |
-| Known vulnerabilities | govulncheck, `go mod verify` |
+| Known vulnerabilities | govulncheck, `go mod verify`; osv-scanner on `desktop/pubspec.lock` |
 | Parser robustness | Go fuzz targets (CI smoke run per target) |
 | Formatting | gofmt -s, gofumpt, goimports |
 | Code quality | golangci-lint, `flutter analyze --fatal-infos` |

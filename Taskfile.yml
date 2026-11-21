@@ -12,7 +12,8 @@ tasks:
       - task --list
 
   install:
-    desc: Install every dev tool at its latest version (Task, golangci-lint v2, govulncheck, gosec), git hooks
+    desc: Install every dev tool at its latest version (Task, golangci-lint v2, govulncheck, gosec,
+      osv-scanner), git hooks
     cmds:
       - go run ./tools/devtools install
 
@@ -104,9 +105,15 @@ tasks:
       - go run ./tools/textcheck -fix .
 
   vuln:
-    desc: Scan dependencies and stdlib for known vulnerabilities
+    desc: Scan Go (govulncheck) and desktop Dart dependencies (osv-scanner on pubspec.lock) for known vulnerabilities
     cmds:
       - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - task: vuln:desktop
+
+  vuln:desktop:
+    desc: Scan the desktop app's pubspec.lock against the OSV vulnerability database
+    cmds:
+      - go run github.com/google/osv-scanner/v2/cmd/osv-scanner@latest scan source --lockfile=desktop/pubspec.lock
 
   sec:
     desc: Run gosec standalone with SARIF output
@@ -129,7 +136,8 @@ tasks:
     desc: Analyze, format-check and test the Flutter app with coverage
     dir: desktop
     cmds:
-      - flutter pub get
+      # --enforce-lockfile: fail instead of silently changing the committed pubspec.lock.
+      - flutter pub get --enforce-lockfile
       - dart format --output=none --set-exit-if-changed lib test
       - flutter analyze --fatal-infos
       - flutter test --coverage
@@ -153,7 +161,7 @@ tasks:
 
   ci:
     desc: "Every CI gate locally, fast ones first: text, lengths, tidy, format, lint, build, race tests,
-      coverage, go mod verify, govulncheck, fuzz smoke, desktop (gosec runs inside lint, as in CI)"
+      coverage, go mod verify, govulncheck + osv-scanner, fuzz smoke, desktop (gosec runs inside lint, as in CI)"
     cmds:
       - task: text
       - task: lengths
@@ -179,3 +187,4 @@ tasks:
       - task: lint
       - task: cover
       - task: vuln
+      - task: desktop:ci

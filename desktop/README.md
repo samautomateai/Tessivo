@@ -9,7 +9,7 @@ and stops it on exit. If the core cannot start, the app falls back to `DemoCoreC
 ```sh
 task desktop:init    # once: generate macOS, Windows and Linux runners (flutter create)
 task desktop:run     # run on this OS
-task desktop:check   # format check, analyze (fatal infos), tests with coverage ≥ 80%
+task desktop:check   # pub get --enforce-lockfile, format check, analyze (fatal infos), tests with coverage ≥ 80%
 ```
 
 **Chat** lists sessions (search, pin, rename, archive, delete) beside the open conversation. Replies

@@ -22,6 +22,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | `task ci`: every CI gate locally; portable fuzz runner (`tools/fuzzall`); desktop LCOV coverage gate in `covercheck`; doctor checks the race detector | NFR Quality | ☑ |
 | OS-independent tests (`internal/testutil`: permissions, unwritable paths, helper process instead of `sh`); CI tests on Windows and macOS too; OS-specific work needs approval (CLAUDE.md) | NFR Quality | ☑ |
 | Dev setup: `task install` (tools + hooks), `task doctor` (diagnose and repair), `task update` (latest Go toolchain and tools) | NFR Quality | ☑ |
+| Desktop gates on par with Go: stricter analyzer rules (leaked streams/sinks/futures are errors), osv-scanner on `pubspec.lock`, `--enforce-lockfile`, Dart in `task check` and the pre-commit hook, Flutter CI on Windows, macOS and Linux | NFR Quality | ☑ |
 | Hardened HTTP: TLS 1.2+, no redirects, bounded timeouts, idle-stream timeout; plaintext to remote hosts refused | NFR Security | ☑ |
 | Parallel code-base extraction (bounded pool); benchmarks; fuzz targets for schema, CSV/JSON, Office, audit | NFR Performance | ☑ |
 | Desktop ↔ core contract: local JSON API + SSE (ADR 0004, docs/api.md) | — | ☑ |

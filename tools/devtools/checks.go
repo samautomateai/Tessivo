@@ -50,20 +50,23 @@ type tool struct {
 }
 
 var goTools = []tool{
-	{name: "task", pkg: "github.com/go-task/task/v3/cmd/task", version: []string{"--version"}},
+	{name: "task", pkg: "github.com/go-task/task/v3/cmd/task", version: []string{versionFlag}},
 	{
 		name: "golangci-lint", pkg: "github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
 		version: []string{"version"}, verify: verifyGolangci,
 	},
 	{name: "govulncheck", pkg: "golang.org/x/vuln/cmd/govulncheck", version: []string{"-version"}},
 	{name: "gosec", pkg: "github.com/securego/gosec/v2/cmd/gosec", version: []string{"-version"}},
+	// osv-scanner checks the desktop app's pubspec.lock; govulncheck covers only Go.
+	{name: "osv-scanner", pkg: "github.com/google/osv-scanner/v2/cmd/osv-scanner", version: []string{versionFlag}},
 }
 
 const (
-	hooksDir   = "scripts/hooks"
-	flutter    = "flutter"
-	windows    = "windows"
-	repairHint = "run: task doctor (or: go run ./tools/devtools doctor)"
+	hooksDir    = "scripts/hooks"
+	flutter     = "flutter"
+	versionFlag = "--version"
+	windows     = "windows"
+	repairHint  = "run: task doctor (or: go run ./tools/devtools doctor)"
 )
 
 type app struct {
@@ -271,10 +274,10 @@ func (a *app) checkFlutter(ctx context.Context) result {
 	res := result{name: flutter, st: warn}
 	if _, err := a.r.lookPath(flutter); err != nil {
 		res.detail = "not installed (needed only for the desktop app)"
-		res.hint = "install Flutter stable: https://docs.flutter.dev/get-started/install"
+		res.hint = strings.Join(flutterInstallSteps(a.goos), "\n")
 		return res
 	}
-	out, err := a.exec(ctx, cmd{dir: a.root, name: flutter, args: []string{"--version"}, combine: true})
+	out, err := a.exec(ctx, cmd{dir: a.root, name: flutter, args: []string{versionFlag}, combine: true})
 	if err != nil {
 		res.detail = "does not run: " + firstLine(err.Error())
 		return res

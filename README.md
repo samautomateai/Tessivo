@@ -32,15 +32,15 @@ Requires Go (any recent release; it fetches the toolchain pinned in `go.mod`) an
 app, Flutter stable. Everything else is installed for you:
 
 ```sh
-go run ./tools/devtools install   # first time, before Task exists: Task, golangci-lint v2, govulncheck, gosec, git hooks
+go run ./tools/devtools install   # first time, before Task exists: Task, golangci-lint v2, govulncheck, gosec, osv-scanner, git hooks
 task doctor         # diagnose the setup and repair what it can (task doctor -- -check only reports)
 task update         # move go.mod to the latest Go toolchain, upgrade every tool and Flutter
 task install        # reinstall every tool at its latest version
-task check          # every quality gate: lengths, lint, coverage ≥ 80%, govulncheck
+task check          # every quality gate, Go and desktop: lengths, lint, coverage ≥ 80%, vulnerabilities
 task ci             # everything CI runs, locally: + text, tidy, build, race tests, fuzz smoke, desktop
 task build          # bin/tess
 task desktop:init   # once: generate Flutter platform runners
-task desktop:check  # analyze, format, test the desktop app
+task desktop:check  # format, analyze, test (coverage ≥ 80%) the desktop app
 ```
 
 Docs: [architecture](docs/architecture.md) · [decisions](docs/adr) · [security](SECURITY.md) ·

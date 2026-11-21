@@ -1,5 +1,5 @@
 #!/bin/sh
-# Tessivo pre-commit hook: fast gates only. Install with `task hooks:install`.
+# Tessivo pre-commit hook: fast gates only (Go and Dart). Install with `task hooks:install`.
 set -e
 diff=$(golangci-lint fmt --diff ./... 2>/dev/null || true)
 if [ -n "$diff" ]; then
@@ -10,3 +10,15 @@ fi
 go run ./tools/lencheck -max-line 120 -max-file 500 -max-test-file 800 .
 go run ./tools/textcheck .
 golangci-lint run --new-from-rev=HEAD ./...
+# Dart: only when Dart files are staged and Flutter is installed (CI always runs it).
+if [ -n "$(git diff --cached --name-only --diff-filter=ACMR -- 'desktop/*.dart')" ]; then
+  if command -v dart >/dev/null 2>&1; then
+    if ! dart format --output=none --set-exit-if-changed desktop/lib desktop/test >/dev/null; then
+      echo "pre-commit: Dart files are not formatted. Run: task fmt"
+      exit 1
+    fi
+    (cd desktop && flutter analyze --fatal-infos)
+  else
+    echo "pre-commit: Dart files staged but Flutter is not installed; skipped Dart checks (CI runs them)"
+  fi
+fi

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 // install puts every Go tool at its latest version, points git at the repo's
@@ -19,8 +20,9 @@ func (a *app) install(ctx context.Context) int {
 		a.say("  %v", err)
 	}
 	if _, err := a.r.lookPath(flutter); err == nil {
-		a.say("fetching desktop app packages")
-		c := cmd{dir: filepath.Join(a.root, "desktop"), name: flutter, args: []string{"pub", "get"}, stream: true}
+		a.say("fetching desktop app packages (exact versions from pubspec.lock)")
+		args := []string{"pub", "get", "--enforce-lockfile"}
+		c := cmd{dir: filepath.Join(a.root, "desktop"), name: flutter, args: args, stream: true}
 		if _, err := a.exec(ctx, c); err != nil {
 			a.say("  %v", err)
 		}
@@ -123,7 +125,13 @@ func (a *app) report(results []result) int {
 	for _, r := range results {
 		a.say("%-5s %-14s %s", r.st, r.name, r.detail)
 		if r.hint != "" && r.st != ok {
-			a.say("%-20s-> %s", "", r.hint)
+			for i, line := range strings.Split(r.hint, "\n") {
+				mark := "->"
+				if i > 0 {
+					mark = "  "
+				}
+				a.say("%-20s%s %s", "", mark, line)
+			}
 		}
 		if r.st == fail {
 			code = 1

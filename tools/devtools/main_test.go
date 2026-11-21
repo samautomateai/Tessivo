@@ -35,7 +35,8 @@ func newFake() *fake {
 		have: map[string]string{
 			"go": "", "git": "", "task": "Task version: v3.45.4", "golangci-lint": golangciGood,
 			"govulncheck": "Scanner: govulncheck@v1.1.4", "gosec": "Version: 2.22.0",
-			"flutter": "Flutter 3.38.0 • channel stable • https://github.com/flutter/flutter.git",
+			"osv-scanner": "osv-scanner version: 2.2.4",
+			"flutter":     "Flutter 3.38.0 • channel stable • https://github.com/flutter/flutter.git",
 		},
 		installed: map[string]string{},
 		resp: map[string]string{
@@ -301,7 +302,7 @@ func TestInstall(t *testing.T) {
 			t.Errorf("%s not installed", tl.name)
 		}
 	}
-	if !f.ran("git config core.hooksPath scripts/hooks") || !f.ran("flutter pub get") {
+	if !f.ran("git config core.hooksPath scripts/hooks") || !f.ran("flutter pub get --enforce-lockfile") {
 		t.Errorf("calls %v", f.calls)
 	}
 }
@@ -310,7 +311,7 @@ func TestInstallKeepsGoingOnErrors(t *testing.T) {
 	f := newFake()
 	f.fail["go install github.com/go-task/task/v3/cmd/task@latest"] = errors.New("proxy error")
 	f.fail["git config core.hooksPath scripts/hooks"] = errors.New("locked")
-	f.fail["flutter pub get"] = errors.New("offline")
+	f.fail["flutter pub get --enforce-lockfile"] = errors.New("offline")
 	a, out := newApp(t, f)
 	run(context.Background(), a, []string{"install"})
 	for _, want := range []string{"proxy error", "locked", "offline"} {
@@ -518,6 +519,35 @@ func TestRaceDetector(t *testing.T) {
 		a.goos = goos
 		if r := a.checkRace(context.Background()); r.st != warn || !strings.Contains(r.hint, want) {
 			t.Errorf("%s: %+v", goos, r)
+		}
+	}
+}
+
+func TestFlutterInstallStepsPerOS(t *testing.T) {
+	for goos, want := range map[string][]string{
+		"windows": {`$env:USERPROFILE\develop\flutter`, "SetEnvironmentVariable", "Desktop development with C++"},
+		"darwin":  {"$HOME/develop/flutter", "~/.zprofile", "xcodebuild", "cocoapods"},
+		"linux":   {"$HOME/develop/flutter", "~/.bashrc", "libgtk-3-dev"},
+	} {
+		steps := strings.Join(flutterInstallSteps(goos), "\n")
+		for _, w := range append(want, "git clone -b stable "+flutterRepo, "flutter doctor", "task install") {
+			if !strings.Contains(steps, w) {
+				t.Errorf("%s: missing %q in\n%s", goos, w, steps)
+			}
+		}
+	}
+}
+
+func TestDoctorPrintsFlutterInstallSteps(t *testing.T) {
+	f := newFake()
+	delete(f.have, "flutter")
+	a, out := newApp(t, f)
+	a.doctor(context.Background(), false)
+	s := out.String()
+	want := []string{"-> Flutter is needed only for the desktop app", "   1. get the SDK", "   5. then: task install"}
+	for _, w := range want {
+		if !strings.Contains(s, w) {
+			t.Errorf("missing %q in\n%s", w, s)
 		}
 	}
 }

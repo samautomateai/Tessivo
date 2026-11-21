@@ -1,6 +1,6 @@
 // Command devtools installs, checks and upgrades the tools Tessivo development
 // needs: the Go toolchain pinned in go.mod, Task, golangci-lint v2, govulncheck,
-// gosec, the repo's git hooks and, for the desktop app, Flutter stable.
+// gosec, osv-scanner, the repo's git hooks and, for the desktop app, Flutter stable.
 //
 // It needs only Go, so it also bootstraps a fresh machine before Task exists:
 //

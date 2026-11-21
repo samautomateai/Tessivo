@@ -4,7 +4,7 @@ Tessivo is a native desktop + CLI app that analyzes, summarizes, documents and r
 self-hosted OpenAI-compatible models (LiteLLM). Go core and CLI (`tess`), Flutter desktop UI,
 Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
 
-## Non-negotiable quality gates (`task check`; `task ci` runs every CI gate locally, desktop included)
+## Non-negotiable quality gates (`task check` and `task ci` include the desktop gates when Flutter is installed)
 
 - `task fmt:check`: gofmt -s, gofumpt (extra: group-params, clothe-returns) and goimports must report no diff.
   Fix with `task fmt`.
@@ -13,12 +13,17 @@ Eino for agent mode, MCP for tools. Spec: see `docs/README.md`.
   no trailing whitespace. `.gitattributes` makes git check out LF on every OS; fix with `task text:fix`.
 - `task lint`: golangci-lint v2 with gosec, lll, funlen (80 lines), gocyclo (15), wrapcheck, errorlint.
   `//nolint` needs a specific linter and an explanation.
-- `task cover`: total Go coverage ≥ 80%. Flutter: `task desktop:check`, also ≥ 80% (`covercheck -format lcov`).
-- `task vuln`: govulncheck clean.
+- `task desktop:check` (Flutter): `dart format` (120 columns), `flutter analyze --fatal-infos` with flutter_lints,
+  strict casts/inference/raw types and extra rules (`desktop/analysis_options.yaml`; leaked streams, sinks and futures
+  are errors), tests with coverage ≥ 80% (`covercheck -format lcov`), `pub get --enforce-lockfile`. CI runs it on
+  Windows, macOS and Linux. Dart has no free complexity linter, so function size is a code-review matter there.
+- `task cover`: total Go coverage ≥ 80%.
+- `task vuln`: govulncheck (Go) and osv-scanner (`desktop/pubspec.lock`) clean.
 - Race detector on in tests (needs cgo + a C compiler; without one `task test` warns, CI still enforces it).
 - `task audit`: `go mod verify`, govulncheck, gosec. `task fuzz` (tools/fuzzall) for parsers; `task bench` for hot paths.
 - Set up once: `task install` (or `go run ./tools/devtools install` before Task exists) installs Task,
-  golangci-lint v2, govulncheck, gosec and the git hooks (format, lengths, lint on commit).
+  golangci-lint v2, govulncheck, gosec, osv-scanner and the git hooks (format, lengths, text, lint on commit; Dart
+  format and analyze when Dart files are staged).
   `task doctor` diagnoses and repairs; `task update` moves go.mod to the latest Go toolchain and upgrades every tool.
 
 ## Security and performance rules
