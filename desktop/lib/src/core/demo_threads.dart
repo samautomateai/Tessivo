@@ -131,7 +131,7 @@ mixin DemoThreads {
   Future<List<Suggestion>> generateSuggestions(String notebookId, String outputId) async {
     _output(notebookId, outputId);
     final s = Suggestion(
-      id: 'sg${++_threadSeq}',
+      id: 'gen${++_threadSeq}',
       kind: 'memory',
       text: 'Cite the file and line behind each claim.',
       status: 'open',

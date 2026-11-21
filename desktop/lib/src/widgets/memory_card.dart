@@ -35,7 +35,7 @@ class MemoryCard extends StatelessWidget {
     final memory = notebook.memory;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -43,13 +43,18 @@ class MemoryCard extends StatelessWidget {
               children: [
                 Text('Memory', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(width: 8),
-                Text('${memory.length}/$maxMemoryItems', style: const TextStyle(color: Tokens.textMuted, fontSize: 12)),
-                const Spacer(),
+                Expanded(
+                  child: Text(
+                    '${memory.length}/$maxMemoryItems',
+                    style: const TextStyle(color: Tokens.textMuted, fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 TextButton.icon(
                   key: const Key('memory-add'),
                   onPressed: memory.length >= maxMemoryItems ? null : () => _add(context),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add fact'),
+                  label: const Text('Add'),
                 ),
               ],
             ),

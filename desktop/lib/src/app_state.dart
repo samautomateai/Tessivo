@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'chat_state.dart';
 import 'core/core_client.dart';
 import 'core/models.dart';
+import 'thread_state.dart';
 
 enum Section { chat, notebooks, templates, schedules, library, settings }
 
@@ -120,6 +121,7 @@ class AppState extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     stopEvents();
+    thread?.dispose();
     chat.dispose();
     super.dispose();
   }
@@ -138,6 +140,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     await refreshApprovals();
     if (selectedId case final id?) await _refresh(id);
+    await loadOutputs();
   }
 
   void go(Section s) {
@@ -150,8 +153,10 @@ class AppState extends ChangeNotifier {
     section = Section.notebooks;
     outcome = null;
     _stream.clear();
-    notifyListeners();
+    outputs = const [];
+    _openOutput(null);
     unawaited(_refresh(id));
+    unawaited(loadOutputs());
   }
 
   /// Loads the full notebook (context stats, memory); the list view omits them.
@@ -242,6 +247,60 @@ class AppState extends ChangeNotifier {
     } finally {
       running = false;
       notifyListeners();
+      unawaited(loadOutputs(latest: true));
     }
+  }
+
+  /// The selected notebook's outputs (newest first) and the one open.
+  List<OutputSummary> outputs = const [];
+  String? selectedOutputId;
+
+  /// The open output's thread, or null when no output is open.
+  ThreadState? thread;
+
+  /// Reloads the outputs; keeps the open one, else opens the newest
+  /// ([latest] opens the newest anyway, e.g. after a run; [open] a given one).
+  Future<void> loadOutputs({bool latest = false, String? open}) async {
+    final nb = selected;
+    if (nb == null) return;
+    try {
+      outputs = await core.listOutputs(notebookId: nb.id);
+    } on Object {
+      outputs = const [];
+    }
+    if (_disposed || selected?.id != nb.id) return;
+    final keep = !latest && outputs.any((o) => o.id == selectedOutputId);
+    final want = open ?? (keep ? selectedOutputId : outputs.firstOrNull?.id);
+    if (want == selectedOutputId && thread != null) {
+      notifyListeners();
+    } else {
+      _openOutput(want);
+    }
+  }
+
+  /// Opens an output and its thread.
+  void selectOutput(String id) => _openOutput(id);
+
+  void _openOutput(String? id) {
+    thread?.dispose();
+    thread = null;
+    selectedOutputId = id;
+    final nb = selected;
+    if (id != null && nb != null) {
+      final t = thread = ThreadState(core, nb.id, id, onError: _notice, onApplied: () => _refresh(nb.id));
+      unawaited(t.load());
+    }
+    if (!_disposed) notifyListeners();
+  }
+
+  void _notice(String message) {
+    notices.add(message);
+    if (!_disposed) notifyListeners();
+  }
+
+  /// Saves a revised version of the open output and opens it.
+  Future<void> newVersion() async {
+    final v = await thread?.newVersion();
+    if (v != null) await loadOutputs(open: v.id);
   }
 }

@@ -4,22 +4,30 @@ import '../app_state.dart';
 import '../core/models.dart';
 import '../theme.dart';
 import '../widgets/approvals_sheet.dart';
-import '../widgets/memory_card.dart';
-import '../widgets/text_prompt_dialog.dart';
-import '../widgets/work_type_badge.dart';
+import '../widgets/output_thread.dart';
+import 'notebook_outputs_pane.dart';
+import 'notebook_sources_pane.dart';
 
-/// Notebook workspace: context, prompt, run bar and streaming output.
+/// Notebook page: sources on the left; the run bar, the open output and its
+/// thread in the middle; the outputs on the right. Below [wideWidth] the side
+/// panes collapse behind toggles, one at a time.
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({super.key, required this.state});
 
   final AppState state;
 
+  /// Narrowest content width that shows all three panes.
+  static const wideWidth = 1100.0;
+
   @override
   State<WorkspaceScreen> createState() => _WorkspaceScreenState();
 }
 
+enum _SidePane { none, sources, outputs }
+
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
   final _prompt = TextEditingController(text: 'Assess the risk of merging this change.');
+  _SidePane _shown = _SidePane.none;
 
   @override
   void dispose() {
@@ -27,72 +35,104 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     super.dispose();
   }
 
+  void _toggle(_SidePane p) => setState(() => _shown = _shown == p ? _SidePane.none : p);
+
   @override
   Widget build(BuildContext context) {
-    final nb = widget.state.selected;
+    final state = widget.state;
+    final nb = state.selected;
     if (nb == null) {
       return const Center(child: Text('Create a notebook to get started'));
     }
-    return Row(
+    return LayoutBuilder(
+      builder: (context, box) {
+        final wide = box.maxWidth >= WorkspaceScreen.wideWidth;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (wide || _shown == _SidePane.sources) NotebookSourcesPane(state: state, notebook: nb),
+            Expanded(child: _middle(nb, wide)),
+            if (wide || _shown == _SidePane.outputs) NotebookOutputsPane(state: state),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _middle(Notebook nb, bool wide) {
+    final state = widget.state;
+    final thread = state.thread;
+    final open = state.outputs.where((o) => o.id == state.selectedOutputId).firstOrNull;
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(24),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Row(
             children: [
-              _Header(notebook: nb),
-              const SizedBox(height: 16),
-              _ContextCard(notebook: nb, onToggle: widget.state.toggleContext, onAdd: widget.state.addContext),
-              const SizedBox(height: 16),
-              MemoryCard(notebook: nb, onChanged: widget.state.setMemory),
-              const SizedBox(height: 16),
-              _promptCard(),
-              const SizedBox(height: 16),
-              _runBar(nb),
+              if (!wide)
+                IconButton(
+                  key: const Key('toggle-sources'),
+                  tooltip: 'Sources',
+                  onPressed: () => _toggle(_SidePane.sources),
+                  icon: const Icon(Icons.folder_open),
+                ),
+              Expanded(child: _runBar(nb)),
+              if (!wide)
+                IconButton(
+                  key: const Key('toggle-outputs'),
+                  tooltip: 'Outputs',
+                  onPressed: () => _toggle(_SidePane.outputs),
+                  icon: const Icon(Icons.history),
+                ),
             ],
           ),
         ),
-        SizedBox(width: 420, child: _OutputPanel(state: widget.state)),
+        _RunPanel(state: state),
+        const Divider(height: 1),
+        Expanded(
+          child: thread == null
+              ? const Center(
+                  child: Text(
+                    'Run the notebook to get an output, then ask about it here.',
+                    style: TextStyle(color: Tokens.textMuted),
+                  ),
+                )
+              : OutputThread(key: ValueKey(thread), state: state, thread: thread, version: open?.version ?? 1),
+        ),
       ],
     );
   }
-
-  Widget _promptCard() => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Prompt', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          TextField(
-            key: const Key('prompt'),
-            controller: _prompt,
-            minLines: 3,
-            maxLines: 8,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-          ),
-        ],
-      ),
-    ),
-  );
 
   Widget _runBar(Notebook nb) => Card(
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Chip(label: Text('Model: smart')),
-          const Chip(label: Text('Thinking: medium')),
-          Text('≈ ${nb.enabledTokens ~/ 1000}k tokens', style: const TextStyle(color: Tokens.textMuted)),
-          FilledButton(
-            key: const Key('run'),
-            onPressed: widget.state.running ? null : () => widget.state.run(_prompt.text, const {}),
-            style: FilledButton.styleFrom(backgroundColor: Tokens.accent),
-            child: Text(widget.state.running ? 'Running…' : 'Run'),
+          TextField(
+            key: const Key('prompt'),
+            controller: _prompt,
+            minLines: 1,
+            maxLines: 4,
+            decoration: const InputDecoration(labelText: 'Prompt', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const Chip(label: Text('Model: smart')),
+              const Chip(label: Text('Thinking: medium')),
+              Text('≈ ${nb.enabledTokens ~/ 1000}k tokens', style: const TextStyle(color: Tokens.textMuted)),
+              FilledButton(
+                key: const Key('run'),
+                onPressed: widget.state.running ? null : () => widget.state.run(_prompt.text, const {}),
+                style: FilledButton.styleFrom(backgroundColor: Tokens.accent),
+                child: Text(widget.state.running ? 'Running…' : 'Run'),
+              ),
+            ],
           ),
         ],
       ),
@@ -100,109 +140,27 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   );
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.notebook});
-
-  final Notebook notebook;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Flexible(
-          child: Text(
-            notebook.name,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
-          ),
-        ),
-        const SizedBox(width: 12),
-        WorkTypeBadge(workType: notebook.workType),
-      ],
-    );
-  }
-}
-
-class _ContextCard extends StatelessWidget {
-  const _ContextCard({required this.notebook, required this.onToggle, required this.onAdd});
-
-  final Notebook notebook;
-  final Future<void> Function(String id, bool enabled) onToggle;
-  final Future<void> Function(String path) onAdd;
-
-  Future<void> _add(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final path = await askText(
-      context,
-      title: 'Add context',
-      label: 'Absolute path to a file or folder',
-      maxLength: 4096,
-    );
-    if (path == null) return;
-    try {
-      await onAdd(path);
-    } on Object catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e is FormatException ? e.message : '$e')));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text('Context', style: Theme.of(context).textTheme.titleSmall),
-                const Spacer(),
-                TextButton.icon(
-                  key: const Key('context-add'),
-                  onPressed: () => _add(context),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add'),
-                ),
-              ],
-            ),
-            if (notebook.context.isEmpty) const Text('No context yet. Add files, folders, code bases or MCP servers.'),
-            for (final c in notebook.context)
-              CheckboxListTile(
-                key: Key('ctx-${c.id}'),
-                dense: true,
-                value: c.enabled,
-                onChanged: (v) => onToggle(c.id, v ?? false),
-                title: Text(c.label),
-                subtitle: Text(c.kind),
-                secondary: Text('${c.estimatedTokens ~/ 1000}k tok'),
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OutputPanel extends StatelessWidget {
-  const _OutputPanel({required this.state});
+/// The run in progress (or just finished): status, tool calls, approvals and
+/// the streamed text. Hidden when there is nothing to show.
+class _RunPanel extends StatelessWidget {
+  const _RunPanel({required this.state});
 
   final AppState state;
 
   @override
   Widget build(BuildContext context) {
     final outcome = state.outcome;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(left: BorderSide(color: Theme.of(context).dividerColor)),
-      ),
+    final active = state.running || outcome != null || state.streamedText.isNotEmpty || state.paused.isNotEmpty;
+    if (!active) return const SizedBox.shrink();
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 260),
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
         children: [
           Row(
             children: [
-              Text('Output', style: Theme.of(context).textTheme.titleSmall),
+              Text('Latest run', style: Theme.of(context).textTheme.titleSmall),
               const Spacer(),
               if (outcome != null)
                 Text(
@@ -211,7 +169,6 @@ class _OutputPanel extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
           if (state.running) Text(state.status, style: const TextStyle(color: Tokens.textMuted)),
           for (final line in state.toolLog)
             Text(
@@ -219,21 +176,17 @@ class _OutputPanel extends StatelessWidget {
               style: const TextStyle(color: Tokens.textMuted, fontFamily: 'monospace', fontSize: 12),
             ),
           if (state.paused.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text('Waiting for approval', style: Theme.of(context).textTheme.titleSmall),
             for (final a in state.paused) ApprovalTile(state: state, approval: a),
           ],
-          if (state.streamedText.isEmpty && !state.running)
-            const Text('Run the notebook to see its output here.', style: TextStyle(color: Tokens.textMuted)),
           Text(state.streamedText, key: const Key('output')),
-          if (outcome != null) ...[
-            const SizedBox(height: 16),
+          if (outcome != null)
             Text(
               '${outcome.modelUsed} · ${outcome.totalTokens ~/ 1000}k tokens'
               '${outcome.fallbackNote == null ? '' : '\n${outcome.fallbackNote}'}',
               style: const TextStyle(color: Tokens.textMuted, fontSize: 12),
             ),
-          ],
         ],
       ),
     );
