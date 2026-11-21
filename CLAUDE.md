@@ -62,7 +62,7 @@ our own agent loop for agent mode (ADR 0005), MCP for tools. Spec: see `docs/REA
 
 - `cmd/tess` — CLI entry point (thin).
 - `internal/` — core packages (see `docs/architecture.md`).
-- `tools/` — repo tooling in Go (dev setup, length, text, coverage gates, fuzz runner).
+- `tools/` — repo tooling in Go (dev setup, length, text, coverage gates, fuzz runner, release archives).
 - `internal/testutil` — OS-independent test helpers (imported only from tests).
 - `internal/executor/agent` — agent mode loop, rules, checkpoints; `internal/agenttools` — its rooted tools.
 - `docs/api.md` — local JSON API contract between the desktop UI and the core (ADR 0004).

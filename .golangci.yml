@@ -87,6 +87,16 @@ linters:
         text: G204|G702
         linters:
           - gosec
+      # release runs only `go build` with arguments from its own tables, and packs
+      # files under the repo's build output into archives it names itself.
+      - path: tools/release/(build|archive|main)\.go
+        text: G204|G702|G703
+        linters:
+          - gosec
+      # Archive callbacks return raw errors; walkFiles wraps each once with the source path.
+      - path: tools/release/archive\.go
+        linters:
+          - wrapcheck
       # fuzzall runs only `go test`; target names must match ^Fuzz[A-Za-z0-9_]*$.
       - path: tools/fuzzall/main.go
         text: G204|G702

@@ -57,3 +57,6 @@ bin/
 gosec.sarif
 desktop/build/
 desktop/.dart_tool/
+
+# Release archives (tools/release)
+dist/

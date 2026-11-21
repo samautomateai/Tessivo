@@ -13,6 +13,20 @@ Analyze, summarize, document and report with self-hosted models. A native deskto
   and the structure of the output.
 - **Context**: any mix of documents, spreadsheets, code bases, diffs, URLs, text and MCP resources.
 
+## Download
+
+Each release on the GitHub Releases page has:
+
+- `tess_<version>_<os>_<arch>`: the CLI for Linux, macOS and Windows on amd64 and arm64 (`.tar.gz`, or `.zip` for
+  Windows).
+- `tessivo-desktop_<version>_<platform>_<arch>`: the desktop app with `tess` bundled beside it (Linux and Windows
+  x64, macOS Apple silicon).
+- `SHA256SUMS`: check a download with `sha256sum -c SHA256SUMS --ignore-missing`.
+
+Builds from `main` are kept for 30 days as artifacts of the `release` workflow run. The desktop builds are not
+signed yet, so macOS Gatekeeper and Windows SmartScreen warn on first launch. Build locally with `task release:cli`
+(all CLI targets) or `task release:desktop PLATFORM=linux|windows|macos` (this OS).
+
 ## Quick start
 
 ```sh

@@ -137,6 +137,21 @@ tasks:
       - flutter test --coverage
       - go run ../tools/covercheck -format lcov -profile coverage/lcov.info -min {{.COVER_MIN}}
 
+  release:cli:
+    desc: Build tess archives for every OS and architecture into dist/ (VERSION=v1.2.3)
+    cmds:
+      - go run ./tools/release cli -version {{.VERSION | default "dev"}} -out dist
+      - go run ./tools/release sums -dir dist
+
+  release:desktop:
+    desc: Build the desktop app for this OS and package it with tess into dist/ (PLATFORM=linux|windows|macos)
+    dir: desktop
+    cmds:
+      - flutter build {{.PLATFORM}} --release
+      - >-
+        go run ../tools/release desktop -version {{.VERSION | default "dev"}}
+        -platform {{.PLATFORM}} -arch {{.ARCH | default "amd64"}} -out ../dist
+
   desktop:run:
     desc: Run the desktop app
     dir: desktop
