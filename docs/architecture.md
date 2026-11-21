@@ -22,6 +22,7 @@
 | `extract` | Context extractors by type: text, Markdown, code, CSV/TSV, JSON, DOCX, XLSX, PPTX, folders/code bases. Office files are read in memory with bounded decompression (per-part 32 MiB, total 128 MiB, ratio 200:1, 10k entries, 5M XML tokens). |
 | `notebook` | Notebook folder layout, manifest, context items, prompts, run records, outputs. |
 | `executor` | `Executor` interface; `pipeline` mode now, `agent` mode (Eino) next. |
+| `agenttools` | The agent's read-only tools (`read_file`, `list_directory`, `glob`, `grep`). Every path is resolved through `Roots`: cleaned, symlinks evaluated, refused outside the run's folders. Bounded: 256 KiB per read, 2,000 entries, 500 matches. |
 | `audit` | Tamper-evident audit log: append-only JSONL, each entry's SHA-256 covers the previous one; secrets redacted, prompts stored as digests; `Verify` detects edits, deletions and reordering. |
 | `service` | Application layer shared by CLI and server: workspace notebooks by validated ID, runs (settings, audit, records), outputs, settings, models. |
 | `server` | Local API: routes, auth/host/origin checks, strict JSON, SSE runs, listeners, endpoint file. See [api.md](api.md). |
