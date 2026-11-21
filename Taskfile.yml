@@ -1,0 +1,199 @@
+version: "3"
+
+vars:
+  BIN: bin
+  COVER_MIN: 80
+  COVER_PROFILE: coverage.out
+
+tasks:
+  default:
+    desc: List tasks
+    cmds:
+      - task --list
+
+  install:
+    desc: Install every dev tool at its latest version (Task, golangci-lint v2, govulncheck, gosec,
+      osv-scanner), git hooks
+    cmds:
+      - go run ./tools/devtools install
+
+  doctor:
+    desc: Diagnose the dev setup and repair what it can (task doctor -- -check only reports)
+    cmds:
+      - go run ./tools/devtools doctor {{.CLI_ARGS}}
+
+  update:
+    desc: Move go.mod to the latest Go toolchain and upgrade every dev tool and Flutter
+    cmds:
+      - go run ./tools/devtools update
+
+  build:
+    desc: Build the tess CLI
+    cmds:
+      - go build -trimpath -o {{.BIN}}/tess ./cmd/tess
+
+  fmt:
+    desc: Format Go (gofmt -s, gofumpt, goimports) and Dart code
+    cmds:
+      - golangci-lint fmt ./...
+      - cmd: dart format desktop/lib desktop/test
+        ignore_error: true
+
+  fmt:check:
+    desc: Fail if any Go file is not formatted
+    cmds:
+      - test -z "$(golangci-lint fmt --diff ./...)" || (golangci-lint fmt --diff ./...; exit 1)
+
+  audit:
+    desc: "Security audit: module checksums, known vulnerabilities, static security analysis"
+    cmds:
+      - go mod verify
+      - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - go run github.com/securego/gosec/v2/cmd/gosec@latest -quiet ./...
+
+  fuzz:
+    desc: Run every fuzz target briefly (FUZZTIME=20s by default)
+    vars:
+      FUZZTIME: '{{.FUZZTIME | default "20s"}}'
+    cmds:
+      - go run ./tools/fuzzall -fuzztime {{.FUZZTIME}} ./...
+
+  bench:
+    desc: Run benchmarks with allocation stats
+    cmds:
+      - go test -run '^$' -bench . -benchmem ./...
+
+  hooks:install:
+    desc: Use the repo's git hooks (format, lengths, lint before commit)
+    cmds:
+      - git config core.hooksPath scripts/hooks
+
+  test:
+    desc: Run Go tests with the race detector (needs cgo and a C compiler; task doctor explains)
+    vars:
+      CGO:
+        sh: go env CGO_ENABLED
+    cmds:
+      - |
+        {{if ne .CGO "1"}}echo "warn: no -race (cgo off, no C compiler); CI still runs it. See: task doctor"{{end}}
+        go test {{if eq .CGO "1"}}-race {{end}}-count=1 ./...
+
+  cover:
+    desc: Run tests with coverage and enforce the {{.COVER_MIN}}% gate
+    cmds:
+      - go test -count=1 -covermode=atomic -coverprofile={{.COVER_PROFILE}} ./...
+      - go run ./tools/covercheck -profile {{.COVER_PROFILE}} -min {{.COVER_MIN}}
+
+  lint:
+    desc: Run golangci-lint (includes gosec, lll, funlen, gocyclo)
+    cmds:
+      - golangci-lint run ./...
+
+  lengths:
+    desc: Enforce max line length (120) and file length (500, tests 800)
+    cmds:
+      - go run ./tools/lencheck -max-line 120 -max-file 500 -max-test-file 800 .
+
+  text:
+    desc: Enforce portable text files (UTF-8 without BOM, LF endings, final newline, no trailing whitespace)
+    cmds:
+      - go run ./tools/textcheck .
+
+  text:fix:
+    desc: Rewrite text files to UTF-8 without BOM, LF endings, a final newline and no trailing whitespace
+    cmds:
+      - go run ./tools/textcheck -fix .
+
+  vuln:
+    desc: Scan Go (govulncheck) and desktop Dart dependencies (osv-scanner on pubspec.lock) for known vulnerabilities
+    cmds:
+      - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - task: vuln:desktop
+
+  vuln:desktop:
+    desc: Scan the desktop app's pubspec.lock against the OSV vulnerability database
+    cmds:
+      - go run github.com/google/osv-scanner/v2/cmd/osv-scanner@latest scan source --lockfile=desktop/pubspec.lock
+
+  sec:
+    desc: Run gosec standalone with SARIF output
+    cmds:
+      - go run github.com/securego/gosec/v2/cmd/gosec@latest -quiet -fmt sarif -out gosec.sarif ./...
+
+  tidy:
+    desc: Check go.mod and go.sum are tidy
+    cmds:
+      - go mod tidy
+      - git diff --exit-code -- go.mod go.sum
+
+  desktop:check:
+    desc: Analyze, format-check and test the Flutter app with coverage
+    dir: desktop
+    cmds:
+      # --enforce-lockfile: fail instead of silently changing the committed pubspec.lock.
+      - flutter pub get --enforce-lockfile
+      - dart format --output=none --set-exit-if-changed lib test
+      - flutter analyze --fatal-infos
+      - flutter test --coverage
+      - go run ../tools/covercheck -format lcov -profile coverage/lcov.info -min {{.COVER_MIN}}
+
+  release:cli:
+    desc: Build tess archives for every OS and architecture into dist/ (VERSION=v1.2.3)
+    cmds:
+      - go run ./tools/release cli -version {{.VERSION | default "dev"}} -out dist
+      - go run ./tools/release sums -dir dist
+
+  release:desktop:
+    desc: Build the desktop app for this OS and package it with tess into dist/ (PLATFORM=linux|windows|macos)
+    dir: desktop
+    cmds:
+      - flutter build {{.PLATFORM}} --release
+      - >-
+        go run ../tools/release desktop -version {{.VERSION | default "dev"}}
+        -platform {{.PLATFORM}} -arch {{.ARCH | default "amd64"}} -out ../dist
+
+  desktop:run:
+    desc: Run the desktop app
+    dir: desktop
+    cmds:
+      - flutter run -d {{OS}}
+
+  desktop:ci:
+    desc: desktop:check when Flutter is installed; otherwise say loudly that it was skipped
+    vars:
+      FLUTTER:
+        sh: command -v flutter || true
+    cmds:
+      - >-
+        {{if .FLUTTER}}task desktop:check{{else}}echo
+        "SKIPPED desktop gates: Flutter is not installed (CI still runs them)"{{end}}
+
+  ci:
+    desc: "Every CI gate locally, fast ones first: text, lengths, tidy, format, lint, build, race tests,
+      coverage, go mod verify, govulncheck + osv-scanner, fuzz smoke, desktop (gosec runs inside lint, as in CI)"
+    cmds:
+      - task: text
+      - task: lengths
+      - task: tidy
+      - task: fmt:check
+      - task: lint
+      - go build -trimpath ./...
+      - task: test
+      - task: cover
+      - go mod verify
+      - task: vuln
+      - task: fuzz
+        vars:
+          FUZZTIME: 10s
+      - task: desktop:ci
+
+  check:
+    desc: Every quality gate (run before pushing)
+    cmds:
+      - task: fmt:check
+      - task: lengths
+      - task: text
+      - task: lint
+      - task: cover
+      - task: vuln
+      - task: desktop:ci

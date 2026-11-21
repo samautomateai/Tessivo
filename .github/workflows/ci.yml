@@ -1,0 +1,128 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "m*-**", "feat/**", "fix/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - name: Module checksums
+        run: go mod verify
+      - name: Lengths
+        run: go run ./tools/lencheck -max-line 120 -max-file 500 -max-test-file 800 .
+      - name: Text files (UTF-8, no BOM, LF, final newline, no trailing whitespace)
+        run: go run ./tools/textcheck .
+      - name: Tidy
+        # go.sum only exists once the module has dependencies.
+        run: |
+          go mod tidy
+          if [ -n "$(git status --porcelain -- go.mod go.sum)" ]; then
+            git --no-pager diff -- go.mod go.sum; echo "run: go mod tidy"; exit 1
+          fi
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+      - name: Format check (gofmt -s, gofumpt, goimports)
+        run: |
+          diff=$(golangci-lint fmt --diff ./...)
+          if [ -n "$diff" ]; then echo "$diff"; echo "run: task fmt"; exit 1; fi
+      - name: Test with race detector
+        run: go test -race -count=1 ./...
+      - name: Coverage gate (80%)
+        run: |
+          go test -count=1 -covermode=atomic -coverprofile=coverage.out ./...
+          go run ./tools/covercheck -profile coverage.out -min 80
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - name: Build
+        run: go build -trimpath ./...
+      - name: Fuzz (smoke, 10s per target)
+        run: go run ./tools/fuzzall -fuzztime 10s ./...
+
+  # Everything must work on every OS (CLAUDE.md); Linux runs the full gate set above.
+  go-os:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - name: Text files
+        run: go run ./tools/textcheck .
+      - name: Build
+        run: go build -trimpath ./...
+      - name: Test with race detector
+        run: go test -race -count=1 ./...
+
+  gosec:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gosec
+        run: go run github.com/securego/gosec/v2/cmd/gosec@latest -no-fail -fmt sarif -out gosec.sarif ./...
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gosec.sarif
+
+  # Flutter analyze, format and tests on every OS, like the Go tests (CLAUDE.md).
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      # Fails if pubspec.lock does not match pubspec.yaml instead of rewriting it.
+      - run: flutter pub get --enforce-lockfile
+      - name: Format check (prints the patch to apply when it fails)
+        run: |
+          dart format lib test
+          if ! git diff --quiet -- .; then
+            git --no-pager diff -- .; echo "run: task fmt (dart format)"; exit 1
+          fi
+      - run: flutter analyze --fatal-infos
+      - run: flutter test --coverage
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Coverage gate (80%)
+        run: go run ../tools/covercheck -format lcov -profile coverage/lcov.info -min 80
+      - name: Dependency vulnerabilities (osv-scanner on pubspec.lock)
+        if: runner.os == 'Linux'
+        run: go run github.com/google/osv-scanner/v2/cmd/osv-scanner@latest scan source --lockfile=pubspec.lock

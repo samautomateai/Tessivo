@@ -1,0 +1,246 @@
+// Command textcheck keeps text files portable across operating systems: UTF-8
+// without a byte-order mark, LF line endings (CRLF for .bat/.cmd), a final
+// newline and no trailing whitespace (Markdown may keep it for line breaks).
+//
+// Usage:
+//
+//	textcheck [-fix] [dir ...]
+//
+// With -fix it rewrites offending files in place (atomically, keeping their
+// mode); invalid UTF-8 is reported but never changed. It exits non-zero when
+// a violation remains.
+package main
+
+import (
+	"bytes"
+	"flag"
+	"fmt"
+	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
+	"unicode/utf8"
+)
+
+// maxSize skips files too large to be hand-written text.
+const maxSize = 8 << 20
+
+var textExt = map[string]bool{
+	".go": true, ".mod": true, ".sum": true, ".dart": true, ".md": true, ".yml": true, ".yaml": true,
+	".json": true, ".arb": true, ".proto": true, ".sh": true, ".ps1": true, ".txt": true, ".toml": true,
+	".html": true, ".css": true, ".js": true, ".xml": true, ".plist": true, ".xcconfig": true,
+	".cmake": true, ".c": true, ".cc": true, ".cpp": true, ".h": true, ".swift": true, ".m": true,
+	".rc": true, ".manifest": true, ".bat": true, ".cmd": true, ".lock": true,
+	// Xcode project files in the macOS runner.
+	".pbxproj": true, ".xcscheme": true, ".xcworkspacedata": true, ".xib": true, ".storyboard": true,
+	".entitlements": true, ".strings": true,
+}
+
+var textNames = map[string]bool{
+	".editorconfig": true, ".gitignore": true, ".gitattributes": true, "pre-commit": true,
+	"Dockerfile": true, "Makefile": true, "CMakeLists.txt": true, "LICENSE": true, "Podfile": true,
+	".metadata": true, // Flutter project metadata
+}
+
+var skippedDirs = map[string]bool{
+	".git": true, "vendor": true, "build": true, ".dart_tool": true, "node_modules": true,
+	"ephemeral": true, "bin": true, "coverage": true, ".idea": true, ".vscode": true,
+}
+
+var bom = []byte{0xEF, 0xBB, 0xBF}
+
+func main() {
+	os.Exit(run(os.Args[1:], os.Stdout))
+}
+
+func run(args []string, out io.Writer) int {
+	fl := flag.NewFlagSet("textcheck", flag.ContinueOnError)
+	fl.SetOutput(out)
+	fix := fl.Bool("fix", false, "rewrite files to fix encoding, line-ending and whitespace problems")
+	if err := fl.Parse(args); err != nil {
+		return 2
+	}
+	dirs := fl.Args()
+	if len(dirs) == 0 {
+		dirs = []string{"."}
+	}
+	count := 0
+	for _, d := range dirs {
+		n, err := checkTree(d, *fix, out)
+		if err != nil {
+			_, _ = fmt.Fprintln(out, "textcheck:", err)
+			return 2
+		}
+		count += n
+	}
+	if count > 0 {
+		_, _ = fmt.Fprintf(out, "textcheck: %d violation(s); run: task text:fix\n", count)
+		return 1
+	}
+	return 0
+}
+
+// isText reports whether a file name is one textcheck checks.
+func isText(name string) bool {
+	return textNames[name] || textExt[strings.ToLower(filepath.Ext(name))]
+}
+
+func checkTree(root string, fix bool, out io.Writer) (int, error) {
+	count := 0
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if path != root && skippedDirs[d.Name()] {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !d.Type().IsRegular() || !isText(d.Name()) {
+			return nil
+		}
+		problems, err := checkFile(path, fix)
+		if err != nil {
+			return err
+		}
+		for _, p := range problems {
+			_, _ = fmt.Fprintf(out, "%s: %s\n", path, p)
+		}
+		count += len(problems)
+		return nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("walk %s: %w", root, err)
+	}
+	return count, nil
+}
+
+// checkFile returns the problems left in path; with fix it first repairs what
+// it can.
+func checkFile(path string, fix bool) ([]string, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("stat %s: %w", path, err)
+	}
+	if info.Size() > maxSize {
+		return nil, nil
+	}
+	data, err := os.ReadFile(path) //nolint:gosec // G304: paths come from walking the repo tree
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", path, err)
+	}
+	crlf := wantsCRLF(path)
+	keepTrailing := strings.EqualFold(filepath.Ext(path), ".md")
+	problems := Check(data, crlf, keepTrailing)
+	if len(problems) == 0 || !fix {
+		return problems, nil
+	}
+	fixed := Normalize(data, crlf, keepTrailing)
+	if !bytes.Equal(fixed, data) {
+		if err := writeAtomic(path, fixed, info.Mode().Perm()); err != nil {
+			return nil, err
+		}
+	}
+	return Check(fixed, crlf, keepTrailing), nil
+}
+
+func wantsCRLF(path string) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	return ext == ".bat" || ext == ".cmd"
+}
+
+// Check lists the portability problems in a text file's contents.
+func Check(data []byte, crlf, keepTrailing bool) []string {
+	var problems []string
+	if bytes.HasPrefix(data, bom) {
+		problems = append(problems, "starts with a UTF-8 byte-order mark")
+	}
+	if !utf8.Valid(data) {
+		problems = append(problems, "is not valid UTF-8")
+	}
+	if len(data) == 0 {
+		return problems
+	}
+	if data[len(data)-1] != '\n' {
+		problems = append(problems, "does not end with a newline")
+	}
+	lines := bytes.SplitAfter(data, []byte("\n"))
+	badEOL, trailing := 0, 0
+	for i, l := range lines {
+		body := bytes.TrimSuffix(l, []byte("\n"))
+		hasCR := bytes.HasSuffix(body, []byte("\r"))
+		body = bytes.TrimSuffix(body, []byte("\r"))
+		last := i == len(lines)-1
+		if !last && hasCR != crlf {
+			badEOL++
+		}
+		if !keepTrailing && len(body) > 0 && (body[len(body)-1] == ' ' || body[len(body)-1] == '\t') {
+			trailing++
+		}
+	}
+	if badEOL > 0 {
+		want := "LF"
+		if crlf {
+			want = "CRLF"
+		}
+		problems = append(problems, fmt.Sprintf("%d line(s) do not end with %s", badEOL, want))
+	}
+	if trailing > 0 {
+		problems = append(problems, fmt.Sprintf("%d line(s) have trailing whitespace", trailing))
+	}
+	return problems
+}
+
+// Normalize removes a byte-order mark and trailing whitespace, sets every line
+// ending to LF (or CRLF) and adds a final newline. Invalid UTF-8 is left as is.
+func Normalize(data []byte, crlf, keepTrailing bool) []byte {
+	data = bytes.TrimPrefix(data, bom)
+	if len(data) == 0 {
+		return data
+	}
+	eol := "\n"
+	if crlf {
+		eol = "\r\n"
+	}
+	text := strings.ReplaceAll(string(data), "\r\n", "\n")
+	text = strings.TrimSuffix(text, "\n")
+	lines := strings.Split(text, "\n")
+	var b strings.Builder
+	b.Grow(len(data) + len(lines))
+	for _, l := range lines {
+		l = strings.TrimSuffix(l, "\r")
+		if !keepTrailing {
+			l = strings.TrimRight(l, " \t")
+		}
+		b.WriteString(l)
+		b.WriteString(eol)
+	}
+	return []byte(b.String())
+}
+
+// writeAtomic replaces path with data through a temporary file in the same
+// directory, so a crash never leaves a half-written file.
+func writeAtomic(path string, data []byte, mode fs.FileMode) error {
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".textcheck-*")
+	if err != nil {
+		return fmt.Errorf("fix %s: %w", path, err)
+	}
+	name := tmp.Name()
+	defer func() { _ = os.Remove(name) }()
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("fix %s: %w", path, err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("fix %s: %w", path, err)
+	}
+	if err := os.Chmod(name, mode); err != nil {
+		return fmt.Errorf("fix %s: %w", path, err)
+	}
+	if err := os.Rename(name, path); err != nil {
+		return fmt.Errorf("fix %s: %w", path, err)
+	}
+	return nil
+}

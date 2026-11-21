@@ -1,0 +1,141 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - contextcheck
+    - dupl
+    - errcheck
+    - errorlint
+    - exhaustive
+    - funlen
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - gosec
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nakedret
+    - nestif
+    - noctx
+    - nolintlint
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - wrapcheck
+  settings:
+    lll:
+      line-length: 120
+      tab-width: 4
+    funlen:
+      lines: 80
+      statements: 50
+    gocyclo:
+      min-complexity: 15
+    gocognit:
+      min-complexity: 20
+    nestif:
+      min-complexity: 5
+    gosec:
+      excludes:
+        - G104 # covered by errcheck
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    wrapcheck:
+      ignore-package-globs:
+        - github.com/samautomateai/tessivo/*
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: var-naming
+        - name: indent-error-flow
+        - name: error-strings
+        - name: receiver-naming
+  exclusions:
+    rules:
+      - path: internal/keychain/windows.go
+        text: G103
+        linters:
+          - gosec
+      # The OS keychain tools are fixed programs (security, secret-tool) with
+      # arguments built by this package, never from user text.
+      - path: internal/keychain/keychain.go
+        text: G204
+        linters:
+          - gosec
+      # Notifications run fixed OS tools (osascript, notify-send, powershell);
+      # text goes through stdin, argv after "--" or environment variables.
+      - path: internal/notify/notify.go
+        text: G204|G702
+        linters:
+          - gosec
+      # devtools runs fixed programs (go, git, flutter, the tools it installed)
+      # with arguments from its own tables, never from user text.
+      - path: tools/devtools/exec.go
+        text: G204|G702
+        linters:
+          - gosec
+      # release runs only `go build` with arguments from its own tables, and packs
+      # files under the repo's build output into archives it names itself.
+      - path: tools/release/(build|archive|main)\.go
+        text: G204|G702|G703
+        linters:
+          - gosec
+      # Archive callbacks return raw errors; walkFiles wraps each once with the source path.
+      - path: tools/release/archive\.go
+        linters:
+          - wrapcheck
+      # fuzzall runs only `go test`; target names must match ^Fuzz[A-Za-z0-9_]*$.
+      - path: tools/fuzzall/main.go
+        text: G204|G702
+        linters:
+          - gosec
+      # api_key_ref holds the name of an environment variable, not a key.
+      - path: internal/config/file.go
+        text: G101
+        linters:
+          - gosec
+      # Copy targets are the notebook's own folder plus a sanitized file name.
+      - path: internal/notebook/notebook.go
+        text: G703
+        linters:
+          - gosec
+      - path: _test\.go
+        linters:
+          - dupl
+          - funlen
+          - gocyclo
+          - gocognit
+          - noctx
+          - gosec
+          - wrapcheck
+          - goconst
+
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gofmt:
+      simplify: true
+    gofumpt:
+      # Replaces the deprecated extra-rules: true (golangci-lint 2.x).
+      extra:
+        group-params: true # func f(a, b int) instead of func f(a int, b int)
+        clothe-returns: true # no naked returns: return x, err instead of return
+    goimports:
+      local-prefixes:
+        - github.com/samautomateai/tessivo

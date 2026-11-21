@@ -1,0 +1,32 @@
+# Line endings: every text file is stored and checked out with LF on every OS,
+# whatever core.autocrlf is set to. Encoding is UTF-8 without BOM (.editorconfig).
+# `task text` (tools/textcheck) enforces both.
+* text=auto eol=lf
+
+# Windows batch files only work reliably with CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files: never convert or diff as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.pdf binary
+*.zip binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.sqlite binary
+*.db binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
