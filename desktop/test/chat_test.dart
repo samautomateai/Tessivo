@@ -4,7 +4,6 @@ import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
 import 'package:tessivo_desktop/src/chat_state.dart';
 import 'package:tessivo_desktop/src/core/core_client.dart';
-import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 
 Future<AppState> pumpChat(WidgetTester tester) async {

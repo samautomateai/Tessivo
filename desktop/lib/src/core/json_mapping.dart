@@ -89,7 +89,6 @@ OutputSummary outputFromJson(Map<String, Object?> j) => OutputSummary(
   workType: workTypeFrom(j['workType']),
   notebookName: j['notebookName'] as String? ?? '',
   notebookId: j['notebookId'] as String? ?? '',
-  notebookId: j['notebookId'] as String? ?? '',
   trigger: 'Manual',
   createdAt: j['createdAt'] as String? ?? '',
   versions: 1,

@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'core_client.dart';
-import 'errors.dart';
 import 'json_mapping.dart';
 import 'models.dart';
 
