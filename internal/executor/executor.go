@@ -34,20 +34,25 @@ type Spec struct {
 
 // Event reports progress to the caller (UI, CLI).
 type Event struct {
-	Kind string // "status" or "delta"
+	Kind string // one of the Event kinds
 	Text string
+	Data map[string]any `json:",omitempty"` // structured detail for tool and approval events
 }
 
 // Event kinds.
 const (
-	EventStatus = "status"
-	EventDelta  = "delta"
+	EventStatus         = "status"
+	EventDelta          = "delta"
+	EventToolCall       = "tool_call"
+	EventToolResult     = "tool_result"
+	EventApprovalNeeded = "approval_needed"
 )
 
 // Strategies a run can use to fit context into the model.
 const (
 	StrategyFull      = "full"
 	StrategyMapReduce = "map-reduce"
+	StrategyAgent     = "agent"
 )
 
 // Result is a finished run.

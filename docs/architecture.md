@@ -21,7 +21,8 @@
 | `schema` | Validates model output against a JSON-schema subset. |
 | `extract` | Context extractors by type: text, Markdown, code, CSV/TSV, JSON, DOCX, XLSX, PPTX, folders/code bases. Office files are read in memory with bounded decompression (per-part 32 MiB, total 128 MiB, ratio 200:1, 10k entries, 5M XML tokens). |
 | `notebook` | Notebook folder layout, manifest, context items, prompts, run records (with status, tool calls and approvals), outputs; agent checkpoints (`runs/<id>.checkpoint.json`, 0600, ≤ 64 MiB) and cross-process run locks (`runs/<id>.lock`, refreshed every 30 s, stale after 2 min). |
-| `executor` | `Executor` interface; `pipeline` mode now, `agent` mode (Eino) next. |
+| `executor` | `Executor` interface; `pipeline` mode (extract → map-reduce → `Generate`: schema call, validate, retry). |
+| `executor/agent` | Agent mode: tool-using loop over the router with allow/ask/block rules (`Policy`), up to 4 tools in parallel, results ≤ 32 KiB, old results elided past 60% of the context budget, limits (steps, tokens, time). Saves a checkpoint after every step; an unanswered "ask" pauses the run (`PausedError`); `Continue` resumes, reporting calls in flight at a crash as "outcome unknown". Ends with `executor.Generate` over the findings. |
 | `agenttools` | The agent's read-only tools (`read_file`, `list_directory`, `glob`, `grep`). Every path is resolved through `Roots`: cleaned, symlinks evaluated, refused outside the run's folders. Bounded: 256 KiB per read, 2,000 entries, 500 matches. |
 | `audit` | Tamper-evident audit log: append-only JSONL, each entry's SHA-256 covers the previous one; secrets redacted, prompts stored as digests; `Verify` detects edits, deletions and reordering. |
 | `service` | Application layer shared by CLI and server: workspace notebooks by validated ID, runs (settings, audit, records), outputs, settings, models. |

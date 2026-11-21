@@ -9,6 +9,7 @@ import (
 	"github.com/samautomateai/tessivo/internal/extract"
 	"github.com/samautomateai/tessivo/internal/llm"
 	"github.com/samautomateai/tessivo/internal/schema"
+	"github.com/samautomateai/tessivo/internal/worktype"
 )
 
 // DefaultContextBudget applies when settings do not set one (tokens).
@@ -54,7 +55,8 @@ func (p *Pipeline) Run(ctx context.Context, spec Spec, onEvent func(Event)) (Res
 	return p.reduceStep(ctx, spec, prompt, docs, sch, res, func(s string) { emit(EventDelta, s) })
 }
 
-func (p *Pipeline) request(spec Spec, msgs []llm.Message, format *llm.ResponseFormat) llm.Request {
+// NewRequest builds a model request from the run's effective settings.
+func NewRequest(spec Spec, msgs []llm.Message, format *llm.ResponseFormat) llm.Request {
 	s := spec.Settings
 	return llm.Request{
 		Messages: msgs, Temperature: s.Temperature, MaxTokens: s.MaxOutputTokens,
@@ -62,21 +64,43 @@ func (p *Pipeline) request(spec Spec, msgs []llm.Message, format *llm.ResponseFo
 	}
 }
 
+func (p *Pipeline) request(spec Spec, msgs []llm.Message, format *llm.ResponseFormat) llm.Request {
+	return NewRequest(spec, msgs, format)
+}
+
+// SystemPrompt is the work type's system prompt plus its output schema.
+func SystemPrompt(wt worktype.WorkType) string {
+	return wt.SystemPrompt + "\n\nOutput JSON schema:\n" + string(wt.Schema)
+}
+
 func (p *Pipeline) reduceStep(ctx context.Context, spec Spec, prompt string, docs []extract.Document,
-	sch *schema.Schema, res Result, onDelta func(string),
+	_ *schema.Schema, res Result, onDelta func(string),
 ) (Result, error) {
 	msgs := []llm.Message{
-		{Role: llm.RoleSystem, Content: spec.WorkType.SystemPrompt + "\n\nOutput JSON schema:\n" +
-			string(spec.WorkType.Schema)},
+		{Role: llm.RoleSystem, Content: SystemPrompt(spec.WorkType)},
 		{Role: llm.RoleUser, Content: userMessage(prompt, spec.Memory, docs)},
 	}
-	format := &llm.ResponseFormat{Name: spec.WorkType.ID, Schema: json.RawMessage(spec.WorkType.Schema)}
 	retries := p.MaxValidationRetries
 	if retries == 0 {
 		retries = 2
 	}
+	return Generate(ctx, p.Model, spec, msgs, res, retries, onDelta)
+}
+
+// Generate makes the structured-output call with the work type's schema,
+// validates the reply and retries up to retries times with the validation
+// error, adding attempts and tokens to res.
+func Generate(ctx context.Context, m Model, spec Spec, msgs []llm.Message, res Result, retries int,
+	onDelta func(string),
+) (Result, error) {
+	sch, err := spec.WorkType.ParsedSchema()
+	if err != nil {
+		return res, err
+	}
+	format := &llm.ResponseFormat{Name: spec.WorkType.ID, Schema: json.RawMessage(spec.WorkType.Schema)}
+	msgs = append([]llm.Message(nil), msgs...)
 	for attempt := 0; ; attempt++ {
-		out, err := p.Model.ChatStream(ctx, p.request(spec, msgs, format), onDelta)
+		out, err := m.ChatStream(ctx, NewRequest(spec, msgs, format), onDelta)
 		res.Attempts = append(res.Attempts, out.Attempts...)
 		if err != nil {
 			return res, fmt.Errorf("generate %s: %w", spec.WorkType.ID, err)
