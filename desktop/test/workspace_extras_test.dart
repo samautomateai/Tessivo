@@ -42,14 +42,25 @@ Future<HttpServer> fakeExtras() async {
     final text = await utf8.decoder.bind(req).join();
     final body = text.isEmpty ? const <String, Object?>{} : jsonDecode(text) as Map<String, Object?>;
     final path = req.uri.path;
-    Map<String, Object?> nb({List<Object?> memory = const [], List<Object?> context = const []}) =>
-        {'id': 'board', 'name': 'Board', 'workType': 'analyze', 'memory': memory, 'context': context};
+    Map<String, Object?> nb({List<Object?> memory = const [], List<Object?> context = const []}) => {
+      'id': 'board',
+      'name': 'Board',
+      'workType': 'analyze',
+      'memory': memory,
+      'context': context,
+    };
     if (req.method == 'GET' && path == '/v1/notebooks/board') {
       res.write(jsonEncode(nb(memory: ['Audience is the CFO', 7])));
     } else if (req.method == 'POST' && path == '/v1/notebooks/board/context') {
-      res.write(jsonEncode(nb(context: [
-        {'id': 'c9', 'label': body['path'], 'enabled': true, 'inPlace': true, 'estimatedTokens': 5000},
-      ])));
+      res.write(
+        jsonEncode(
+          nb(
+            context: [
+              {'id': 'c9', 'label': body['path'], 'enabled': true, 'inPlace': true, 'estimatedTokens': 5000},
+            ],
+          ),
+        ),
+      );
     } else if (req.method == 'PUT' && path == '/v1/notebooks/board/memory') {
       res.write(jsonEncode(nb(memory: body['memory']! as List<Object?>)));
     } else if (path == '/v1/notebooks/board/outputs/o1') {
@@ -62,7 +73,11 @@ Future<HttpServer> fakeExtras() async {
         'bad': 'nope',
       };
       final p = req.uri.queryParameters['provider'];
-      res.write(jsonEncode({'models': p == null ? all : {p: all[p]}}));
+      res.write(
+        jsonEncode({
+          'models': p == null ? all : {p: all[p]},
+        }),
+      );
     } else {
       res.statusCode = 404;
       res.write(jsonEncode({'error': 'not found'}));

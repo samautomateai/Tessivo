@@ -26,10 +26,7 @@ void main() {
     expect(await core.listWorkTypes(), hasLength(4));
     expect(await core.listNotebooks(), hasLength(4));
     expect(await core.listOutputs(workType: WorkTypeId.summarize), hasLength(1));
-    expect(
-      () => core.setContextEnabled(notebookId: 'missing', contextId: 'c1', enabled: false),
-      throwsStateError,
-    );
+    expect(() => core.setContextEnabled(notebookId: 'missing', contextId: 'c1', enabled: false), throwsStateError);
   });
 
   test('run failure is reported and running resets', () async {

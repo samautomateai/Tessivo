@@ -155,7 +155,9 @@ SettingsInfo settingsFromJson(Map<String, Object?> j) {
 Map<String, List<String>> modelsFromJson(Map<String, Object?> j) {
   final m = j['models'];
   if (m is! Map<String, Object?>) return const {};
-  return {for (final e in m.entries) e.key: [..._strings(e.value)]..sort()};
+  return {
+    for (final e in m.entries) e.key: [..._strings(e.value)]..sort(),
+  };
 }
 
 ChatAttachment chatAttachmentFromJson(Map<String, Object?> j) => ChatAttachment(

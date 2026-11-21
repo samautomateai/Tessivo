@@ -34,7 +34,7 @@ func cmdSecret(ctx context.Context, args []string, env Env) error {
 		}
 		_, err = fmt.Fprintf(env.Stdout, "stored %s in the OS keychain\n", ref)
 		return wrapWrite(err)
-	case "delete":
+	case subDelete:
 		if err := env.Keychain.Delete(ref); err != nil {
 			return err
 		}
@@ -80,13 +80,16 @@ func noEcho(ctx context.Context, env Env) func() {
 	if !ok || runtime.GOOS == goosWindows {
 		return func() {}
 	}
-	stty := func(arg string) {
+	stty := func(echo bool) {
 		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 		defer cancel()
-		cmd := exec.CommandContext(ctx, "stty", arg)
+		cmd := exec.CommandContext(ctx, "stty", "-echo")
+		if echo {
+			cmd = exec.CommandContext(ctx, "stty", "echo")
+		}
 		cmd.Stdin = f
 		_ = cmd.Run()
 	}
-	stty("-echo")
-	return func() { stty("echo") }
+	stty(false)
+	return func() { stty(true) }
 }

@@ -121,6 +121,7 @@ const (
 	subList   = "list"
 	subShow   = "show"
 	subRemove = "remove"
+	subDelete = "delete"
 )
 
 type handler func(ctx context.Context, args []string, env Env) error

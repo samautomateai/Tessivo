@@ -12,12 +12,14 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/samautomateai/tessivo/internal/llm"
 )
 
 // Roles.
 const (
-	RoleUser      = "user"
-	RoleAssistant = "assistant"
+	RoleUser      = llm.RoleUser
+	RoleAssistant = llm.RoleAssistant
 )
 
 // Attachment kinds.

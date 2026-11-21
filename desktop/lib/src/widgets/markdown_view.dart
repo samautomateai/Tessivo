@@ -34,13 +34,16 @@ class MarkdownView extends StatelessWidget {
       child: switch (b) {
         MdHeading(:final level, :final text) => Text.rich(
           inlineSpans(text),
-          style: (level == 1 ? theme.titleLarge : (level == 2 ? theme.titleMedium : theme.titleSmall))
-              ?.copyWith(fontWeight: FontWeight.w600),
+          style: (level == 1 ? theme.titleLarge : (level == 2 ? theme.titleMedium : theme.titleSmall))?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         MdParagraph(:final text) => Text.rich(inlineSpans(text)),
         MdQuote(:final text) => Container(
           padding: const EdgeInsets.only(left: 10),
-          decoration: const BoxDecoration(border: Border(left: BorderSide(color: Tokens.textMuted, width: 3))),
+          decoration: const BoxDecoration(
+            border: Border(left: BorderSide(color: Tokens.textMuted, width: 3)),
+          ),
           child: Text.rich(inlineSpans(text), style: const TextStyle(color: Tokens.textMuted)),
         ),
         MdList(:final ordered, :final items) => Column(
@@ -224,7 +227,12 @@ TextSpan inlineSpans(String text) {
     if (m.start > last) spans.add(TextSpan(text: text.substring(last, m.start)));
     final t = m.group(0)!;
     if (t.startsWith('**')) {
-      spans.add(TextSpan(text: t.substring(2, t.length - 2), style: const TextStyle(fontWeight: FontWeight.w600)));
+      spans.add(
+        TextSpan(
+          text: t.substring(2, t.length - 2),
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      );
     } else if (t.startsWith('`')) {
       spans.add(
         TextSpan(
@@ -233,7 +241,12 @@ TextSpan inlineSpans(String text) {
         ),
       );
     } else {
-      spans.add(TextSpan(text: t.substring(1, t.length - 1), style: const TextStyle(fontStyle: FontStyle.italic)));
+      spans.add(
+        TextSpan(
+          text: t.substring(1, t.length - 1),
+          style: const TextStyle(fontStyle: FontStyle.italic),
+        ),
+      );
     }
     last = m.end;
   }

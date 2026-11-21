@@ -100,7 +100,10 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     final id = _notebookId!;
     await _guard(() async {
       await widget.state.core.deleteSchedule(id, s.id);
-      _items = [for (final x in _items) if (x.id != s.id) x];
+      _items = [
+        for (final x in _items)
+          if (x.id != s.id) x,
+      ];
     });
   }
 
@@ -119,7 +122,11 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         ),
         if (_error != null) ...[
           const SizedBox(height: 12),
-          Text(_error!, key: const Key('schedule-error'), style: const TextStyle(color: Colors.red)),
+          Text(
+            _error!,
+            key: const Key('schedule-error'),
+            style: const TextStyle(color: Colors.red),
+          ),
         ],
         const SizedBox(height: 16),
         if (nb != null) ...[
@@ -161,11 +168,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                 onChanged: (v) => setState(() => _missed = v ?? _missed),
               ),
               const Spacer(),
-              FilledButton(
-                key: const Key('schedule-add'),
-                onPressed: _busy ? null : _add,
-                child: const Text('Add'),
-              ),
+              FilledButton(key: const Key('schedule-add'), onPressed: _busy ? null : _add, child: const Text('Add')),
             ],
           ),
         ],

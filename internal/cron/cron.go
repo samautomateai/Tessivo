@@ -137,7 +137,7 @@ func parseItem(item string, f field) (uint64, error) {
 	}
 	var set uint64
 	for v := lo; v <= hi; v += step {
-		set |= 1 << uint(v) //nolint:gosec // G115: v is within 0..59
+		set |= 1 << v // v is within the field's range (0..59), so the shift is valid
 	}
 	return set, nil
 }
@@ -162,7 +162,7 @@ func (s *Schedule) Location() *time.Location { return s.loc }
 // ErrNoMatch means no time matches within the search horizon (e.g. 30 Feb).
 var ErrNoMatch = errors.New("cron: no matching time within 5 years")
 
-func has(set uint64, v int) bool { return set&(1<<uint(v)) != 0 } //nolint:gosec // G115: v < 64
+func has(set uint64, v int) bool { return v >= 0 && v < 64 && set&(1<<v) != 0 }
 
 func (s *Schedule) dayMatches(t time.Time) bool {
 	dom, dow := has(s.dom, t.Day()), has(s.dow, int(t.Weekday()))

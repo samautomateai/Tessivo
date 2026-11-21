@@ -164,8 +164,7 @@ class _ContextCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (notebook.context.isEmpty)
-              const Text('No context yet. Add files, folders, code bases or MCP servers.'),
+            if (notebook.context.isEmpty) const Text('No context yet. Add files, folders, code bases or MCP servers.'),
             for (final c in notebook.context)
               CheckboxListTile(
                 key: Key('ctx-${c.id}'),

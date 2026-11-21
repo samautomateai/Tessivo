@@ -121,7 +121,7 @@ func (s *Server) sendChat(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		status, msg := classify(err)
-		sse.send("error", map[string]any{"status": status, "error": msg, "reply": reply})
+		sse.send(keyError, map[string]any{"status": status, keyError: msg, "reply": reply})
 		return
 	}
 	sse.send("finished", reply)

@@ -55,11 +55,7 @@ class _NewNotebookDialogState extends State<NewNotebookDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [for (final w in builtInWorkTypes) _typeCard(w)],
-            ),
+            Wrap(spacing: 12, runSpacing: 12, children: [for (final w in builtInWorkTypes) _typeCard(w)]),
             const SizedBox(height: 16),
             Text('Suggested context: ${selected.suggestedContext.join(', ')}'),
             const SizedBox(height: 16),

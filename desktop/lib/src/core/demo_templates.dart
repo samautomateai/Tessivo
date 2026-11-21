@@ -68,9 +68,6 @@ const demoTemplates = <TemplateInfo>[
 
 /// Mirrors the core's slug rule: lowercase letters, digits and '-', at most 63 chars.
 String templateIdFor(String name) {
-  final slug = name
-      .toLowerCase()
-      .replaceAll(RegExp('[^a-z0-9]+'), '-')
-      .replaceAll(RegExp('^-+|-+\$'), '');
+  final slug = name.toLowerCase().replaceAll(RegExp('[^a-z0-9]+'), '-').replaceAll(RegExp('^-+|-+\$'), '');
   return slug.length > 63 ? slug.substring(0, 63).replaceAll(RegExp(r'-+$'), '') : slug;
 }

@@ -65,9 +65,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             if (items.isEmpty) {
               return const Text('No outputs yet.');
             }
-            return Card(
-              child: Column(children: [for (final o in items) _row(o)]),
-            );
+            return Card(child: Column(children: [for (final o in items) _row(o)]));
           },
         ),
       ],

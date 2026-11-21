@@ -127,8 +127,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  static String _chipLabel(ChatAttachment a) =>
-      a.tokens > 0 ? '${a.display} · ≈${a.tokens ~/ 1000}k tok' : a.display;
+  static String _chipLabel(ChatAttachment a) => a.tokens > 0 ? '${a.display} · ≈${a.tokens ~/ 1000}k tok' : a.display;
 }
 
 /// Message box with attachments, send and stop.
@@ -183,11 +182,7 @@ class _ComposerState extends State<Composer> {
               spacing: 6,
               children: [
                 for (final a in chat.pending)
-                  InputChip(
-                    key: Key('pending-${a.ref}'),
-                    label: Text(a.display),
-                    onDeleted: () => chat.detach(a),
-                  ),
+                  InputChip(key: Key('pending-${a.ref}'), label: Text(a.display), onDeleted: () => chat.detach(a)),
               ],
             ),
           Row(

@@ -69,6 +69,22 @@ linters:
         text: G103
         linters:
           - gosec
+      # The OS keychain tools are fixed programs (security, secret-tool) with
+      # arguments built by this package, never from user text.
+      - path: internal/keychain/keychain.go
+        text: G204
+        linters:
+          - gosec
+      # api_key_ref holds the name of an environment variable, not a key.
+      - path: internal/config/file.go
+        text: G101
+        linters:
+          - gosec
+      # Copy targets are the notebook's own folder plus a sanitized file name.
+      - path: internal/notebook/notebook.go
+        text: G703
+        linters:
+          - gosec
       - path: _test\.go
         linters:
           - dupl

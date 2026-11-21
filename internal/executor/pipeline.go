@@ -66,9 +66,9 @@ func (p *Pipeline) reduceStep(ctx context.Context, spec Spec, prompt string, doc
 	sch *schema.Schema, res Result, onDelta func(string),
 ) (Result, error) {
 	msgs := []llm.Message{
-		{Role: "system", Content: spec.WorkType.SystemPrompt + "\n\nOutput JSON schema:\n" +
+		{Role: llm.RoleSystem, Content: spec.WorkType.SystemPrompt + "\n\nOutput JSON schema:\n" +
 			string(spec.WorkType.Schema)},
-		{Role: "user", Content: userMessage(prompt, spec.Memory, docs)},
+		{Role: llm.RoleUser, Content: userMessage(prompt, spec.Memory, docs)},
 	}
 	format := &llm.ResponseFormat{Name: spec.WorkType.ID, Schema: json.RawMessage(spec.WorkType.Schema)}
 	retries := p.MaxValidationRetries
@@ -93,8 +93,8 @@ func (p *Pipeline) reduceStep(ctx context.Context, spec Spec, prompt string, doc
 			return res, fmt.Errorf("%w: %w", llm.ErrInvalidOutput, verr)
 		}
 		msgs = append(msgs,
-			llm.Message{Role: "assistant", Content: out.Content},
-			llm.Message{Role: "user", Content: "Your reply did not match the schema: " + verr.Error() +
+			llm.Message{Role: llm.RoleAssistant, Content: out.Content},
+			llm.Message{Role: llm.RoleUser, Content: "Your reply did not match the schema: " + verr.Error() +
 				"\nReply again with corrected JSON only."},
 		)
 	}
@@ -110,9 +110,9 @@ func (p *Pipeline) mapStep(ctx context.Context, spec Spec, prompt string, docs [
 	for _, d := range docs {
 		for i, piece := range split(d.Text, pieceTokens*4) {
 			msgs := []llm.Message{
-				{Role: "system", Content: "Extract the facts from this source that matter for the task. " +
+				{Role: llm.RoleSystem, Content: "Extract the facts from this source that matter for the task. " +
 					"Keep names, numbers, file paths and quotes needed as evidence. Be concise."},
-				{Role: "user", Content: "Task: " + prompt + "\n\n" + formatContext([]extract.Document{
+				{Role: llm.RoleUser, Content: "Task: " + prompt + "\n\n" + formatContext([]extract.Document{
 					{Source: d.Source, Kind: d.Kind, Text: piece},
 				})},
 			}

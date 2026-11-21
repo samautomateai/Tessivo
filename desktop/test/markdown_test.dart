@@ -9,7 +9,15 @@ void main() {
       '```go\nfmt.Println("x")\n```\n\n| A | B |\n|---|:-:|\n| 1 | 2 |\n| 3 |\n\n> quoted\n\n---\n## Sub',
     );
     expect(blocks.map((b) => b.runtimeType.toString()), [
-      'MdHeading', 'MdParagraph', 'MdList', 'MdList', 'MdCode', 'MdTable', 'MdQuote', 'MdRule', 'MdHeading',
+      'MdHeading',
+      'MdParagraph',
+      'MdList',
+      'MdList',
+      'MdCode',
+      'MdTable',
+      'MdQuote',
+      'MdRule',
+      'MdHeading',
     ]);
     expect((blocks[1] as MdParagraph).text, 'Some **bold** text wrapped.');
     expect((blocks[2] as MdList).items, ['one', 'two']);

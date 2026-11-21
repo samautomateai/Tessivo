@@ -99,7 +99,11 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
         Wrap(spacing: 8, children: [_chip(null, 'All'), for (final w in WorkTypeId.values) _chip(w, workTypeLabel(w))]),
         if (_error != null) ...[
           const SizedBox(height: 12),
-          Text(_error!, key: const Key('template-error'), style: const TextStyle(color: Colors.red)),
+          Text(
+            _error!,
+            key: const Key('template-error'),
+            style: const TextStyle(color: Colors.red),
+          ),
         ],
         const SizedBox(height: 16),
         if (_items.isEmpty) const Text('No templates for this work type yet.'),

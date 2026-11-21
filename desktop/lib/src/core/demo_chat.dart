@@ -24,7 +24,8 @@ mixin DemoChat {
           id: 'm2',
           role: 'assistant',
           model: 'litellm/primary-model',
-          content: '## Short answer\n\nRotate **every 90 days**, and immediately after any suspected exposure.\n\n'
+          content:
+              '## Short answer\n\nRotate **every 90 days**, and immediately after any suspected exposure.\n\n'
               '| Key | Interval |\n| --- | --- |\n| Signing | 90 days |\n| API | 30 days |\n\n'
               '- Keep the old key valid for one overlap window\n- Record each rotation in the audit log',
         ),
@@ -170,10 +171,9 @@ mixin DemoChat {
   }
 
   Future<ChatOutput> saveReply(String chatId, String messageId, WorkTypeId workType) async {
-    final m = _chat(chatId).messages.firstWhere(
-      (m) => m.id == messageId,
-      orElse: () => throw StateError('unknown message $messageId'),
-    );
+    final m = _chat(
+      chatId,
+    ).messages.firstWhere((m) => m.id == messageId, orElse: () => throw StateError('unknown message $messageId'));
     if (m.isUser || m.content.trim().isEmpty) {
       throw const FormatException('Only non-empty replies can be saved as outputs');
     }

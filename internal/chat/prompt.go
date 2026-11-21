@@ -38,7 +38,7 @@ func Build(sess Session, memory []string, docs []extract.Document, budget int) [
 	}
 	msgs := sess.Messages
 	if len(msgs) == 0 {
-		return []llm.Message{{Role: "system", Content: system}}
+		return []llm.Message{{Role: llm.RoleSystem, Content: system}}
 	}
 	last := msgs[len(msgs)-1]
 	ctxText := formatDocs(fitDocs(docs, budget*contextShareNum/contextShareDen))
@@ -49,7 +49,7 @@ func Build(sess Session, memory []string, docs []extract.Document, budget int) [
 	left := budget - extract.EstimateTokens(system) - extract.EstimateTokens(final)
 	history := recent(msgs[:len(msgs)-1], left)
 	out := make([]llm.Message, 0, len(history)+2)
-	out = append(out, llm.Message{Role: "system", Content: system})
+	out = append(out, llm.Message{Role: llm.RoleSystem, Content: system})
 	out = append(out, history...)
 	return append(out, llm.Message{Role: RoleUser, Content: final})
 }

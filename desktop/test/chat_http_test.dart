@@ -39,11 +39,13 @@ Future<(HttpServer, List<Map<String, Object?>>)> fakeChat() async {
     const c = '/v1/chats/aaaaaaaaaaaaaaaa';
     switch ((req.method, p)) {
       case ('GET', '/v1/chats'):
-        res.write(jsonEncode({
-          'sessions': [
-            {'id': 'aaaaaaaaaaaaaaaa', 'title': 'Keys', 'messageCount': 2, 'preview': 'part', 'q': req.uri.query},
-          ],
-        }));
+        res.write(
+          jsonEncode({
+            'sessions': [
+              {'id': 'aaaaaaaaaaaaaaaa', 'title': 'Keys', 'messageCount': 2, 'preview': 'part', 'q': req.uri.query},
+            ],
+          }),
+        );
       case ('POST', '/v1/chats'):
         res.statusCode = 201;
         res.write(jsonEncode({...sessionJson, 'messages': <Object>[]}));
@@ -56,18 +58,31 @@ Future<(HttpServer, List<Map<String, Object?>>)> fakeChat() async {
         res.write('event: delta\ndata: {"text":"Hel"}\n\n');
         res.write('event: delta\ndata: garbage\n\n');
         res.write('event: delta\ndata: {"text":"lo"}\n\n');
-        res.write('event: finished\ndata: {"user":{"id":"u","role":"user","content":"hi"},'
-            '"assistant":{"id":"a","role":"assistant","content":"Hello","model":"litellm/m"}}\n\n');
+        res.write(
+          'event: finished\ndata: {"user":{"id":"u","role":"user","content":"hi"},'
+          '"assistant":{"id":"a","role":"assistant","content":"Hello","model":"litellm/m"}}\n\n',
+        );
       case ('POST', '/v1/chats/bbbbbbbbbbbbbbbb/messages'):
         res.headers.contentType = ContentType('text', 'event-stream');
         res.write('event: error\ndata: {"status":502,"error":"model error: server_error"}\n\n');
       case ('GET' || 'PUT', '/v1/chat-memory'):
-        res.write(jsonEncode({'memory': ['I run ops', 7]}));
+        res.write(
+          jsonEncode({
+            'memory': ['I run ops', 7],
+          }),
+        );
       case ('GET', '$c/repeatable'):
-        res.write(jsonEncode({
-          'name': 'Keys', 'workType': 'analyze', 'prompt': 'hi', 'templateId': 'change-risk-review',
-          'templateName': 'Change risk review', 'context': ['/r/runbook.md'], 'skipped': ['Digest: outputs'],
-        }));
+        res.write(
+          jsonEncode({
+            'name': 'Keys',
+            'workType': 'analyze',
+            'prompt': 'hi',
+            'templateId': 'change-risk-review',
+            'templateName': 'Change risk review',
+            'context': ['/r/runbook.md'],
+            'skipped': ['Digest: outputs'],
+          }),
+        );
       case ('POST', '$c/notebook'):
         res.statusCode = 201;
         res.write(jsonEncode({'id': 'keys', 'name': 'Keys', 'workType': 'analyze', 'context': <Object>[]}));

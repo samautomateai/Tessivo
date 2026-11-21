@@ -38,6 +38,9 @@ func New(svc *service.Service, token, version string) *Server {
 	}
 }
 
+// keyError is the JSON field and SSE event name for errors.
+const keyError = "error"
+
 // Handler returns the routed, secured handler.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -223,7 +226,7 @@ func (s *Server) startRun(w http.ResponseWriter, r *http.Request) {
 	out, err := s.svc.Run(r.Context(), req, onEvent)
 	if err != nil {
 		status, msg := classify(err)
-		sse.send("error", map[string]any{"status": status, "error": msg})
+		sse.send(keyError, map[string]any{"status": status, keyError: msg})
 		return
 	}
 	sse.send("finished", finishedEvent(out))
@@ -234,7 +237,7 @@ func finishedEvent(out service.RunOutcome) map[string]any {
 	for _, a := range out.Result.Attempts {
 		m := map[string]string{"target": a.Target, "trigger": a.Trigger}
 		if a.Err != nil {
-			m["error"] = a.Err.Error()
+			m[keyError] = a.Err.Error()
 		}
 		attempts = append(attempts, m)
 	}

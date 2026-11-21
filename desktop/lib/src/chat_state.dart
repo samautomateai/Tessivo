@@ -102,7 +102,10 @@ class ChatState extends ChangeNotifier {
   }
 
   void detach(ChatAttachment a) {
-    pending = [for (final p in pending) if (p.kind != a.kind || p.ref != a.ref) p];
+    pending = [
+      for (final p in pending)
+        if (p.kind != a.kind || p.ref != a.ref) p,
+    ];
     _changed();
   }
 
@@ -128,25 +131,27 @@ class ChatState extends ChangeNotifier {
     streaming = '';
     _changed();
     final done = _done = Completer<void>();
-    _reply = core.sendChat(session.id, text, attachments: atts).listen(
-      (e) {
-        switch (e) {
-          case ChatDelta(text: final piece):
-            streaming += piece;
-          case ChatFinished():
-            break;
-        }
-        _changed();
-      },
-      onError: (Object e) {
-        error = e is CoreException ? e.message : (e is FormatException ? e.message : '$e');
-        if (!done.isCompleted) done.complete();
-      },
-      onDone: () {
-        if (!done.isCompleted) done.complete();
-      },
-      cancelOnError: true,
-    );
+    _reply = core
+        .sendChat(session.id, text, attachments: atts)
+        .listen(
+          (e) {
+            switch (e) {
+              case ChatDelta(text: final piece):
+                streaming += piece;
+              case ChatFinished():
+                break;
+            }
+            _changed();
+          },
+          onError: (Object e) {
+            error = e is CoreException ? e.message : (e is FormatException ? e.message : '$e');
+            if (!done.isCompleted) done.complete();
+          },
+          onDone: () {
+            if (!done.isCompleted) done.complete();
+          },
+          cancelOnError: true,
+        );
     await done.future;
     await _finish(session.id);
     return true;
@@ -192,17 +197,17 @@ class ChatState extends ChangeNotifier {
     String? model,
     String? thinkingEffort,
   }) => _guard(() async {
-        final s = await core.updateChat(
-          id,
-          title: title,
-          pinned: pinned,
-          archived: archived,
-          model: model,
-          thinkingEffort: thinkingEffort,
-        );
-        if (open?.id == id) open = s;
-        await refresh();
-      });
+    final s = await core.updateChat(
+      id,
+      title: title,
+      pinned: pinned,
+      archived: archived,
+      model: model,
+      thinkingEffort: thinkingEffort,
+    );
+    if (open?.id == id) open = s;
+    await refresh();
+  });
 
   Future<void> delete(String id) => _guard(() async {
     if (sending && open?.id == id) await stop();

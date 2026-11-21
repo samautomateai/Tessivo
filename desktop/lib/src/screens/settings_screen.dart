@@ -68,7 +68,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text('Fallback chain for "${a.name}"', style: text.titleSmall),
           const SizedBox(height: 8),
           for (final (i, m) in a.chain.indexed)
-            ListTile(dense: true, leading: CircleAvatar(radius: 11, child: Text('${i + 1}')), title: Text(m)),
+            ListTile(
+              dense: true,
+              leading: CircleAvatar(radius: 11, child: Text('${i + 1}')),
+              title: Text(m),
+            ),
           if (a.fallbackOn.isNotEmpty) Text('Falls back on: ${a.fallbackOn.join(', ')}'),
         ],
       ),

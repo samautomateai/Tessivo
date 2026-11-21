@@ -79,11 +79,7 @@ class _Sidebar extends StatelessWidget {
             style: FilledButton.styleFrom(backgroundColor: Tokens.accent),
           ),
           const SizedBox(height: 8),
-          _NavItem(
-            label: 'Chat',
-            selected: state.section == Section.chat,
-            onTap: () => state.go(Section.chat),
-          ),
+          _NavItem(label: 'Chat', selected: state.section == Section.chat, onTap: () => state.go(Section.chat)),
           const SizedBox(height: 8),
           const _Caption('NOTEBOOKS'),
           Expanded(

@@ -36,7 +36,11 @@ Future<HttpServer> fakeCore(HttpServer server) async {
     if (path == '/v1/health') {
       res.write(jsonEncode({'ok': true}));
     } else if (req.method == 'GET' && path == '/v1/notebooks') {
-      res.write(jsonEncode({'notebooks': [notebookJson]}));
+      res.write(
+        jsonEncode({
+          'notebooks': [notebookJson],
+        }),
+      );
     } else if (req.method == 'POST' && path == '/v1/notebooks') {
       final m = jsonDecode(body) as Map<String, Object?>;
       res.statusCode = 201;
@@ -44,12 +48,19 @@ Future<HttpServer> fakeCore(HttpServer server) async {
     } else if (req.method == 'PATCH' && path == '/v1/notebooks/board/context/c2') {
       res.write(jsonEncode(notebookJson));
     } else if (path == '/v1/outputs') {
-      res.write(jsonEncode({
-        'outputs': [
-          {'id': 'o1', 'title': 'Digest', 'workType': req.uri.queryParameters['workType'] ?? 'summarize',
-           'notebookName': 'Board', 'createdAt': '2026-11-20'},
-        ],
-      }));
+      res.write(
+        jsonEncode({
+          'outputs': [
+            {
+              'id': 'o1',
+              'title': 'Digest',
+              'workType': req.uri.queryParameters['workType'] ?? 'summarize',
+              'notebookName': 'Board',
+              'createdAt': '2026-11-20',
+            },
+          ],
+        }),
+      );
     } else if (path == '/v1/notebooks/board/runs') {
       res.headers.contentType = ContentType('text', 'event-stream');
       res.write('event: status\ndata: {"text":"generating"}\n\n');
@@ -133,9 +144,7 @@ void main() {
     if (Platform.isWindows) return;
     final dir = await Directory.systemTemp.createTemp('tsv');
     final sock = '${dir.path}/core.sock';
-    final unixServer = await fakeCore(
-      await HttpServer.bind(InternetAddress(sock, type: InternetAddressType.unix), 0),
-    );
+    final unixServer = await fakeCore(await HttpServer.bind(InternetAddress(sock, type: InternetAddressType.unix), 0));
     final unixClient = HttpCoreClient(Endpoint(network: 'unix', address: sock, token: token));
     expect((await unixClient.listNotebooks()).single.id, 'board');
     unixClient.close();

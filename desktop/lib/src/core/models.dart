@@ -36,13 +36,8 @@ class ContextItem {
   final bool enabled;
   final int estimatedTokens;
 
-  ContextItem copyWith({bool? enabled}) => ContextItem(
-    id: id,
-    label: label,
-    kind: kind,
-    enabled: enabled ?? this.enabled,
-    estimatedTokens: estimatedTokens,
-  );
+  ContextItem copyWith({bool? enabled}) =>
+      ContextItem(id: id, label: label, kind: kind, enabled: enabled ?? this.enabled, estimatedTokens: estimatedTokens);
 }
 
 class Notebook {

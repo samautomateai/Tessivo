@@ -44,7 +44,10 @@ mixin _HttpChat {
 
   Stream<ChatEvent> sendChat(String chatId, String text, {List<ChatAttachment> attachments = const []}) async* {
     checkChatMessage(text, attachments);
-    final body = {'text': text, 'attachments': [for (final a in attachments) a.toJson()]};
+    final body = {
+      'text': text,
+      'attachments': [for (final a in attachments) a.toJson()],
+    };
     final resp = await _send('POST', '${_chatPath(chatId)}/messages', body: body);
     if (resp.statusCode >= 400) {
       final raw = await HttpCoreClient._readLimited(resp);

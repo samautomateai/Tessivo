@@ -3,19 +3,23 @@ package chat
 import (
 	"strings"
 	"unicode"
+
+	"github.com/samautomateai/tessivo/internal/worktype"
 )
 
 // workTypeCues are words that point at a work type. Matching is on whole
 // lowercase words or word prefixes ("summar" matches "summarize").
 var workTypeCues = map[string][]string{
-	"analyze":   {"analy", "risk", "assess", "impact", "evaluat", "compar", "trend", "why", "root", "audit"},
-	"summarize": {"summar", "tldr", "digest", "overview", "recap", "brief", "key", "takeaway", "condense"},
-	"document":  {"document", "explain", "how", "architecture", "onboard", "guide", "readme", "describe", "spec"},
-	"report":    {"report", "weekly", "monthly", "status", "progress", "kpi", "metric", "period", "quarter"},
+	worktype.Analyze:   {"analy", "risk", "assess", "impact", "evaluat", "compar", "trend", "why", "root", "audit"},
+	worktype.Summarize: {"summar", "tldr", "digest", "overview", "recap", "brief", "key", "takeaway", "condense"},
+	worktype.Document: {
+		"document", "explain", "how", "architecture", "onboard", "guide", "readme", "describe", "spec",
+	},
+	worktype.Report: {"report", "weekly", "monthly", "status", "progress", "kpi", "metric", "period", "quarter"},
 }
 
 // workTypeOrder breaks ties deterministically.
-var workTypeOrder = []string{"summarize", "analyze", "document", "report"}
+var workTypeOrder = []string{worktype.Summarize, worktype.Analyze, worktype.Document, worktype.Report}
 
 // SuggestWorkType picks the work type whose cues appear most often in the
 // session's user messages, preferring Summarize when nothing stands out.

@@ -46,7 +46,7 @@ func cmdTemplate(args []string, env Env) error {
 		return templateSave(lib, rest, env)
 	case "extend":
 		return templateExtend(lib, rest, env)
-	case "delete":
+	case subDelete:
 		if len(rest) != 1 {
 			return usagef("template delete: want <id>")
 		}

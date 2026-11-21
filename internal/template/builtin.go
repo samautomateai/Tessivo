@@ -1,6 +1,9 @@
 package template
 
-import "github.com/samautomateai/tessivo/internal/config"
+import (
+	"github.com/samautomateai/tessivo/internal/config"
+	"github.com/samautomateai/tessivo/internal/worktype"
+)
 
 func slot(name, kind, desc string, required bool) Slot {
 	return Slot{Name: name, Kind: kind, Description: desc, Required: required}
@@ -19,7 +22,7 @@ func analyzeTemplates() []Template {
 	agent := config.RunSettings{Mode: config.ModeAgent, ThinkingEffort: config.ThinkingMedium}
 	return []Template{
 		{
-			ID: "change-risk-review", Name: "Change risk review", WorkType: "analyze", Settings: agent,
+			ID: "change-risk-review", Name: "Change risk review", WorkType: worktype.Analyze, Settings: agent,
 			Description: "Score the risk of a code change, list impacted areas with evidence and suggest mitigations.",
 			Prompts: []Prompt{
 				prompt("full-review", "Assess the risk of merging this change into {{service}}. Focus on {{area}}. "+
@@ -35,7 +38,7 @@ func analyzeTemplates() []Template {
 			},
 		},
 		{
-			ID: "dependency-upgrade-risk", Name: "Dependency upgrade risk", WorkType: "analyze",
+			ID: "dependency-upgrade-risk", Name: "Dependency upgrade risk", WorkType: worktype.Analyze,
 			Description: "Assess upgrading a dependency: breaking changes, affected code and a safe rollout plan.",
 			Prompts: []Prompt{prompt("assess", "Assess the risk of upgrading {{dependency}} from {{from}} to {{to}}. "+
 				"Find affected code, likely breaking changes and a rollout plan.")},
@@ -45,7 +48,7 @@ func analyzeTemplates() []Template {
 			},
 		},
 		{
-			ID: "customer-feedback-themes", Name: "Customer feedback themes", WorkType: "analyze",
+			ID: "customer-feedback-themes", Name: "Customer feedback themes", WorkType: worktype.Analyze,
 			Description: "Top themes, frequency and evidence from surveys and support conversations.",
 			Prompts: []Prompt{prompt("themes", "Find the top themes in this customer feedback, how often "+
 				"each appears, representative quotes and recommended actions.")},
@@ -55,7 +58,7 @@ func analyzeTemplates() []Template {
 			},
 		},
 		{
-			ID: "spreadsheet-insights", Name: "Spreadsheet insights", WorkType: "analyze",
+			ID: "spreadsheet-insights", Name: "Spreadsheet insights", WorkType: worktype.Analyze,
 			Description: "Patterns, outliers and drivers in a sheet, using statistics Tessivo computes.",
 			Prompts: []Prompt{prompt("insights", "Analyze this data: notable patterns, outliers, likely "+
 				"drivers and questions worth investigating. Use the computed statistics; do not guess numbers.")},
@@ -67,7 +70,7 @@ func analyzeTemplates() []Template {
 func documentTemplates() []Template {
 	return []Template{
 		{
-			ID: "code-base-overview", Name: "Code base overview", WorkType: "document",
+			ID: "code-base-overview", Name: "Code base overview", WorkType: worktype.Document,
 			Description: "Explain what a repository is, its architecture, modules and how to run it.",
 			Prompts: []Prompt{
 				prompt("overview", "Explain what this code base is and how it fits together, for a new engineer."),
@@ -76,7 +79,7 @@ func documentTemplates() []Template {
 			Slots: []Slot{slot("Code base", "code base", "The repository to document", true)},
 		},
 		{
-			ID: "onboarding-guide", Name: "Onboarding guide", WorkType: "document",
+			ID: "onboarding-guide", Name: "Onboarding guide", WorkType: worktype.Document,
 			Description: "Turn docs, notes and code into a first-week guide for a new team member.",
 			Prompts: []Prompt{
 				prompt("guide", "Write a first-week onboarding guide for a new {{role}} on this team."),
@@ -87,7 +90,7 @@ func documentTemplates() []Template {
 			},
 		},
 		{
-			ID: "incident-postmortem", Name: "Incident postmortem", WorkType: "document",
+			ID: "incident-postmortem", Name: "Incident postmortem", WorkType: worktype.Document,
 			Description: "Timeline, root cause, impact and follow-ups from incident data.",
 			Prompts: []Prompt{prompt("postmortem", "Write a blameless postmortem for {{incident}}: timeline, "+
 				"impact, root cause, what went well, follow-ups with owners.")},
@@ -97,7 +100,7 @@ func documentTemplates() []Template {
 			},
 		},
 		{
-			ID: "release-notes", Name: "Release notes", WorkType: "document",
+			ID: "release-notes", Name: "Release notes", WorkType: worktype.Document,
 			Description: "User-facing release notes from merged changes and tickets.",
 			Prompts: []Prompt{prompt("notes", "Write user-facing release notes for {{version}}. Group by "+
 				"feature, fix and breaking change; skip internal refactors.")},
@@ -112,21 +115,21 @@ func documentTemplates() []Template {
 func summarizeTemplates() []Template {
 	return []Template{
 		{
-			ID: "document-set-summary", Name: "Document set summary", WorkType: "summarize",
+			ID: "document-set-summary", Name: "Document set summary", WorkType: worktype.Summarize,
 			Description: "TL;DR, key points and per-source notes for a folder of documents.",
 			Prompts: []Prompt{prompt("summary", "Summarize these documents for a busy reader. "+
 				"Note where sources disagree.")},
 			Slots: []Slot{slot("Documents", "documents", "PDF, Word, slides, notes", true)},
 		},
 		{
-			ID: "meeting-notes-to-actions", Name: "Meeting notes to actions", WorkType: "summarize",
+			ID: "meeting-notes-to-actions", Name: "Meeting notes to actions", WorkType: worktype.Summarize,
 			Description: "Decisions, owners and action items from notes or transcripts.",
 			Prompts: []Prompt{prompt("actions", "List the decisions, open questions and action items "+
 				"(owner, due date if stated) from these meeting notes.")},
 			Slots: []Slot{slot("Notes", "documents", "Meeting notes or transcripts", true)},
 		},
 		{
-			ID: "contract-digest", Name: "Contract digest", WorkType: "summarize",
+			ID: "contract-digest", Name: "Contract digest", WorkType: worktype.Summarize,
 			Description: "Terms, renewals, costs and obligations across a set of contracts.",
 			Prompts: []Prompt{prompt("digest", "Summarize these contracts per vendor: term, renewal date and "+
 				"notice period, costs, key obligations and risks.")},
@@ -142,7 +145,7 @@ func summarizeTemplates() []Template {
 func reportTemplates() []Template {
 	return []Template{
 		{
-			ID: "weekly-ops-report", Name: "Weekly ops report", WorkType: "report",
+			ID: "weekly-ops-report", Name: "Weekly ops report", WorkType: worktype.Report,
 			Description: "Highlights, issues and trends versus last week. " +
 				"Ships with a Monday 08:00 schedule.",
 			Prompts: []Prompt{prompt("weekly", "Produce this week's ops report: highlights, issues with owners, "+

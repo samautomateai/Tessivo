@@ -39,16 +39,28 @@ Future<(HttpServer, List<Map<String, Object?>>)> fakeTemplates() async {
     final path = req.uri.path;
     if (req.method == 'GET' && path == '/v1/templates') {
       final wt = req.uri.queryParameters['workType'];
-      res.write(jsonEncode({'templates': wt == null || wt == 'report' ? [templateJson] : []}));
+      res.write(
+        jsonEncode({
+          'templates': wt == null || wt == 'report' ? [templateJson] : [],
+        }),
+      );
     } else if (req.method == 'POST' && path == '/v1/notebooks') {
       res.statusCode = 201;
       res.write(jsonEncode({'id': 'n1', 'name': 'Ops', 'workType': 'report', 'context': <Object>[]}));
     } else if (req.method == 'POST' && path == '/v1/templates') {
       res.statusCode = 201;
-      res.write(jsonEncode({
-        'id': 'mine', 'name': 'Mine', 'workType': 'analyze', 'version': 2, 'source': 'user',
-        'parent': 'change-risk-review@1', 'prompts': [], 'slots': [],
-      }));
+      res.write(
+        jsonEncode({
+          'id': 'mine',
+          'name': 'Mine',
+          'workType': 'analyze',
+          'version': 2,
+          'source': 'user',
+          'parent': 'change-risk-review@1',
+          'prompts': [],
+          'slots': [],
+        }),
+      );
     } else if (req.method == 'DELETE' && path == '/v1/templates/mine') {
       res.statusCode = 204;
     } else {

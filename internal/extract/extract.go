@@ -29,9 +29,13 @@ func EstimateTokens(s string) int { return (utf8.RuneCountInString(s) + 3) / 4 }
 
 // Office document kinds.
 const (
-	KindDOCX = "docx"
-	KindXLSX = "xlsx"
-	KindPPTX = "pptx"
+	KindText     = "text"
+	KindMarkdown = "markdown"
+	KindCSV      = "csv"
+	KindJSON     = "json"
+	KindDOCX     = "docx"
+	KindXLSX     = "xlsx"
+	KindPPTX     = "pptx"
 )
 
 // ErrUnsupported is returned for formats with no extractor yet.
@@ -49,7 +53,7 @@ var codeExt = map[string]bool{
 }
 
 var textExt = map[string]string{
-	".txt": "text", ".log": "text", ".md": "markdown", ".markdown": "markdown", ".rst": "text",
+	".txt": KindText, ".log": KindText, ".md": KindMarkdown, ".markdown": KindMarkdown, ".rst": KindText,
 }
 
 // KindOf reports the extractor kind for a file name, or "" if unsupported.
@@ -59,9 +63,9 @@ func KindOf(name string) string {
 	case textExt[ext] != "":
 		return textExt[ext]
 	case ext == ".csv" || ext == ".tsv":
-		return "csv"
+		return KindCSV
 	case ext == ".json":
-		return "json"
+		return KindJSON
 	case ext == ".docx" || ext == ".xlsx" || ext == ".pptx":
 		return ext[1:]
 	case codeExt[ext]:
@@ -120,9 +124,9 @@ func File(path string) (Document, error) {
 // FromBytes extracts already-loaded content, e.g. piped stdin.
 func FromBytes(source, kind string, b []byte) (Document, error) {
 	switch kind {
-	case "csv":
+	case KindCSV:
 		return CSV(source, b)
-	case "json":
+	case KindJSON:
 		return JSON(source, b)
 	case KindDOCX:
 		return DOCX(source, b)

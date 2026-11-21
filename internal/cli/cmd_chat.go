@@ -23,7 +23,7 @@ tess chat repeat <id> [--name N] [--type T] [--template ID|none]   turn a chat i
 tess chat save <id> <message-id|last> --type T   save a reply as a validated output`
 
 var chatCommands = map[string]func(context.Context, *service.Service, []string, Env) error{
-	subList: chatList, subShow: chatShow, "rename": chatRename, "delete": chatDelete,
+	subList: chatList, subShow: chatShow, "rename": chatRename, subDelete: chatDelete,
 	"pin": chatFlag, "unpin": chatFlag, "archive": chatFlag, "unarchive": chatFlag,
 	"memory": chatMemory, "repeat": chatRepeat, "save": chatSave,
 }

@@ -14,6 +14,13 @@ import (
 	"time"
 )
 
+// Message roles.
+const (
+	RoleSystem    = "system"
+	RoleUser      = "user"
+	RoleAssistant = "assistant"
+)
+
 // Message is one chat message.
 type Message struct {
 	Role    string `json:"role"`

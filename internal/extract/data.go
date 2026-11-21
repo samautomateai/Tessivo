@@ -29,7 +29,7 @@ func CSV(source string, b []byte) (Document, error) {
 	if err != nil {
 		return Document{}, fmt.Errorf("%s: parse csv: %w", source, err)
 	}
-	return Document{Source: source, Kind: "csv", Text: tableText(source, rows)}, nil
+	return Document{Source: source, Kind: KindCSV, Text: tableText(source, rows)}, nil
 }
 
 // tableText summarises rows (first row is the header): columns with computed
@@ -111,5 +111,5 @@ func JSON(source string, b []byte) (Document, error) {
 	if len(text) > MaxJSONChars {
 		text = text[:MaxJSONChars] + "\n… (truncated)"
 	}
-	return Document{Source: source, Kind: "json", Text: text}, nil
+	return Document{Source: source, Kind: KindJSON, Text: text}, nil
 }

@@ -135,9 +135,7 @@ class _RepeatDialogState extends State<_RepeatDialog> {
               DropdownButton<WorkTypeId>(
                 key: const Key('repeat-type'),
                 value: _type,
-                items: [
-                  for (final w in WorkTypeId.values) DropdownMenuItem(value: w, child: Text(workTypeLabel(w))),
-                ],
+                items: [for (final w in WorkTypeId.values) DropdownMenuItem(value: w, child: Text(workTypeLabel(w)))],
                 onChanged: (w) => setState(() => _type = w ?? _type),
               ),
               if (_templateApplies)
@@ -161,7 +159,11 @@ class _RepeatDialogState extends State<_RepeatDialog> {
                 Text('Skipped: $s', style: const TextStyle(color: Tokens.textMuted, fontSize: 12)),
               if (error != null) ...[
                 const SizedBox(height: 8),
-                Text(error, key: const Key('repeat-error'), style: const TextStyle(color: Colors.red)),
+                Text(
+                  error,
+                  key: const Key('repeat-error'),
+                  style: const TextStyle(color: Colors.red),
+                ),
               ],
             ],
           ),
@@ -181,7 +183,10 @@ class _RepeatDialogState extends State<_RepeatDialog> {
 
 /// Global chat memory: facts every chat sees.
 Future<void> showChatMemoryDialog(BuildContext context, ChatState chat) {
-  return showDialog<void>(context: context, builder: (_) => _MemoryDialog(chat: chat));
+  return showDialog<void>(
+    context: context,
+    builder: (_) => _MemoryDialog(chat: chat),
+  );
 }
 
 class _MemoryDialog extends StatelessWidget {

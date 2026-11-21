@@ -35,7 +35,11 @@ Future<HttpServer> fakeSchedules() async {
     if (req.headers.value(HttpHeaders.authorizationHeader) != 'Bearer $token') {
       res.statusCode = 401;
     } else if (req.method == 'GET' && path == base) {
-      res.write(jsonEncode({'schedules': [scheduleJson]}));
+      res.write(
+        jsonEncode({
+          'schedules': [scheduleJson],
+        }),
+      );
     } else if (req.method == 'POST' && path == base) {
       final m = jsonDecode(body) as Map<String, Object?>;
       res.statusCode = 201;

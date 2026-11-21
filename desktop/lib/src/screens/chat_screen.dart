@@ -156,10 +156,7 @@ class _SessionList extends StatelessWidget {
           child: chat.sessions.isEmpty
               ? Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(
-                    _emptyText(chat),
-                    style: const TextStyle(color: Tokens.textMuted),
-                  ),
+                  child: Text(_emptyText(chat), style: const TextStyle(color: Tokens.textMuted)),
                 )
               : ListView(children: [for (final s in chat.sessions) _tile(context, s)]),
         ),
