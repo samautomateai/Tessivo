@@ -189,7 +189,7 @@ func (s *Service) SetChatMemory(facts []string) ([]string, error) {
 // app defaults.
 func (s *Service) chatModelSettings(sess chat.Session) config.RunSettings {
 	return config.Resolve(
-		config.Layer{Name: "app", Settings: s.Config.Defaults},
+		config.Layer{Name: layerApp, Settings: s.Config.Defaults},
 		config.Layer{Name: "chat", Settings: config.RunSettings{
 			Model: sess.Model, ThinkingEffort: sess.ThinkingEffort,
 		}},

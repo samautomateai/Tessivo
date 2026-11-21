@@ -117,7 +117,7 @@ func (s *Service) Run(ctx context.Context, req RunRequest, onEvent func(executor
 	res, runErr := (&executor.Pipeline{Model: model}).Run(ctx, spec, onEvent)
 	out := RunOutcome{RunID: rec.runID, Result: res, Spec: spec}
 	if req.Notebook != nil && req.Save {
-		id, err := saveRun(req.Notebook, rec.runID, spec, res, runErr, started, nil)
+		id, err := saveRun(req.Notebook, rec.runID, spec, res, runErr, started, req.decorate)
 		if err != nil {
 			return out, errors.Join(runErr, err, rec.finish(res, runErr, "", time.Since(started)))
 		}
@@ -154,10 +154,10 @@ func (s *Service) now() time.Time {
 
 func (s *Service) buildSpec(req RunRequest) (executor.Spec, error) {
 	wtID, prompt := req.WorkType, req.Prompt
-	layers := []config.Layer{{Name: "app", Settings: s.Config.Defaults}}
+	layers := []config.Layer{{Name: layerApp, Settings: s.Config.Defaults}}
 	if nb := req.Notebook; nb != nil {
 		wtID = nb.Manifest.WorkType
-		layers = append(layers, config.Layer{Name: "notebook", Settings: nb.Manifest.Settings})
+		layers = append(layers, config.Layer{Name: layerNotebook, Settings: nb.Manifest.Settings})
 		if req.PromptName != "" {
 			p, err := nb.LoadPrompt(req.PromptName)
 			if err != nil {
@@ -223,4 +223,13 @@ func RequiredOrder(wt worktype.WorkType) []string {
 		return nil
 	}
 	return s.Required
+}
+
+// decorate records where the run's prompt came from, so later prompt changes
+// reach the right saved prompt or schedule.
+func (req RunRequest) decorate(r *notebook.Run) {
+	r.PromptName = req.PromptName
+	if r.ScheduleID == "" {
+		r.ScheduleID = req.ScheduleID
+	}
 }

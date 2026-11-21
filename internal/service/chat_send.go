@@ -11,6 +11,7 @@ import (
 	"github.com/samautomateai/tessivo/internal/audit"
 	"github.com/samautomateai/tessivo/internal/chat"
 	"github.com/samautomateai/tessivo/internal/config"
+	"github.com/samautomateai/tessivo/internal/executor"
 	"github.com/samautomateai/tessivo/internal/extract"
 	"github.com/samautomateai/tessivo/internal/llm"
 )
@@ -119,18 +120,32 @@ func budget(r config.RunSettings) int {
 func (s *Service) streamReply(ctx context.Context, alias config.Alias, req llm.Request, onDelta func(string),
 ) (chat.Message, error) {
 	reply := chat.Message{ID: chat.NewMessageID(), Role: chat.RoleAssistant, CreatedAt: nowRFC3339()}
-	factory := s.NewModel
-	if factory == nil {
-		factory = DefaultModelFactory
-	}
-	model, err := factory(s.Config, alias, s.Secrets)
+	model, err := s.aliasModel(alias)
 	if err != nil {
 		reply.Stopped, reply.Error = true, "model setup failed"
 		return reply, err
 	}
+	res, text, err := streamText(ctx, model, req, 0, onDelta)
+	reply.Model, reply.Content, reply.Tokens = res.Target, text, res.Usage.CompletionTokens
+	return reply, finishReply(&reply, err)
+}
+
+func (s *Service) aliasModel(alias config.Alias) (executor.Model, error) {
+	factory := s.NewModel
+	if factory == nil {
+		factory = DefaultModelFactory
+	}
+	return factory(s.Config, alias, s.Secrets)
+}
+
+// streamText streams one model call, forwarding deltas until the reply
+// (including the used bytes already sent) reaches chat.MaxReplyBytes, and
+// returns the reply text.
+func streamText(ctx context.Context, model executor.Model, req llm.Request, used int, onDelta func(string),
+) (llm.Result, string, error) {
 	var sb strings.Builder
 	res, err := model.ChatStream(ctx, req, func(d string) {
-		if sb.Len()+len(d) > chat.MaxReplyBytes {
+		if used+sb.Len()+len(d) > chat.MaxReplyBytes {
 			return
 		}
 		sb.WriteString(d)
@@ -138,20 +153,25 @@ func (s *Service) streamReply(ctx context.Context, alias config.Alias, req llm.R
 			onDelta(d)
 		}
 	})
-	reply.Model = res.Target
-	reply.Content = res.Content
-	if reply.Content == "" || len(reply.Content) > chat.MaxReplyBytes {
-		reply.Content = sb.String()
+	text := res.Content
+	if text == "" || used+len(text) > chat.MaxReplyBytes {
+		text = sb.String()
 	}
-	reply.Tokens = res.Usage.CompletionTokens
-	if err != nil {
-		reply.Stopped = true
-		if !stopped(err) {
-			reply.Error = classifyChatError(err)
-			return reply, fmt.Errorf("chat reply: %w", err)
-		}
+	return res, text, err
+}
+
+// finishReply marks a reply stopped or failed after err; a stop by the
+// caller is not an error.
+func finishReply(reply *chat.Message, err error) error {
+	if err == nil {
+		return nil
 	}
-	return reply, nil
+	reply.Stopped = true
+	if stopped(err) {
+		return nil
+	}
+	reply.Error = classifyChatError(err)
+	return fmt.Errorf("chat reply: %w", err)
 }
 
 // classifyChatError stores a short, secret-free reason on a failed reply.
@@ -163,6 +183,11 @@ func classifyChatError(err error) string {
 }
 
 func (s *Service) auditChat(id string, user, reply chat.Message, r config.RunSettings) error {
+	return s.auditMessage(KindChatMessage, id, user, reply, r)
+}
+
+// auditMessage records one reply by digest and size only.
+func (s *Service) auditMessage(kind, id string, user, reply chat.Message, r config.RunSettings) error {
 	if s.UserAuditPath == "" {
 		return nil
 	}
@@ -178,7 +203,7 @@ func (s *Service) auditChat(id string, user, reply chat.Message, r config.RunSet
 	for _, a := range user.Attachments {
 		sources = append(sources, a.Kind+":"+a.Ref)
 	}
-	err = l.Append(KindChatMessage, id, map[string]any{
+	err = l.Append(kind, id, map[string]any{
 		"prompt_sha256": audit.Digest(user.Content), "prompt_chars": len(user.Content), "sources": sources,
 		"model": r.Model, "thinking": r.ThinkingEffort, "answered_by": reply.Model,
 		"reply_chars": len(reply.Content), "stopped": reply.Stopped, "error": reply.Error,
