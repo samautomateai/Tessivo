@@ -30,6 +30,7 @@ const (
 	KindOutputSaved  = "output.saved"
 	KindToolCall     = "tool.call"
 	KindToolDecision = "tool.decision"
+	KindRunResume    = "run.resume"
 )
 
 // Limits keep entries small and lines bounded.

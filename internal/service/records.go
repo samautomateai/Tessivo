@@ -25,6 +25,7 @@ func (s *Service) AuditPath(nb *notebook.Notebook) string {
 type runAudit struct {
 	log   *audit.Log
 	runID string
+	actor string
 }
 
 func (s *Service) startAudit(nb *notebook.Notebook, spec executor.Spec, actor string) (*runAudit, error) {
@@ -38,7 +39,7 @@ func (s *Service) startAudit(nb *notebook.Notebook, spec executor.Spec, actor st
 	if err != nil {
 		return nil, err
 	}
-	a := &runAudit{log: l, runID: notebook.NewID()}
+	a := &runAudit{log: l, runID: notebook.NewID(), actor: actor}
 	sources := make([]string, 0, len(spec.Documents))
 	for _, d := range spec.Documents {
 		sources = append(sources, d.Source)
@@ -82,7 +83,7 @@ func (a *runAudit) finish(res executor.Result, runErr error, outputID string, d 
 }
 
 func saveRun(nb *notebook.Notebook, runID string, spec executor.Spec, res executor.Result, runErr error,
-	started time.Time,
+	started time.Time, decorate func(*notebook.Run),
 ) (string, error) {
 	run := notebook.Run{
 		ID: runID, StartedAt: started.UTC().Format(time.RFC3339), WorkType: spec.WorkType.ID,
@@ -112,6 +113,9 @@ func saveRun(nb *notebook.Notebook, runID string, spec executor.Spec, res execut
 			return "", err
 		}
 		run.OutputID = out.ID
+	}
+	if decorate != nil {
+		decorate(&run)
 	}
 	return run.OutputID, nb.SaveRun(run)
 }

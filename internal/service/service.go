@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/samautomateai/tessivo/internal/config"
@@ -50,6 +51,14 @@ type Service struct {
 	Actor         string // cli, desktop, scheduler
 	Templates     template.Library
 	ChatDir       string // chat sessions and memory; default: "chat" next to Workspace
+
+	// OnRunEvent receives agent run events (approval needed, finished, ...).
+	OnRunEvent func(RunEvent)
+	// Now is the clock; nil means time.Now.
+	Now func() time.Time
+
+	jobsOnce sync.Once
+	jobs     *jobTable
 }
 
 // DefaultModelFactory builds an llm.Router.
@@ -67,7 +76,10 @@ type RunRequest struct {
 	Overrides  config.RunSettings
 	Extra      []extract.Document // e.g. piped stdin
 	Save       bool
-	Actor      string // overrides Service.Actor in the audit log (e.g. scheduler)
+	Actor      string            // overrides Service.Actor in the audit log (e.g. scheduler)
+	ToolRules  map[string]string // agent mode: rules for this run only (most specific layer)
+	ScheduleID string            // the schedule that started the run, if any
+	Detached   bool              // agent mode: the run outlives ctx; stop it with Cancel
 }
 
 // RunOutcome is a finished run.
@@ -77,6 +89,7 @@ type RunOutcome struct {
 	Result   executor.Result
 	Markdown string
 	Spec     executor.Spec
+	Paused   []PendingApproval // agent mode: set when the run stopped to wait for approval
 }
 
 // Run executes a work type against the configured model, audits it and, if
@@ -86,17 +99,12 @@ func (s *Service) Run(ctx context.Context, req RunRequest, onEvent func(executor
 	if err != nil {
 		return RunOutcome{}, err
 	}
-	alias, err := s.Config.ResolveModel(spec.Settings.Model)
-	if err != nil {
-		return RunOutcome{}, &InvalidError{err.Error()}
-	}
-	factory := s.NewModel
-	if factory == nil {
-		factory = DefaultModelFactory
-	}
-	model, err := factory(s.Config, alias, s.Secrets)
+	model, err := s.modelFor(spec)
 	if err != nil {
 		return RunOutcome{}, err
+	}
+	if spec.Settings.Mode == config.ModeAgent {
+		return s.runAgent(ctx, req, spec, model, onEvent)
 	}
 	rec, err := s.startAudit(req.Notebook, spec, req.Actor)
 	if err != nil {
@@ -106,7 +114,7 @@ func (s *Service) Run(ctx context.Context, req RunRequest, onEvent func(executor
 	res, runErr := (&executor.Pipeline{Model: model}).Run(ctx, spec, onEvent)
 	out := RunOutcome{RunID: rec.runID, Result: res, Spec: spec}
 	if req.Notebook != nil && req.Save {
-		id, err := saveRun(req.Notebook, rec.runID, spec, res, runErr, started)
+		id, err := saveRun(req.Notebook, rec.runID, spec, res, runErr, started, nil)
 		if err != nil {
 			return out, errors.Join(runErr, err, rec.finish(res, runErr, "", time.Since(started)))
 		}
@@ -120,6 +128,25 @@ func (s *Service) Run(ctx context.Context, req RunRequest, onEvent func(executor
 	}
 	out.Markdown, err = render.Markdown(res.Data, RequiredOrder(spec.WorkType))
 	return out, err
+}
+
+func (s *Service) modelFor(spec executor.Spec) (executor.Model, error) {
+	alias, err := s.Config.ResolveModel(spec.Settings.Model)
+	if err != nil {
+		return nil, &InvalidError{err.Error()}
+	}
+	factory := s.NewModel
+	if factory == nil {
+		factory = DefaultModelFactory
+	}
+	return factory(s.Config, alias, s.Secrets)
+}
+
+func (s *Service) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
 }
 
 func (s *Service) buildSpec(req RunRequest) (executor.Spec, error) {
