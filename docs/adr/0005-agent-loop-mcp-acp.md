@@ -21,7 +21,8 @@ and audit of every attempt.
   executing when the core died becomes `interrupted`.
 - **Code tools** (`internal/agenttools`): read-only, rooted in the run's folders, bounded. Commands come next, from
   a per-notebook allow-list, run without a shell.
-- **MCP** (phase 3): our own client. Zero's MIT-licensed, stdlib-only MCP client is the reference to port from.
+- **MCP** (phases 3–4, done): our own client in `internal/mcp`, ported from Zero's MIT-licensed, stdlib-only client
+  (commit `8288ae81bd6a`; framing, stdio and Streamable HTTP; resources and prompts written here).
   No MCP SDK dependency.
 - **Code changes** (phase 5): delegated over the Agent Client Protocol to a coding agent, with nca (MIT, Rust)
   bundled as the default. The delegate works only in a separate copy (git worktree, or a snapshot when there is
