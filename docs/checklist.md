@@ -63,6 +63,10 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Make a chat repeatable as a notebook (suggested work type, template, prompt, context) | CHAT-6 | ☑ |
 | Save a chat reply as a validated output in the library | CHAT-7 | ☑ |
 | `tess chat`: one-shot, piped and interactive; list, show, rename, pin, archive, delete, memory, repeat, save | CHAT-9 | ☑ |
+| Ask about an output in its own thread (output, notebook memory and context; stop; model per thread) | OUT-1 | ☑ |
+| New version of an output from its thread, revised through the pipeline and linked to its parent | OUT-2 | ☑ |
+| Memory and prompt suggestions from a thread (model tools or Suggest improvements); apply with reach, staleness and variable checks; dismiss | OUT-3 | ☑ |
+| Desktop three-pane notebook page: sources, run bar with the open output and its thread, outputs with lineage; `tess output` | OUT-4 | ☑ |
 
 ## CLI reference (current)
 

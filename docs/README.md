@@ -13,3 +13,5 @@
   [ADR 0005 agent loop, MCP, ACP](adr/0005-agent-loop-mcp-acp.md)
 - Agent mode: [design](superpowers/specs/2026-11-21-agent-mode-design.md) ·
   [phase 1 plan](superpowers/plans/2026-11-21-agent-mode-phase1.md)
+- Output threads: [design](superpowers/specs/2026-11-21-output-threads-design.md) ·
+  [plan](superpowers/plans/2026-11-21-output-threads.md) (stories OUT-1 to OUT-4)

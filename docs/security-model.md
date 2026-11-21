@@ -32,6 +32,8 @@ holds credentials for model providers. Every control below exists in code and is
 | Prompt injection through tool results | The system prompt marks tool output as data; tools that are not read-only default to ask; unknown tools and non-JSON arguments are answered without running | `executor/agent` |
 | Runaway or abusive agents | ≤ 40 steps, 400k tokens, 30 min per run; ≤ 16 tool calls and 64 KiB of arguments per reply; results ≤ 32 KiB; checkpoints ≤ 64 MiB | `llm`, `executor/agent`, `notebook` |
 | Unsupervised side effects | allow/ask/block per tool (run → notebook → app → built-in); "ask" pauses the run until answered (expires after 7 days); answers and tool calls are audited as digests; a call in flight at a crash is never replayed | `executor/agent`, `service` |
+| Model-made changes to a notebook (output threads) | Suggestions are only proposals: tool arguments are parsed as hostile (known tools only, JSON, size caps, ≤ 3 per reply, ≤ 20 open per output), redacted before storing, shown verbatim and applied only by the user; a prompt change is refused when the prompt changed since (digest) or it adds an unset variable; applies are audited as digests | `service`, `notebook` |
+| Thread files and folders outside the workspace | Thread and suggestion files are named by validated output IDs; the API addresses notebooks by ID only; a notebook folder is accepted only when the CLI lists it in `NotebookDirs` | `notebook`, `service` |
 | Vulnerable dependencies | Standard library first; `go mod verify`, govulncheck, osv-scanner (desktop `pubspec.lock`), gosec, CodeQL, Dependabot | CI, `task audit`, `task vuln` |
 
 ## Performance budgets
