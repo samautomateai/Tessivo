@@ -94,15 +94,17 @@ void main() {
     expect(find.byKey(const Key('output-o3')), findsOneWidget);
   });
 
-  testWidgets('settings lets you pick thinking effort', (tester) async {
+  testWidgets('settings shows aliases, defaults, providers and models', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Fallback chain for "smart"'), findsOneWidget);
-    await tester.tap(find.text('high'));
+    expect(find.text('Model: smart · Thinking: medium'), findsOneWidget);
+    expect(find.text('Key from TESSIVO_LITELLM_KEY'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('load-models-litellm')));
     await tester.pumpAndSettle();
-    final button = tester.widget<SegmentedButton<String>>(find.byKey(const Key('thinking')));
-    expect(button.selected, {'high'});
+    expect(find.text('primary-model'), findsOneWidget);
+    expect(find.text('Refresh'), findsOneWidget);
     await tester.tap(find.text('Weekly ops report'));
     await tester.pumpAndSettle();
     expect(find.textContaining('No context yet'), findsOneWidget);

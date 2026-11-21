@@ -49,7 +49,7 @@ class AppShell extends StatelessWidget {
     Section.templates => TemplatesScreen(state: state),
     Section.schedules => SchedulesScreen(state: state),
     Section.library => LibraryScreen(core: state.core),
-    Section.settings => const SettingsScreen(),
+    Section.settings => SettingsScreen(core: state.core),
   };
 }
 

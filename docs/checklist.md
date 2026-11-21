@@ -7,15 +7,15 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Item | Stories | Status |
 | --- | --- | --- |
 | Repo, Taskfile, quality gates (lint, gosec, lengths, coverage ≥ 80%, govulncheck, CodeQL, Dependabot) | NFR Quality | ☑ |
-| Layered settings with source tracking | SET-5 | ☐☑ |
-| Secrets from environment (keychain next) | SET-1 | ☐☑ |
-| OpenAI-compatible client: models, chat, streaming, structured output, reasoning effort | SET-2, SET-3 | ☐☑ |
-| Aliases and fallback chains with retry/backoff | SET-4 | ☐☑ |
-| Built-in work types with output schemas + validation and retry | WT-1, WT-2, WT-3 | ☐☑ |
-| Extractors: text, Markdown, CSV, JSON, code base | SRC-1, SRC-3 | ☐☑ |
-| Notebook folder store, run records, outputs | NB-1, RUN-2, REP-1 | ☐☑ |
-| Pipeline executor | RUN-1 | ☐☑ |
-| `tess` CLI: init, notebook, context, run, models | CLI-1, CLI-2, CLI-3 | ☐☑ |
+| Layered settings with source tracking | SET-5 | ☑ |
+| Secrets from environment (keychain next) | SET-1 | ☑ |
+| OpenAI-compatible client: models, chat, streaming, structured output, reasoning effort | SET-2, SET-3 | ☑ |
+| Aliases and fallback chains with retry/backoff | SET-4 | ☑ |
+| Built-in work types with output schemas + validation and retry | WT-1, WT-2, WT-3 | ☑ |
+| Extractors: text, Markdown, CSV, JSON, code base | SRC-1, SRC-3 | ☑ |
+| Notebook folder store, run records, outputs | NB-1, RUN-2, REP-1 | ☑ |
+| Pipeline executor | RUN-1 | ☑ |
+| `tess` CLI: init, notebook, context, run, models | CLI-1, CLI-2, CLI-3 | ☑ |
 | Tamper-evident audit log of runs, model attempts and outputs; `tess audit verify/show` | NFR Security | ☑ |
 | Formatting gate (gofmt -s, gofumpt, goimports), `task audit`, fuzz and bench tasks | NFR Quality | ☑ |
 | Hardened HTTP: TLS 1.2+, no redirects, bounded timeouts, idle-stream timeout; plaintext to remote hosts refused | NFR Security | ☑ |
@@ -44,6 +44,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Prompt library via template prompts; save notebook as template; extend with parent and version; parent-update notice with changed prompts | TPL-3–TPL-6 | ☑ |
 | Pinned notebook memory included in every run (`tess memory`, API) | MEM-1 | ☑ |
 | Desktop template gallery: filter by work type, use, save notebook as template, remove user templates | TPL-1, TPL-4 | ☑ |
+| Desktop: live settings and models, add context by path, memory, open outputs | SET-1, NB-1, REP-1 | ☑ |
 | Chat | CHAT-1–CHAT-7 | ☐ |
 
 ## CLI reference (current)

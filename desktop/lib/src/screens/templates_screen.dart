@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../app_state.dart';
 import '../core/models.dart';
 import '../theme.dart';
+import '../widgets/text_prompt_dialog.dart';
 import '../widgets/work_type_badge.dart';
 
 /// Template gallery: browse built-in and user templates, start a notebook from
@@ -48,7 +49,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
   }
 
   Future<void> _use(TemplateInfo t) async {
-    final name = await _askName(context, title: 'New notebook from "${t.name}"', initial: t.name);
+    final name = await askText(context, title: 'New notebook from "${t.name}"', initial: t.name);
     if (name == null) return;
     await _run(() => widget.state.createFromTemplate(t.id, name: name));
   }
@@ -56,7 +57,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
   Future<void> _save() async {
     final nb = widget.state.selected;
     if (nb == null) return;
-    final name = await _askName(context, title: 'Save "${nb.name}" as a template', initial: nb.name);
+    final name = await askText(context, title: 'Save "${nb.name}" as a template', initial: nb.name);
     if (name == null) return;
     await _run(() async {
       await widget.state.core.saveAsTemplate(nb.id, name: name);
@@ -184,59 +185,6 @@ class _TemplateCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Asks for a name; returns null on cancel or when left empty.
-Future<String?> _askName(BuildContext context, {required String title, required String initial}) async {
-  final name = await showDialog<String>(
-    context: context,
-    builder: (_) => _NameDialog(title: title, initial: initial),
-  );
-  final trimmed = name?.trim();
-  return trimmed == null || trimmed.isEmpty ? null : trimmed;
-}
-
-class _NameDialog extends StatefulWidget {
-  const _NameDialog({required this.title, required this.initial});
-
-  final String title;
-  final String initial;
-
-  @override
-  State<_NameDialog> createState() => _NameDialogState();
-}
-
-class _NameDialogState extends State<_NameDialog> {
-  late final _controller = TextEditingController(text: widget.initial);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        key: const Key('template-name'),
-        controller: _controller,
-        autofocus: true,
-        maxLength: 120,
-        decoration: const InputDecoration(labelText: 'Name'),
-        onSubmitted: (v) => Navigator.of(context).pop(v),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        FilledButton(
-          key: const Key('template-name-ok'),
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('OK'),
-        ),
-      ],
     );
   }
 }

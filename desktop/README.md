@@ -12,6 +12,12 @@ task desktop:run     # run on this OS
 task desktop:check   # format check, analyze (fatal infos), tests with coverage ≥ 80%
 ```
 
+In a notebook, **Add** takes an absolute file or folder path (checked before it is sent; there is no
+file-picker package), and **Memory** keeps up to 50 short facts sent with every run. The outputs library
+opens a saved output's Markdown. **Settings** shows the core's aliases, fallback chains, defaults,
+limits and providers (key references only, never values or headers) and can list each provider's models;
+edit them with `tess config`.
+
 The **Templates** section is a gallery of built-in and user templates, filterable by work type.
 "Use template" creates and opens a notebook (context slots to fill, schedule disabled); the selected
 notebook can be saved as a user template, and user templates can be removed. The new-notebook dialog

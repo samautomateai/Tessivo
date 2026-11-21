@@ -69,8 +69,11 @@ class AppState extends ChangeNotifier {
     _events = null;
   }
 
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     stopEvents();
     super.dispose();
   }
@@ -87,6 +90,7 @@ class AppState extends ChangeNotifier {
     selectedId ??= notebooks.isEmpty ? null : notebooks.first.id;
     loading = false;
     notifyListeners();
+    if (selectedId case final id?) await _refresh(id);
   }
 
   void go(Section s) {
@@ -100,6 +104,34 @@ class AppState extends ChangeNotifier {
     outcome = null;
     _stream.clear();
     notifyListeners();
+    unawaited(_refresh(id));
+  }
+
+  /// Loads the full notebook (context stats, memory); the list view omits them.
+  Future<void> _refresh(String id) async {
+    try {
+      _put(await core.getNotebook(id));
+    } on Object {
+      // Keep the summary we have; the next action surfaces any real error.
+    }
+  }
+
+  void _put(Notebook updated) {
+    if (_disposed) return;
+    notebooks = [for (final n in notebooks) n.id == updated.id ? updated : n];
+    notifyListeners();
+  }
+
+  /// Adds a file or folder by absolute path to the selected notebook.
+  Future<void> addContext(String path) async {
+    final nb = selected;
+    if (nb != null) _put(await core.addContext(nb.id, path));
+  }
+
+  /// Replaces the selected notebook's memory.
+  Future<void> setMemory(List<String> memory) async {
+    final nb = selected;
+    if (nb != null) _put(await core.setMemory(nb.id, memory));
   }
 
   Future<void> createNotebook(String name, WorkTypeId type) async {
@@ -118,9 +150,7 @@ class AppState extends ChangeNotifier {
   Future<void> toggleContext(String contextId, bool enabled) async {
     final nb = selected;
     if (nb == null) return;
-    final updated = await core.setContextEnabled(notebookId: nb.id, contextId: contextId, enabled: enabled);
-    notebooks = [for (final n in notebooks) n.id == updated.id ? updated : n];
-    notifyListeners();
+    _put(await core.setContextEnabled(notebookId: nb.id, contextId: contextId, enabled: enabled));
   }
 
   Future<void> run(String prompt, Map<String, String> vars) async {

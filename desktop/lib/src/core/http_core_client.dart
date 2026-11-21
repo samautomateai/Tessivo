@@ -3,7 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'core_client.dart';
+import 'json_mapping.dart';
 import 'models.dart';
+
+export 'json_mapping.dart';
 
 /// Connection details the core writes to `run/endpoint.json` (0600).
 class Endpoint {
@@ -136,7 +139,7 @@ class HttpCoreClient implements CoreClient {
   @override
   Future<List<Notebook>> listNotebooks() async {
     final json = await _json('GET', '/v1/notebooks');
-    return _list(json['notebooks']).map(notebookFromJson).toList();
+    return jsonList(json['notebooks']).map(notebookFromJson).toList();
   }
 
   @override
@@ -157,7 +160,7 @@ class HttpCoreClient implements CoreClient {
   @override
   Future<List<OutputSummary>> listOutputs({WorkTypeId? workType}) async {
     final json = await _json('GET', '/v1/outputs', query: workType == null ? null : {'workType': workType.name});
-    return _list(json['outputs']).map(outputFromJson).toList();
+    return jsonList(json['outputs']).map(outputFromJson).toList();
   }
 
   @override
@@ -193,12 +196,44 @@ class HttpCoreClient implements CoreClient {
     }
   }
 
+  String _nb(String id) => '/v1/notebooks/${Uri.encodeComponent(id)}';
+
+  @override
+  Future<Notebook> getNotebook(String notebookId) async => notebookFromJson(await _json('GET', _nb(notebookId)));
+
+  @override
+  Future<Notebook> addContext(String notebookId, String path) async {
+    checkContextPath(path);
+    return notebookFromJson(await _json('POST', '${_nb(notebookId)}/context', body: {'path': path}));
+  }
+
+  @override
+  Future<Notebook> setMemory(String notebookId, List<String> memory) async {
+    checkMemory(memory);
+    return notebookFromJson(await _json('PUT', '${_nb(notebookId)}/memory', body: {'memory': memory}));
+  }
+
+  @override
+  Future<OutputDetail> getOutput(String notebookId, String outputId) async {
+    final path = '${_nb(notebookId)}/outputs/${Uri.encodeComponent(outputId)}';
+    return outputDetailFromJson(await _json('GET', path));
+  }
+
+  @override
+  Future<SettingsInfo> getSettings() async => settingsFromJson(await _json('GET', '/v1/settings'));
+
+  @override
+  Future<Map<String, List<String>>> listModels({String? provider}) async {
+    final query = provider == null ? null : {'provider': provider};
+    return modelsFromJson(await _json('GET', '/v1/models', query: query));
+  }
+
   String _schedulesPath(String notebookId) => '/v1/notebooks/${Uri.encodeComponent(notebookId)}/schedules';
 
   @override
   Future<List<ScheduleInfo>> listSchedules(String notebookId) async {
     final json = await _json('GET', _schedulesPath(notebookId));
-    return _list(json['schedules']).map(scheduleFromJson).toList();
+    return jsonList(json['schedules']).map(scheduleFromJson).toList();
   }
 
   @override
@@ -245,7 +280,7 @@ class HttpCoreClient implements CoreClient {
   @override
   Future<List<TemplateInfo>> listTemplates({WorkTypeId? workType}) async {
     final json = await _json('GET', '/v1/templates', query: workType == null ? null : {'workType': workType.name});
-    return _list(json['templates']).map(templateFromJson).toList();
+    return jsonList(json['templates']).map(templateFromJson).toList();
   }
 
   @override
@@ -267,106 +302,6 @@ class HttpCoreClient implements CoreClient {
 
   /// Releases connections.
   void close() => _client.close(force: true);
-}
-
-ScheduleInfo scheduleFromJson(Map<String, Object?> j) => ScheduleInfo(
-  id: j['id'] as String? ?? '',
-  cron: j['cron'] as String? ?? '',
-  missed: j['missed'] as String? ?? 'skip',
-  enabled: j['enabled'] as bool? ?? false,
-  prompt: j['prompt'] as String? ?? '',
-  nextRun: j['nextRun'] as String?,
-  history: _list(j['history'])
-      .map(
-        (h) => ScheduleRun(
-          status: h['status'] as String? ?? '',
-          startedAt: h['startedAt'] as String? ?? '',
-          error: h['error'] as String?,
-        ),
-      )
-      .toList(),
-);
-
-CoreEvent eventFromJson(Map<String, Object?> j) => CoreEvent(
-  kind: j['kind'] as String? ?? '',
-  notebookName: j['notebookName'] as String? ?? '',
-  title: j['title'] as String?,
-  error: j['error'] as String?,
-);
-
-TemplateInfo templateFromJson(Map<String, Object?> j) {
-  final schedule = j['schedule'];
-  return TemplateInfo(
-    id: j['id'] as String? ?? '',
-    name: j['name'] as String? ?? '',
-    workType: _workType(j['workType']),
-    source: j['source'] as String? ?? 'builtin',
-    description: j['description'] as String? ?? '',
-    version: (j['version'] as num?)?.toInt() ?? 1,
-    parent: j['parent'] as String?,
-    prompts: _list(j['prompts']).map((p) => p['name'] as String? ?? '').toList(),
-    slots: _list(j['slots'])
-        .map(
-          (s) => TemplateSlot(
-            name: s['name'] as String? ?? '',
-            kind: s['kind'] as String? ?? 'any',
-            description: s['description'] as String? ?? '',
-            required: s['required'] as bool? ?? false,
-          ),
-        )
-        .toList(),
-    scheduleCron: schedule is Map<String, Object?> ? schedule['cron'] as String? : null,
-  );
-}
-
-List<Map<String, Object?>> _list(Object? v) =>
-    v is List ? v.whereType<Map<String, Object?>>().toList() : const <Map<String, Object?>>[];
-
-WorkTypeId _workType(Object? v) =>
-    WorkTypeId.values.firstWhere((w) => w.name == v, orElse: () => WorkTypeId.summarize);
-
-Notebook notebookFromJson(Map<String, Object?> j) => Notebook(
-  id: j['id'] as String? ?? '',
-  name: j['name'] as String? ?? '',
-  workType: _workType(j['workType']),
-  context: _list(j['context']).map(contextFromJson).toList(),
-);
-
-ContextItem contextFromJson(Map<String, Object?> j) {
-  final label = j['label'] as String? ?? '';
-  final dot = label.lastIndexOf('.');
-  final kind = (j['inPlace'] as bool? ?? false)
-      ? 'Folder'
-      : (dot > 0 ? label.substring(dot + 1).toUpperCase() : 'File');
-  return ContextItem(
-    id: j['id'] as String? ?? '',
-    label: label,
-    kind: kind,
-    enabled: j['enabled'] as bool? ?? false,
-    estimatedTokens: (j['estimatedTokens'] as num?)?.toInt() ?? 0,
-  );
-}
-
-OutputSummary outputFromJson(Map<String, Object?> j) => OutputSummary(
-  id: j['id'] as String? ?? '',
-  title: j['title'] as String? ?? '',
-  workType: _workType(j['workType']),
-  notebookName: j['notebookName'] as String? ?? '',
-  trigger: 'Manual',
-  createdAt: j['createdAt'] as String? ?? '',
-  versions: 1,
-);
-
-RunOutcome outcomeFromJson(Map<String, Object?> j) {
-  final attempts = _list(j['attempts']);
-  final fell = attempts.where((a) => (a['trigger'] as String? ?? '').isNotEmpty).toList();
-  return RunOutcome(
-    valid: j['valid'] as bool? ?? false,
-    modelUsed: j['modelUsed'] as String? ?? '',
-    totalTokens: (j['totalTokens'] as num?)?.toInt() ?? 0,
-    markdown: j['markdown'] as String? ?? '',
-    fallbackNote: fell.isEmpty ? null : 'fell back after ${fell.map((a) => a['trigger']).join(', ')}',
-  );
 }
 
 /// One server-sent event.

@@ -12,6 +12,12 @@ abstract interface class CoreClient {
   Future<Notebook> setContextEnabled({required String notebookId, required String contextId, required bool enabled});
   Stream<RunEvent> startRun({required String notebookId, required String prompt, required Map<String, String> vars});
   Future<List<OutputSummary>> listOutputs({WorkTypeId? workType});
+  Future<Notebook> getNotebook(String notebookId);
+  Future<Notebook> addContext(String notebookId, String path);
+  Future<Notebook> setMemory(String notebookId, List<String> memory);
+  Future<OutputDetail> getOutput(String notebookId, String outputId);
+  Future<SettingsInfo> getSettings();
+  Future<Map<String, List<String>>> listModels({String? provider});
   Future<List<ScheduleInfo>> listSchedules(String notebookId);
   Future<ScheduleInfo> addSchedule(String notebookId, {required String cron, String prompt, String missed});
   Future<ScheduleInfo> setScheduleEnabled(String notebookId, String scheduleId, {required bool enabled});
@@ -202,6 +208,75 @@ class DemoCoreClient implements CoreClient {
   /// Emits a demo event (used by tests and the demo mode).
   void emit(CoreEvent e) => _events.add(e);
 
+  Notebook _find(String id) =>
+      _notebooks.firstWhere((n) => n.id == id, orElse: () => throw StateError('unknown notebook $id'));
+
+  void _replace(Notebook nb) {
+    _notebooks[_notebooks.indexWhere((n) => n.id == nb.id)] = nb;
+  }
+
+  @override
+  Future<Notebook> getNotebook(String notebookId) async => _find(notebookId);
+
+  @override
+  Future<Notebook> addContext(String notebookId, String path) async {
+    final nb = _find(notebookId);
+    checkContextPath(path);
+    final name = path.split(RegExp(r'[/\\]')).lastWhere((p) => p.isNotEmpty, orElse: () => path);
+    final dot = name.lastIndexOf('.');
+    final item = ContextItem(
+      id: 'c${_nextId++}',
+      label: name,
+      kind: dot > 0 ? name.substring(dot + 1).toUpperCase() : 'Folder',
+      enabled: true,
+      estimatedTokens: 2000,
+    );
+    final updated = nb.copyWith(context: [...nb.context, item]);
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Notebook> setMemory(String notebookId, List<String> memory) async {
+    checkMemory(memory);
+    final updated = _find(notebookId).copyWith(memory: List.unmodifiable(memory));
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<OutputDetail> getOutput(String notebookId, String outputId) async {
+    final o = (await listOutputs()).firstWhere(
+      (o) => o.id == outputId && o.notebookId == notebookId,
+      orElse: () => throw StateError('unknown output $outputId'),
+    );
+    return OutputDetail(id: o.id, title: o.title, markdown: '# ${o.title}\n\nSample output from ${o.notebookName}.');
+  }
+
+  @override
+  Future<SettingsInfo> getSettings() async => const SettingsInfo(
+    providers: [ProviderInfo(name: 'litellm', baseUrl: 'http://localhost:4000/v1', keyRef: 'TESSIVO_LITELLM_KEY')],
+    aliases: [
+      AliasInfo(
+        name: 'smart',
+        chain: ['litellm/primary-model', 'litellm/fallback-model'],
+        fallbackOn: ['timeout', 'rate_limit', 'server_error'],
+      ),
+    ],
+    defaultModel: 'smart',
+    thinkingEffort: 'medium',
+    maxOutputTokens: 8000,
+    maxTokensPerDay: 2000000,
+  );
+
+  @override
+  Future<Map<String, List<String>>> listModels({String? provider}) async {
+    const all = {
+      'litellm': ['fallback-model', 'primary-model'],
+    };
+    return provider == null ? all : {if (all[provider] case final m?) provider: m};
+  }
+
   @override
   Future<List<TemplateInfo>> listTemplates({WorkTypeId? workType}) async =>
       List.unmodifiable(_templates.where((t) => workType == null || t.workType == workType));
@@ -244,6 +319,7 @@ class DemoCoreClient implements CoreClient {
     const all = [
       OutputSummary(
         id: 'o1',
+        notebookId: 'nb-1',
         title: 'PR #482 risk report',
         workType: WorkTypeId.analyze,
         notebookName: 'Change risk review',
@@ -253,6 +329,7 @@ class DemoCoreClient implements CoreClient {
       ),
       OutputSummary(
         id: 'o2',
+        notebookId: 'nb-4',
         title: 'Weekly ops report, week 47',
         workType: WorkTypeId.report,
         notebookName: 'Weekly ops report',
@@ -262,6 +339,7 @@ class DemoCoreClient implements CoreClient {
       ),
       OutputSummary(
         id: 'o3',
+        notebookId: 'nb-2',
         title: 'Vendor contracts digest',
         workType: WorkTypeId.summarize,
         notebookName: 'Vendor contracts digest',
@@ -271,5 +349,23 @@ class DemoCoreClient implements CoreClient {
       ),
     ];
     return workType == null ? all : all.where((o) => o.workType == workType).toList();
+  }
+}
+
+/// Context paths must be absolute (the core resolves nothing relative to itself).
+void checkContextPath(String path) {
+  final absolute = path.startsWith('/') || RegExp(r'^[A-Za-z]:[\\/]').hasMatch(path) || path.startsWith(r'\\');
+  if (path.trim() != path || path.isEmpty || !absolute) {
+    throw const FormatException('Use an absolute path, for example /Users/me/project');
+  }
+}
+
+/// Mirrors the core's memory limits for fast feedback.
+void checkMemory(List<String> memory) {
+  if (memory.length > maxMemoryItems) {
+    throw const FormatException('Keep memory to $maxMemoryItems items');
+  }
+  if (memory.any((m) => m.trim().isEmpty || m.length > maxMemoryItemLength)) {
+    throw const FormatException('Each memory item must be 1–$maxMemoryItemLength characters');
   }
 }

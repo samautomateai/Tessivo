@@ -73,8 +73,8 @@ Future<AppState> pumpTemplates(WidgetTester tester) async {
 }
 
 Future<void> nameDialog(WidgetTester tester, String name) async {
-  await tester.enterText(find.byKey(const Key('template-name')), name);
-  await tester.tap(find.byKey(const Key('template-name-ok')));
+  await tester.enterText(find.byKey(const Key('text-prompt')), name);
+  await tester.tap(find.byKey(const Key('text-prompt-ok')));
   await tester.pumpAndSettle();
 }
 

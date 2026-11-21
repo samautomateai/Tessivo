@@ -1,0 +1,157 @@
+import 'models.dart';
+
+// Maps the core's JSON (docs/api.md) to UI models. Every field is optional and
+// type-checked: responses are treated as untrusted.
+
+ScheduleInfo scheduleFromJson(Map<String, Object?> j) => ScheduleInfo(
+  id: j['id'] as String? ?? '',
+  cron: j['cron'] as String? ?? '',
+  missed: j['missed'] as String? ?? 'skip',
+  enabled: j['enabled'] as bool? ?? false,
+  prompt: j['prompt'] as String? ?? '',
+  nextRun: j['nextRun'] as String?,
+  history: jsonList(j['history'])
+      .map(
+        (h) => ScheduleRun(
+          status: h['status'] as String? ?? '',
+          startedAt: h['startedAt'] as String? ?? '',
+          error: h['error'] as String?,
+        ),
+      )
+      .toList(),
+);
+
+CoreEvent eventFromJson(Map<String, Object?> j) => CoreEvent(
+  kind: j['kind'] as String? ?? '',
+  notebookName: j['notebookName'] as String? ?? '',
+  notebookId: j['notebookId'] as String? ?? '',
+  title: j['title'] as String?,
+  error: j['error'] as String?,
+);
+
+TemplateInfo templateFromJson(Map<String, Object?> j) {
+  final schedule = j['schedule'];
+  return TemplateInfo(
+    id: j['id'] as String? ?? '',
+    name: j['name'] as String? ?? '',
+    workType: workTypeFrom(j['workType']),
+    source: j['source'] as String? ?? 'builtin',
+    description: j['description'] as String? ?? '',
+    version: (j['version'] as num?)?.toInt() ?? 1,
+    parent: j['parent'] as String?,
+    prompts: jsonList(j['prompts']).map((p) => p['name'] as String? ?? '').toList(),
+    slots: jsonList(j['slots'])
+        .map(
+          (s) => TemplateSlot(
+            name: s['name'] as String? ?? '',
+            kind: s['kind'] as String? ?? 'any',
+            description: s['description'] as String? ?? '',
+            required: s['required'] as bool? ?? false,
+          ),
+        )
+        .toList(),
+    scheduleCron: schedule is Map<String, Object?> ? schedule['cron'] as String? : null,
+  );
+}
+
+List<Map<String, Object?>> jsonList(Object? v) =>
+    v is List ? v.whereType<Map<String, Object?>>().toList() : const <Map<String, Object?>>[];
+
+WorkTypeId workTypeFrom(Object? v) =>
+    WorkTypeId.values.firstWhere((w) => w.name == v, orElse: () => WorkTypeId.summarize);
+
+Notebook notebookFromJson(Map<String, Object?> j) => Notebook(
+  id: j['id'] as String? ?? '',
+  name: j['name'] as String? ?? '',
+  workType: workTypeFrom(j['workType']),
+  context: jsonList(j['context']).map(contextFromJson).toList(),
+  memory: _strings(j['memory']),
+);
+
+ContextItem contextFromJson(Map<String, Object?> j) {
+  final label = j['label'] as String? ?? '';
+  final dot = label.lastIndexOf('.');
+  final kind = (j['inPlace'] as bool? ?? false)
+      ? 'Folder'
+      : (dot > 0 ? label.substring(dot + 1).toUpperCase() : 'File');
+  return ContextItem(
+    id: j['id'] as String? ?? '',
+    label: label,
+    kind: kind,
+    enabled: j['enabled'] as bool? ?? false,
+    estimatedTokens: (j['estimatedTokens'] as num?)?.toInt() ?? 0,
+  );
+}
+
+OutputSummary outputFromJson(Map<String, Object?> j) => OutputSummary(
+  id: j['id'] as String? ?? '',
+  title: j['title'] as String? ?? '',
+  workType: workTypeFrom(j['workType']),
+  notebookName: j['notebookName'] as String? ?? '',
+  notebookId: j['notebookId'] as String? ?? '',
+  trigger: 'Manual',
+  createdAt: j['createdAt'] as String? ?? '',
+  versions: 1,
+);
+
+RunOutcome outcomeFromJson(Map<String, Object?> j) {
+  final attempts = jsonList(j['attempts']);
+  final fell = attempts.where((a) => (a['trigger'] as String? ?? '').isNotEmpty).toList();
+  return RunOutcome(
+    valid: j['valid'] as bool? ?? false,
+    modelUsed: j['modelUsed'] as String? ?? '',
+    totalTokens: (j['totalTokens'] as num?)?.toInt() ?? 0,
+    markdown: j['markdown'] as String? ?? '',
+    fallbackNote: fell.isEmpty ? null : 'fell back after ${fell.map((a) => a['trigger']).join(', ')}',
+  );
+}
+
+List<String> _strings(Object? v) => v is List ? v.whereType<String>().toList() : const [];
+
+int? _int(Object? v) => v is num ? v.toInt() : null;
+
+Map<String, Object?> _map(Object? v) => v is Map<String, Object?> ? v : const {};
+
+OutputDetail outputDetailFromJson(Map<String, Object?> j) => OutputDetail(
+  id: j['id'] as String? ?? '',
+  title: j['title'] as String? ?? '',
+  markdown: j['markdown'] as String? ?? '',
+);
+
+/// Reads only the fields the UI shows: provider headers are skipped entirely.
+SettingsInfo settingsFromJson(Map<String, Object?> j) {
+  final defaults = _map(j['defaults']);
+  final limits = _map(j['limits']);
+  return SettingsInfo(
+    providers: jsonList(j['providers'])
+        .map(
+          (p) => ProviderInfo(
+            name: p['name'] as String? ?? '',
+            baseUrl: p['base_url'] as String? ?? '',
+            keyRef: p['api_key_ref'] as String?,
+          ),
+        )
+        .toList(),
+    aliases: jsonList(j['aliases'])
+        .map(
+          (a) => AliasInfo(
+            name: a['name'] as String? ?? '',
+            chain: jsonList(a['chain']).map((m) => '${m['provider'] ?? '?'}/${m['model'] ?? '?'}').toList(),
+            fallbackOn: _strings(a['fallback_on']),
+          ),
+        )
+        .toList(),
+    defaultModel: defaults['model'] as String?,
+    thinkingEffort: defaults['thinking_effort'] as String?,
+    maxOutputTokens: _int(defaults['max_output_tokens']),
+    maxTokensPerRun: _int(limits['max_tokens_per_run']),
+    maxTokensPerDay: _int(limits['max_tokens_per_day']),
+  );
+}
+
+/// `{"models": {"provider": ["model", …]}}` → provider → models, sorted.
+Map<String, List<String>> modelsFromJson(Map<String, Object?> j) {
+  final m = j['models'];
+  if (m is! Map<String, Object?>) return const {};
+  return {for (final e in m.entries) e.key: [..._strings(e.value)]..sort()};
+}

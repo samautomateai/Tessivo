@@ -80,5 +80,36 @@ class _LibraryScreenState extends State<LibraryScreen> {
     subtitle: Text('${o.notebookName} · ${o.trigger} · ${o.createdAt}'),
     leading: WorkTypeBadge(workType: o.workType),
     trailing: Text('v${o.versions}', style: const TextStyle(color: Tokens.textMuted)),
+    onTap: o.notebookId.isEmpty ? null : () => showOutput(context, widget.core, o),
+  );
+}
+
+/// Opens a saved output as selectable Markdown source.
+Future<void> showOutput(BuildContext context, CoreClient core, OutputSummary o) {
+  final detail = core.getOutput(o.notebookId, o.id);
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(o.title),
+      content: SizedBox(
+        width: 720,
+        height: 520,
+        child: FutureBuilder<OutputDetail>(
+          future: detail,
+          builder: (context, snap) {
+            if (snap.hasError) return Text('Could not open this output: ${snap.error}');
+            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+            return SingleChildScrollView(
+              child: SelectableText(
+                snap.data!.markdown,
+                key: const Key('output-markdown'),
+                style: const TextStyle(fontFamily: 'monospace', height: 1.4),
+              ),
+            );
+          },
+        ),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+    ),
   );
 }

@@ -52,6 +52,7 @@ class Notebook {
     required this.workType,
     required this.context,
     this.schedule,
+    this.memory = const [],
   });
 
   final String id;
@@ -60,11 +61,24 @@ class Notebook {
   final List<ContextItem> context;
   final String? schedule;
 
+  /// Short facts the notebook keeps across runs (≤ 50 items, ≤ 1000 chars each).
+  final List<String> memory;
+
   int get enabledTokens => context.where((c) => c.enabled).fold(0, (sum, c) => sum + c.estimatedTokens);
 
-  Notebook copyWith({List<ContextItem>? context}) =>
-      Notebook(id: id, name: name, workType: workType, context: context ?? this.context, schedule: schedule);
+  Notebook copyWith({List<ContextItem>? context, List<String>? memory}) => Notebook(
+    id: id,
+    name: name,
+    workType: workType,
+    context: context ?? this.context,
+    schedule: schedule,
+    memory: memory ?? this.memory,
+  );
 }
+
+/// Memory limits the core enforces; the UI checks them first for fast feedback.
+const maxMemoryItems = 50;
+const maxMemoryItemLength = 1000;
 
 class OutputSummary {
   const OutputSummary({
@@ -75,7 +89,10 @@ class OutputSummary {
     required this.trigger,
     required this.createdAt,
     required this.versions,
+    this.notebookId = '',
   });
+
+  final String notebookId;
 
   final String id;
   final String title;
@@ -215,4 +232,48 @@ class TemplateInfo {
   final String? scheduleCron;
 
   bool get isUser => source == 'user';
+}
+
+/// A saved output with its rendered Markdown.
+class OutputDetail {
+  const OutputDetail({required this.id, required this.title, required this.markdown});
+  final String id;
+  final String title;
+  final String markdown;
+}
+
+/// A model provider as configured; the key is a reference, never a value.
+class ProviderInfo {
+  const ProviderInfo({required this.name, required this.baseUrl, this.keyRef});
+  final String name;
+  final String baseUrl;
+  final String? keyRef;
+}
+
+/// A named fallback chain such as "smart" → [provider/model, …].
+class AliasInfo {
+  const AliasInfo({required this.name, required this.chain, this.fallbackOn = const []});
+  final String name;
+  final List<String> chain;
+  final List<String> fallbackOn;
+}
+
+/// Read-only view of the core's settings.
+class SettingsInfo {
+  const SettingsInfo({
+    this.providers = const [],
+    this.aliases = const [],
+    this.defaultModel,
+    this.thinkingEffort,
+    this.maxOutputTokens,
+    this.maxTokensPerRun,
+    this.maxTokensPerDay,
+  });
+  final List<ProviderInfo> providers;
+  final List<AliasInfo> aliases;
+  final String? defaultModel;
+  final String? thinkingEffort;
+  final int? maxOutputTokens;
+  final int? maxTokensPerRun;
+  final int? maxTokensPerDay;
 }
