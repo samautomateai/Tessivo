@@ -23,20 +23,33 @@ func (s *Service) findRun(runID string) (*notebook.Notebook, error) {
 	if !runIDPattern.MatchString(runID) {
 		return nil, fmt.Errorf("%q: %w", runID, ErrRunNotFound)
 	}
+	dirs, err := s.notebookDirs()
+	if err != nil {
+		return nil, err
+	}
+	for _, dir := range dirs {
+		runs := filepath.Join(dir, notebook.RunsDir)
+		if fileExists(filepath.Join(runs, runID+".checkpoint.json")) || fileExists(filepath.Join(runs, runID+".json")) {
+			return notebook.Open(dir)
+		}
+	}
+	return nil, fmt.Errorf("%s: %w", runID, ErrRunNotFound)
+}
+
+// notebookDirs lists NotebookDirs, then the workspace's notebook folders.
+func (s *Service) notebookDirs() ([]string, error) {
+	dirs := append([]string(nil), s.NotebookDirs...)
 	entries, err := os.ReadDir(s.Workspace)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("list workspace: %w", err)
 	}
 	for _, e := range entries {
-		if !e.IsDir() || !idPattern.MatchString(e.Name()) {
-			continue
-		}
-		runs := filepath.Join(s.Workspace, e.Name(), notebook.RunsDir)
-		if fileExists(filepath.Join(runs, runID+".checkpoint.json")) || fileExists(filepath.Join(runs, runID+".json")) {
-			return notebook.Open(filepath.Join(s.Workspace, e.Name()))
+		if e.IsDir() && idPattern.MatchString(e.Name()) &&
+			fileExists(filepath.Join(s.Workspace, e.Name(), notebook.ManifestFile)) {
+			dirs = append(dirs, filepath.Join(s.Workspace, e.Name()))
 		}
 	}
-	return nil, fmt.Errorf("%s: %w", runID, ErrRunNotFound)
+	return dirs, nil
 }
 
 func loadStored(nb *notebook.Notebook, runID string) (*storedRun, error) {
@@ -302,13 +315,13 @@ func (s *Service) Recover() error {
 
 // eachStored calls fn for every checkpoint in the workspace.
 func (s *Service) eachStored(fn func(*notebook.Notebook, *storedRun) error) error {
-	list, err := s.ListNotebooks()
+	dirs, err := s.notebookDirs()
 	if err != nil {
 		return err
 	}
 	var errs []error
-	for _, info := range list {
-		nb, err := s.OpenNotebook(info.ID)
+	for _, dir := range dirs {
+		nb, err := notebook.Open(dir)
 		if err != nil {
 			continue
 		}

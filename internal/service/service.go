@@ -52,6 +52,9 @@ type Service struct {
 	Templates     template.Library
 	ChatDir       string // chat sessions and memory; default: "chat" next to Workspace
 
+	// NotebookDirs are notebook folders outside Workspace to search for agent
+	// runs (the CLI passes --notebook).
+	NotebookDirs []string
 	// OnRunEvent receives agent run events (approval needed, finished, ...).
 	OnRunEvent func(RunEvent)
 	// Now is the clock; nil means time.Now.

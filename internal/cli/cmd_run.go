@@ -7,21 +7,75 @@ import (
 	"os"
 
 	"github.com/samautomateai/tessivo/internal/config"
-	"github.com/samautomateai/tessivo/internal/executor"
 	"github.com/samautomateai/tessivo/internal/extract"
 	"github.com/samautomateai/tessivo/internal/notebook"
 	"github.com/samautomateai/tessivo/internal/service"
 )
 
 type runOpts struct {
-	workType, prompt, promptName, model, thinking, out string
-	vars                                               multiFlag
-	asJSON, noSave, quiet                              bool
+	workType, prompt, promptName, model, thinking, out, mode string
+	vars, tools                                              multiFlag
+	asJSON, noSave, quiet                                    bool
 }
 
 func cmdRun(ctx context.Context, args []string, env Env) error {
+	if _, sub := runSubcommands[firstArg(args)]; sub {
+		return cmdRunAgent(ctx, args[0], args[1:], env)
+	}
+	o, pos, err := parseRunFlags(args, env)
+	if err != nil {
+		return err
+	}
+	f, err := loadConfig(env)
+	if err != nil {
+		return err
+	}
+	req, err := runRequest(o, pos, env)
+	if err != nil {
+		return err
+	}
+	svc, err := newService(f, env)
+	if err != nil {
+		return err
+	}
+	a := &agentCLI{svc: svc, env: env, quiet: o.quiet, opts: o}
+	if req.Notebook != nil {
+		a.nbDir = req.Notebook.Dir
+		svc.NotebookDirs = []string{req.Notebook.Dir}
+	}
+	out, err := svc.Run(ctx, req, a.onEvent)
+	if err != nil {
+		return cliErr(err)
+	}
+	return a.finish(ctx, out)
+}
+
+func runRequest(o runOpts, pos []string, env Env) (service.RunRequest, error) {
+	req := service.RunRequest{
+		WorkType: o.workType, Prompt: o.prompt, PromptName: o.promptName, Save: !o.noSave,
+		Overrides: config.RunSettings{Model: o.model, ThinkingEffort: o.thinking, Mode: o.mode},
+	}
+	var err error
+	if len(pos) == 1 && pos[0] != "-" {
+		if req.Notebook, err = notebook.Open(pos[0]); err != nil {
+			return req, err
+		}
+	}
+	if req.Vars, err = parseVars(o.vars); err != nil {
+		return req, err
+	}
+	if req.ToolRules, err = parseToolRules(o.tools); err != nil {
+		return req, err
+	}
+	req.Extra, err = stdinDocs(env)
+	return req, err
+}
+
+func parseRunFlags(args []string, env Env) (runOpts, []string, error) {
 	o := runOpts{}
 	fs := newFlags("run", env)
+	fs.StringVar(&o.mode, "mode", "", "pipeline or agent (agent: tool-using; tools may ask for approval)")
+	fs.Var(&o.tools, "tool", "agent tool rule name=allow|ask|block for this run (repeatable)")
 	fs.StringVar(&o.workType, "type", "", "work type when running without a notebook")
 	fs.StringVar(&o.prompt, "prompt", "", "prompt text (default: the work type's starter prompt)")
 	fs.StringVar(&o.promptName, "prompt-name", "", "use a saved notebook prompt")
@@ -31,50 +85,22 @@ func cmdRun(ctx context.Context, args []string, env Env) error {
 	fs.StringVar(&o.out, "out", "", "write the output to this file instead of stdout")
 	fs.BoolVar(&o.asJSON, "json", false, "print the structured JSON instead of Markdown")
 	fs.BoolVar(&o.noSave, "no-save", false, "do not save the run and output in the notebook")
-	fs.BoolVar(&o.quiet, "quiet", false, "do not stream progress to stderr")
+	fs.BoolVar(&o.quiet, "quiet", false, "do not stream progress to stderr or ask for approvals")
+	fs.Usage = func() {
+		_, _ = fmt.Fprintln(env.Stderr, "Usage: tess run [<notebook>] [flags]\n"+
+			"       tess run pending [--notebook DIR]\n"+
+			"       tess run approve <run> <approval> [--remember run|notebook] [--notebook DIR]\n"+
+			"       tess run deny|resume|cancel ... [--notebook DIR]\nFlags:")
+		fs.PrintDefaults()
+	}
 	pos, err := parse(fs, args)
 	if err != nil {
-		return err
+		return o, nil, err
 	}
 	if len(pos) > 1 {
-		return usagef("run: at most one notebook")
+		return o, nil, usagef("run: at most one notebook")
 	}
-	f, err := loadConfig(env)
-	if err != nil {
-		return err
-	}
-	req := service.RunRequest{
-		WorkType: o.workType, Prompt: o.prompt, PromptName: o.promptName, Save: !o.noSave,
-		Overrides: config.RunSettings{Model: o.model, ThinkingEffort: o.thinking},
-	}
-	if len(pos) == 1 && pos[0] != "-" {
-		if req.Notebook, err = notebook.Open(pos[0]); err != nil {
-			return err
-		}
-	}
-	if req.Vars, err = parseVars(o.vars); err != nil {
-		return err
-	}
-	if req.Extra, err = stdinDocs(env); err != nil {
-		return err
-	}
-	svc, err := newService(f, env)
-	if err != nil {
-		return err
-	}
-	onEvent := func(e executor.Event) {
-		if !o.quiet && e.Kind == executor.EventStatus {
-			_, _ = fmt.Fprintf(env.Stderr, "· %s\n", e.Text)
-		}
-	}
-	out, err := svc.Run(ctx, req, onEvent)
-	if err != nil {
-		if service.IsInvalid(err) {
-			return usageError{err.Error()}
-		}
-		return err
-	}
-	return writeResult(out, o, env)
+	return o, pos, nil
 }
 
 func newService(f config.File, env Env) (*service.Service, error) {

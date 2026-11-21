@@ -63,7 +63,8 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 ## CLI reference (current)
 
 `tess new`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
-`--prompt-name`, `--var`, `--model`, `--thinking`, `--json`, `--out`, `--no-save`), `tess outputs`,
+`--prompt-name`, `--var`, `--model`, `--thinking`, `--mode agent`, `--tool name=rule`, `--json`, `--out`, `--no-save`),
+`tess run pending|approve|deny|resume|cancel` (agent approvals; `--notebook DIR`, `--remember run|notebook`), `tess outputs`,
 `tess schedule add|list|remove|enable|disable|next`, `tess template`, `tess memory`, `tess serve`, `tess secret`, `tess audit`,
 `tess models`, `tess worktypes`, `tess config init|show|path`, `tess version`.
-Exit codes: 0 ok, 1 error, 2 usage, 3 output failed schema validation.
+Exit codes: 0 ok, 1 error, 2 usage, 3 output failed schema validation, 4 agent run waiting for approval.

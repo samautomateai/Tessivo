@@ -28,6 +28,7 @@ const (
 	ExitError         = 1
 	ExitUsage         = 2
 	ExitInvalidOutput = 3
+	ExitPaused        = 4 // an agent run is waiting for approval
 )
 
 // Env carries everything the CLI touches, so tests can replace it.
@@ -61,6 +62,7 @@ Usage:
   tess context list <notebook>
   tess context enable|disable <notebook> <id-or-label>
   tess run [<notebook>] [flags]             run a notebook, or pipe text: cat x | tess run --type summarize
+  tess run pending|approve|deny|resume|cancel ...   agent runs waiting for approval (see 'tess run -h')
   tess outputs <notebook>                   list saved outputs, newest first
   tess models [--provider NAME]             list models from configured providers
   tess worktypes                            list work types
@@ -78,7 +80,7 @@ Usage:
   tess config init|show|path
   tess version
 
-Run 'tess run -h' for run flags.`
+Run 'tess run -h' for run flags. Exit codes: 0 ok, 1 error, 2 usage, 3 invalid output, 4 waiting for approval.`
 
 // Main runs the CLI and returns the process exit code.
 func Main(ctx context.Context, args []string, env Env) int {
@@ -92,6 +94,9 @@ func Main(ctx context.Context, args []string, env Env) int {
 	case errors.As(err, new(usageError)):
 		_, _ = fmt.Fprintf(env.Stderr, "tess: %v\n\n%s\n", err, usage)
 		return ExitUsage
+	case errors.As(err, new(pausedError)):
+		_, _ = fmt.Fprintf(env.Stderr, "tess: %v\n", err)
+		return ExitPaused
 	case errors.Is(err, llm.ErrInvalidOutput):
 		_, _ = fmt.Fprintf(env.Stderr, "tess: %v\n", err)
 		return ExitInvalidOutput
