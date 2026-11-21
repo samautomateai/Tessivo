@@ -8,6 +8,8 @@ import 'models.dart';
 
 export 'json_mapping.dart';
 
+part 'http_chat.dart';
+
 /// Connection details the core writes to `run/endpoint.json` (0600).
 class Endpoint {
   const Endpoint({required this.network, required this.address, required this.token});
@@ -70,7 +72,7 @@ class CoreException implements Exception {
 
 /// Talks to the Go core's local API (docs/api.md) over a Unix socket or a
 /// loopback port, with the session token on every request.
-class HttpCoreClient implements CoreClient {
+class HttpCoreClient with _HttpChat implements CoreClient {
   HttpCoreClient(this.endpoint, {HttpClient? client}) : _client = client ?? HttpClient() {
     _client
       ..findProxy = ((_) => 'DIRECT')
@@ -93,6 +95,7 @@ class HttpCoreClient implements CoreClient {
     return Uri.parse('http://$host$path').replace(queryParameters: query);
   }
 
+  @override
   Future<HttpClientResponse> _send(String method, String path, {Object? body, Map<String, String>? query}) async {
     final req = await _client.openUrl(method, _uri(path, query));
     req.headers
@@ -105,6 +108,7 @@ class HttpCoreClient implements CoreClient {
     return req.close();
   }
 
+  @override
   Future<Map<String, Object?>> _json(String method, String path, {Object? body, Map<String, String>? query}) async {
     final resp = await _send(method, path, body: body, query: query);
     final text = await _readLimited(resp);

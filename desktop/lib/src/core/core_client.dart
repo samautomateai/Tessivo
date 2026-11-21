@@ -1,7 +1,13 @@
 import 'dart:async';
 
+import 'chat_models.dart';
+import 'checks.dart';
+import 'demo_chat.dart';
 import 'demo_templates.dart';
 import 'models.dart';
+
+export 'chat_models.dart';
+export 'checks.dart';
 
 /// The desktop app's view of the Go core. `HttpCoreClient` talks to the local
 /// API (docs/api.md); [DemoCoreClient] serves sample data when no core runs.
@@ -27,6 +33,27 @@ abstract interface class CoreClient {
   Future<Notebook> createFromTemplate(String templateId, {String? name});
   Future<TemplateInfo> saveAsTemplate(String notebookId, {required String name, String description});
   Future<void> deleteTemplate(String templateId);
+
+  Future<List<ChatSummary>> listChats({String query, bool archived});
+  Future<ChatSession> createChat({String title, String model, String thinkingEffort});
+  Future<ChatSession> getChat(String chatId);
+  Future<ChatSession> updateChat(
+    String chatId, {
+    String? title,
+    bool? pinned,
+    bool? archived,
+    String? model,
+    String? thinkingEffort,
+  });
+  Future<void> deleteChat(String chatId);
+
+  /// Streams a reply. Cancelling the subscription stops it; the core keeps the partial reply.
+  Stream<ChatEvent> sendChat(String chatId, String text, {List<ChatAttachment> attachments});
+  Future<List<String>> chatMemory();
+  Future<List<String>> setChatMemory(List<String> memory);
+  Future<RepeatablePlan> planRepeatable(String chatId);
+  Future<Notebook> makeRepeatable(String chatId, {String? name, WorkTypeId? workType, String? templateId});
+  Future<ChatOutput> saveReply(String chatId, String messageId, WorkTypeId workType);
 
   /// Live notifications (scheduled runs). Never completes while the core runs.
   Stream<CoreEvent> events();
@@ -64,10 +91,13 @@ const builtInWorkTypes = <WorkType>[
 ];
 
 /// In-memory core with sample data, used when no core can be reached.
-class DemoCoreClient implements CoreClient {
+class DemoCoreClient with DemoChat implements CoreClient {
   DemoCoreClient({Duration tick = const Duration(milliseconds: 40)}) : _tick = tick;
 
   final Duration _tick;
+
+  @override
+  Duration get chatTick => _tick;
   int _nextId = 100;
   final Map<String, List<ScheduleInfo>> _schedules = {
     'nb-4': const [
@@ -349,23 +379,5 @@ class DemoCoreClient implements CoreClient {
       ),
     ];
     return workType == null ? all : all.where((o) => o.workType == workType).toList();
-  }
-}
-
-/// Context paths must be absolute (the core resolves nothing relative to itself).
-void checkContextPath(String path) {
-  final absolute = path.startsWith('/') || RegExp(r'^[A-Za-z]:[\\/]').hasMatch(path) || path.startsWith(r'\\');
-  if (path.trim() != path || path.isEmpty || !absolute) {
-    throw const FormatException('Use an absolute path, for example /Users/me/project');
-  }
-}
-
-/// Mirrors the core's memory limits for fast feedback.
-void checkMemory(List<String> memory) {
-  if (memory.length > maxMemoryItems) {
-    throw const FormatException('Keep memory to $maxMemoryItems items');
-  }
-  if (memory.any((m) => m.trim().isEmpty || m.length > maxMemoryItemLength)) {
-    throw const FormatException('Each memory item must be 1–$maxMemoryItemLength characters');
   }
 }

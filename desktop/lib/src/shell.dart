@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'app_state.dart';
+import 'screens/chat_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/new_notebook_dialog.dart';
 import 'screens/schedules_screen.dart';
@@ -45,6 +46,7 @@ class AppShell extends StatelessWidget {
   }
 
   Widget _content() => switch (state.section) {
+    Section.chat => ChatScreen(state: state),
     Section.notebooks => WorkspaceScreen(state: state),
     Section.templates => TemplatesScreen(state: state),
     Section.schedules => SchedulesScreen(state: state),
@@ -76,7 +78,13 @@ class _Sidebar extends StatelessWidget {
             label: const Text('New notebook'),
             style: FilledButton.styleFrom(backgroundColor: Tokens.accent),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          _NavItem(
+            label: 'Chat',
+            selected: state.section == Section.chat,
+            onTap: () => state.go(Section.chat),
+          ),
+          const SizedBox(height: 8),
           const _Caption('NOTEBOOKS'),
           Expanded(
             child: ListView(

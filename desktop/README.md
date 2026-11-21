@@ -12,6 +12,13 @@ task desktop:run     # run on this OS
 task desktop:check   # format check, analyze (fatal infos), tests with coverage ≥ 80%
 ```
 
+**Chat** lists sessions (search, pin, rename, archive, delete) beside the open conversation. Replies
+stream in and render Markdown (headings, lists, tables, code; no HTML, links or images are loaded);
+**Stop** cancels the stream and the core keeps the partial reply. Each chat picks its model alias and
+thinking effort. Attach files or folders by absolute path, or a notebook's context. **Memory** holds
+facts every chat sees. **Save as output** restructures a reply into a validated Summarize, Analyze,
+Document or Report output; **Make this repeatable** previews and creates a notebook from the chat.
+
 In a notebook, **Add** takes an absolute file or folder path (checked before it is sent; there is no
 file-picker package), and **Memory** keeps up to 50 short facts sent with every run. The outputs library
 opens a saved output's Markdown. **Settings** shows the core's aliases, fallback chains, defaults,

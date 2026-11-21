@@ -1,3 +1,4 @@
+import 'chat_models.dart';
 import 'models.dart';
 
 // Maps the core's JSON (docs/api.md) to UI models. Every field is optional and
@@ -110,7 +111,8 @@ List<String> _strings(Object? v) => v is List ? v.whereType<String>().toList() :
 
 int? _int(Object? v) => v is num ? v.toInt() : null;
 
-Map<String, Object?> _map(Object? v) => v is Map<String, Object?> ? v : const {};
+/// A JSON object, or an empty one when [v] is anything else.
+Map<String, Object?> jsonObject(Object? v) => v is Map<String, Object?> ? v : const {};
 
 OutputDetail outputDetailFromJson(Map<String, Object?> j) => OutputDetail(
   id: j['id'] as String? ?? '',
@@ -120,8 +122,8 @@ OutputDetail outputDetailFromJson(Map<String, Object?> j) => OutputDetail(
 
 /// Reads only the fields the UI shows: provider headers are skipped entirely.
 SettingsInfo settingsFromJson(Map<String, Object?> j) {
-  final defaults = _map(j['defaults']);
-  final limits = _map(j['limits']);
+  final defaults = jsonObject(j['defaults']);
+  final limits = jsonObject(j['limits']);
   return SettingsInfo(
     providers: jsonList(j['providers'])
         .map(
@@ -155,3 +157,60 @@ Map<String, List<String>> modelsFromJson(Map<String, Object?> j) {
   if (m is! Map<String, Object?>) return const {};
   return {for (final e in m.entries) e.key: [..._strings(e.value)]..sort()};
 }
+
+ChatAttachment chatAttachmentFromJson(Map<String, Object?> j) => ChatAttachment(
+  kind: j['kind'] as String? ?? '',
+  ref: j['ref'] as String? ?? '',
+  label: j['label'] as String? ?? '',
+  tokens: _int(j['tokens']) ?? 0,
+);
+
+ChatMessage chatMessageFromJson(Map<String, Object?> j) => ChatMessage(
+  id: j['id'] as String? ?? '',
+  role: j['role'] == 'user' ? 'user' : 'assistant',
+  content: j['content'] as String? ?? '',
+  createdAt: j['createdAt'] as String? ?? '',
+  model: j['model'] as String?,
+  stopped: j['stopped'] as bool? ?? false,
+  error: j['error'] as String?,
+  attachments: jsonList(j['attachments']).map(chatAttachmentFromJson).toList(),
+);
+
+ChatSummary chatSummaryFromJson(Map<String, Object?> j) => ChatSummary(
+  id: j['id'] as String? ?? '',
+  title: j['title'] as String? ?? '',
+  pinned: j['pinned'] as bool? ?? false,
+  archived: j['archived'] as bool? ?? false,
+  updatedAt: j['updatedAt'] as String? ?? '',
+  messageCount: _int(j['messageCount']) ?? 0,
+  preview: j['preview'] as String? ?? '',
+);
+
+ChatSession chatSessionFromJson(Map<String, Object?> j) => ChatSession(
+  id: j['id'] as String? ?? '',
+  title: j['title'] as String? ?? '',
+  pinned: j['pinned'] as bool? ?? false,
+  archived: j['archived'] as bool? ?? false,
+  model: j['model'] as String? ?? '',
+  thinkingEffort: j['thinkingEffort'] as String? ?? '',
+  messages: jsonList(j['messages']).map(chatMessageFromJson).toList(),
+);
+
+RepeatablePlan repeatablePlanFromJson(Map<String, Object?> j) => RepeatablePlan(
+  name: j['name'] as String? ?? '',
+  workType: workTypeFrom(j['workType']),
+  prompt: j['prompt'] as String? ?? '',
+  templateId: j['templateId'] as String?,
+  templateName: j['templateName'] as String?,
+  context: _strings(j['context']),
+  skipped: _strings(j['skipped']),
+);
+
+ChatOutput chatOutputFromJson(Map<String, Object?> j) => ChatOutput(
+  notebookId: j['notebookId'] as String? ?? '',
+  outputId: j['outputId'] as String? ?? '',
+  title: j['title'] as String? ?? '',
+);
+
+/// A JSON array of strings; other entries are dropped.
+List<String> jsonStrings(Object? v) => _strings(v);

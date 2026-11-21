@@ -45,12 +45,12 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Pinned notebook memory included in every run (`tess memory`, API) | MEM-1 | ☑ |
 | Desktop template gallery: filter by work type, use, save notebook as template, remove user templates | TPL-1, TPL-4 | ☑ |
 | Desktop: live settings and models, add context by path, memory, open outputs | SET-1, NB-1, REP-1 | ☑ |
-| Chat core: sessions (new, rename, pin, search, archive, delete), streaming replies with stop, model and thinking per session | CHAT-1, CHAT-2 | ◐ (core, API, CLI ☑; desktop ☐) |
-| Chat attachments: files, folders, notebooks, outputs; kept for later turns | CHAT-3 | ◐ (core and API ☑; URLs and desktop ☐) |
+| Chat core: sessions (new, rename, pin, search, archive, delete), streaming replies with stop, model and thinking per session | CHAT-1, CHAT-2 | ☑ |
+| Chat attachments: files, folders, notebooks, outputs; kept for later turns | CHAT-3 | ◐ (files, folders, notebooks ☑; URLs ☐) |
 | Chat uses enabled MCP tools | CHAT-4 | ☐ (needs MCP) |
-| Global chat memory, separate from notebook memory | CHAT-5 | ◐ (core and API ☑; desktop ☐) |
-| Make a chat repeatable as a notebook (suggested work type, template, prompt, context) | CHAT-6 | ◐ (core, API, CLI ☑; desktop ☐) |
-| Save a chat reply as a validated output in the library | CHAT-7 | ◐ (core, API, CLI ☑; desktop ☐) |
+| Global chat memory, separate from notebook memory | CHAT-5 | ☑ |
+| Make a chat repeatable as a notebook (suggested work type, template, prompt, context) | CHAT-6 | ☑ |
+| Save a chat reply as a validated output in the library | CHAT-7 | ☑ |
 | `tess chat`: one-shot, piped and interactive; list, show, rename, pin, archive, delete, memory, repeat, save | CHAT-9 | ☑ |
 
 ## CLI reference (current)

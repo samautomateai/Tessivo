@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
+import 'chat_state.dart';
 import 'core/core_client.dart';
 import 'core/models.dart';
 
-enum Section { notebooks, templates, schedules, library, settings }
+enum Section { chat, notebooks, templates, schedules, library, settings }
 
 /// App-wide state on a plain [ChangeNotifier] (no state-management package).
 class AppState extends ChangeNotifier {
@@ -75,6 +76,7 @@ class AppState extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     stopEvents();
+    chat.dispose();
     super.dispose();
   }
 
@@ -138,6 +140,15 @@ class AppState extends ChangeNotifier {
     final nb = await core.createNotebook(name: name, workType: type);
     notebooks = await core.listNotebooks();
     select(nb.id);
+  }
+
+  /// Chat view state, created on first use.
+  late final ChatState chat = ChatState(core);
+
+  /// Reloads the notebook list and opens [id] (e.g. a notebook made from a chat).
+  Future<void> openNotebook(String id) async {
+    notebooks = await core.listNotebooks();
+    select(id);
   }
 
   /// Creates a notebook from a template and opens it.
