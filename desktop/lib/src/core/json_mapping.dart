@@ -1,4 +1,5 @@
 import 'chat_models.dart';
+import 'mcp_models.dart';
 import 'models.dart';
 import 'thread_models.dart';
 
@@ -80,12 +81,15 @@ Notebook notebookFromJson(Map<String, Object?> j) => Notebook(
   workType: workTypeFrom(j['workType']),
   context: jsonList(j['context']).map(contextFromJson).toList(),
   memory: _strings(j['memory']),
+  mcpServers: _strings(j['mcpServers']),
 );
 
 ContextItem contextFromJson(Map<String, Object?> j) {
   final label = j['label'] as String? ?? '';
   final dot = label.lastIndexOf('.');
-  final kind = (j['inPlace'] as bool? ?? false)
+  final kind = j['kind'] == 'mcp-resource'
+      ? 'MCP · ${j['server'] as String? ?? ''}'
+      : (j['inPlace'] as bool? ?? false)
       ? 'Folder'
       : (dot > 0 ? label.substring(dot + 1).toUpperCase() : 'File');
   return ContextItem(
@@ -253,4 +257,32 @@ Suggestion suggestionFromJson(Map<String, Object?> j) {
     reason: j['reason'] as String?,
     target: target is Map<String, Object?> ? promptTargetFromJson(target) : null,
   );
+}
+
+Map<String, String> _stringMap(Object? v) => {
+  if (v is Map)
+    for (final e in v.entries)
+      if (e.key is String && e.value is String) e.key as String: e.value as String,
+};
+
+McpServer mcpServerFromJson(Map<String, Object?> j) => McpServer(
+  name: j['name'] as String? ?? '',
+  command: j['command'] as String? ?? '',
+  args: _strings(j['args']),
+  url: j['url'] as String? ?? '',
+  env: _stringMap(j['env']),
+  headers: _stringMap(j['headers']),
+  allowInsecureHttp: j['allow_insecure_http'] as bool? ?? false,
+);
+
+McpTestResult mcpTestFromJson(Map<String, Object?> j) {
+  List<McpEntry> entries(String key) => [
+    for (final e in jsonList(j[key]))
+      McpEntry(
+        name: e['name'] as String? ?? '',
+        description: e['description'] as String? ?? '',
+        uri: e['uri'] as String? ?? '',
+      ),
+  ];
+  return McpTestResult(tools: entries('tools'), resources: entries('resources'), prompts: entries('prompts'));
 }

@@ -3,14 +3,18 @@ import 'dart:async';
 import 'chat_models.dart';
 import 'checks.dart';
 import 'demo_chat.dart';
+import 'demo_mcp.dart';
 import 'demo_templates.dart';
 import 'demo_threads.dart';
+import 'errors.dart';
+import 'mcp_models.dart';
 import 'models.dart';
 import 'thread_models.dart';
 
 export 'chat_models.dart';
 export 'checks.dart';
 export 'errors.dart';
+export 'mcp_models.dart';
 export 'thread_models.dart';
 
 /// The desktop app's view of the Go core. `HttpCoreClient` talks to the local
@@ -88,6 +92,14 @@ abstract interface class CoreClient {
   );
   Future<Suggestion> dismissSuggestion(String notebookId, String outputId, String suggestionId);
   Future<OutputSummary> newVersion(String notebookId, String outputId, {String? fromMessageId});
+
+  // MCP servers (docs/api.md, "MCP servers").
+  Future<List<McpServer>> listMcpServers();
+  Future<McpServer> addMcpServer(McpServer server);
+  Future<void> removeMcpServer(String name);
+  Future<McpTestResult> testMcpServer(String name);
+  Future<Notebook> setNotebookMcp(String notebookId, List<String> servers);
+  Future<Notebook> addMcpContext(String notebookId, String server, String uri);
 }
 
 const builtInWorkTypes = <WorkType>[
@@ -122,7 +134,7 @@ const builtInWorkTypes = <WorkType>[
 ];
 
 /// In-memory core with sample data, used when no core can be reached.
-class DemoCoreClient with DemoChat, DemoThreads implements CoreClient {
+class DemoCoreClient with DemoChat, DemoThreads, DemoMcp implements CoreClient {
   DemoCoreClient({Duration tick = const Duration(milliseconds: 40)}) : _tick = tick;
 
   final Duration _tick;
@@ -320,6 +332,29 @@ class DemoCoreClient with DemoChat, DemoThreads implements CoreClient {
       enabled: true,
       estimatedTokens: 2000,
     );
+    final updated = nb.copyWith(context: [...nb.context, item]);
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Notebook> setNotebookMcp(String notebookId, List<String> servers) async {
+    for (final s in servers) {
+      if (!demoMcpServers.any((m) => m.name == s)) throw CoreException(400, 'mcp server "$s" is not configured');
+    }
+    final updated = _find(notebookId).copyWith(mcpServers: List.unmodifiable(servers.toSet().toList()));
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Notebook> addMcpContext(String notebookId, String server, String uri) async {
+    if (!demoMcpServers.any((m) => m.name == server)) {
+      throw CoreException(400, 'mcp server "$server" is not configured');
+    }
+    if (uri.trim().isEmpty) throw const CoreException(400, 'give a resource URI');
+    final nb = _find(notebookId);
+    final item = ContextItem(id: 'c${_nextId++}', label: uri, kind: 'MCP · $server', enabled: true, estimatedTokens: 0);
     final updated = nb.copyWith(context: [...nb.context, item]);
     _replace(updated);
     return updated;

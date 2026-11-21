@@ -140,6 +140,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     await refreshApprovals();
     if (selectedId case final id?) await _refresh(id);
+    await refreshMcpServers();
     await loadOutputs();
   }
 
@@ -178,6 +179,30 @@ class AppState extends ChangeNotifier {
   Future<void> addContext(String path) async {
     final nb = selected;
     if (nb != null) _put(await core.addContext(nb.id, path));
+  }
+
+  /// Configured MCP servers (loaded with the notebooks; refreshed on demand).
+  List<McpServer> mcpServers = const [];
+
+  Future<void> refreshMcpServers() async {
+    try {
+      mcpServers = await core.listMcpServers();
+    } on Object {
+      mcpServers = const []; // an older core without MCP
+    }
+    if (!_disposed) notifyListeners();
+  }
+
+  /// Sets the MCP servers the selected notebook's agent runs may use.
+  Future<void> setNotebookMcp(List<String> servers) async {
+    final nb = selected;
+    if (nb != null) _put(await core.setNotebookMcp(nb.id, servers));
+  }
+
+  /// Adds an MCP resource to the selected notebook's sources.
+  Future<void> addMcpContext(String server, String uri) async {
+    final nb = selected;
+    if (nb != null) _put(await core.addMcpContext(nb.id, server, uri));
   }
 
   /// Replaces the selected notebook's memory.
