@@ -94,6 +94,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/runs/{rid}/resume", s.resumeRun)
 	mux.HandleFunc("POST /v1/runs/{rid}/cancel", s.cancelRun)
 	mux.HandleFunc("GET /v1/runs/{rid}/events", s.runEvents)
+	s.threadRoutes(mux)
 	return s.secure(mux)
 }
 

@@ -48,6 +48,14 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/runs/{runId}/resume` | — | `202 {"status": "resuming"}` (interrupted runs, or paused runs with every approval answered) |
 | `POST /v1/runs/{runId}/cancel` | — | `204` |
 | `GET /v1/runs/{runId}/events` | — | SSE of a live run, always ending with a `status` event `{runId, status}`; a run not executing gets only that event |
+| `GET /v1/notebooks/{id}/outputs/{outputId}/thread` | — | `ChatSession` of the output's thread (empty if none yet) |
+| `PATCH …/outputs/{outputId}/thread` | `{model?, thinkingEffort?}` | `ChatSession` |
+| `POST …/outputs/{outputId}/thread/messages` | `{text, attachments?}` | SSE stream (see Output threads) |
+| `GET …/outputs/{outputId}/suggestions` | — | `{"suggestions": [Suggestion]}` |
+| `POST …/outputs/{outputId}/suggestions/generate` | — | `{"suggestions": [Suggestion]}` (the new ones) |
+| `POST …/outputs/{outputId}/suggestions/{suggestionId}/apply` | — | `{suggestion, promptName?}` |
+| `POST …/outputs/{outputId}/suggestions/{suggestionId}/dismiss` | — | `{suggestion}` |
+| `POST …/outputs/{outputId}/versions` | `{fromMessageId?}` | `201 Output` (`422` if the revision fails validation) |
 
 `Notebook`: `{id, name, workType, settings, createdAt, outputs, memory, template?, context: [{id, label, path,
 inPlace, enabled, addedAt, sources, estimatedTokens}]}`.
@@ -57,7 +65,9 @@ slots: [{name, kind, description, required}], memory, settings, schedule?: {cron
 source: "builtin"|"user", parentUpdate?, changedPrompts?}`. Templates never contain context data;
 anything that looks like a credential is rejected.
 
-`Output`: `{id, runId, workType, title, createdAt, notebookId, notebookName, data?, markdown?}`.
+`Output`: `{id, runId, workType, title, createdAt, notebookId, notebookName, version, parentId?, fromThread?,
+data?, markdown?}`. `version` is 1 for an original output and one more for each revision; `parentId` is the
+output a version revises and `fromThread` the thread reply it was made from.
 
 `Schedule`: `{id, cron, prompt, promptName, vars, overrides, missed: "skip"|"run_once", enabled,
 createdAt, notebookId, nextRun, history: [{scheduledFor, startedAt, durationMs, status, runId,
@@ -140,3 +150,36 @@ notebook, created on first use. Invalid output returns `422` and nothing is save
 A model failure ends with `event: error` and `{"status", "error", "reply"}`; the failed reply is
 stored with `stopped: true` and a short `error`. Closing the connection is the stop button: the
 partial reply is stored with `stopped: true`.
+
+## Output threads
+
+Each output has one thread (`…` above is `/v1/notebooks/{id}`), stored in the notebook's `threads/` folder and
+not listed with chats. A reply sees the output, the prompt behind it, the notebook's pinned memory and enabled
+context; global chat memory is not used. The model, thinking effort and stop button work as in chat. Messages
+with role `note` (for example "Saved as v2 (…)") are for the reader and never sent to the model.
+
+Sending validates first (`400`, `404` unknown notebook, output or run, `429`), then streams `delta`,
+`suggestion` (a `Suggestion`, once per suggestion the reply makes) and `finished`
+(`{"user", "assistant", "suggestions"}`); `event: error` carries `{"status", "error", "reply"}`, with status
+`409` when a reply or a new version is already running in that thread.
+
+`Suggestion`: `{id, kind: "memory"|"prompt", text, reason?, messageId?, status: "open"|"applied"|"dismissed",
+createdAt, decidedAt?, target?}`. `target` (prompt suggestions) says what applying changes:
+`{kind: "saved"|"schedule"|"new", promptName?, scheduleId?, schedules?: [scheduleId], current}`:
+
+- `saved`: the saved prompt the run used (directly or through its schedule); every schedule in `schedules`
+  uses it and changes with it.
+- `schedule`: that schedule's own prompt.
+- `new`: an ad-hoc run; applying saves a new prompt `refined-<n>` and returns its `promptName`.
+
+Suggestions come from the model's `suggest_memory` and `suggest_prompt` tools (at most 3 per reply) or from
+`suggestions/generate` (one structured call, for models without tool support). An output keeps at most 20 open
+suggestions. Applying a memory suggestion appends it to pinned memory (`409` when memory is full). Applying a
+prompt suggestion answers `409` if the prompt changed after the suggestion was made, and `400` if it adds a
+`{{variable}}` the runs do not set. Applying or dismissing a resolved suggestion answers `409`. Applies are
+audited as `suggestion.apply` (IDs, kind and a digest only).
+
+**New version.** The output's data and the thread up to `fromMessageId` (default: the latest reply) go through the
+pipeline with the notebook's current context, memory, prompt and model, also for agent-mode notebooks. The result
+is validated and saved as a new output with `parentId`; the parent never changes. Invalid output answers `422` and
+saves no output.
