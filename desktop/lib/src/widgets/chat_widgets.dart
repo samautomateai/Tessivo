@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
@@ -194,7 +196,7 @@ class _ComposerState extends State<Composer> {
                 icon: const Icon(Icons.attach_file),
                 onSelected: (v) {
                   if (v == 'path') {
-                    _attachPath();
+                    unawaited(_attachPath());
                   } else {
                     final nb = widget.state.notebooks.firstWhere((n) => n.id == v);
                     chat.attach(ChatAttachment(kind: 'notebook', ref: nb.id, label: nb.name));

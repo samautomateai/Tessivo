@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
@@ -26,7 +28,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
   @override
   void initState() {
     super.initState();
-    _reload();
+    unawaited(_reload());
   }
 
   Future<void> _reload() async {
@@ -122,7 +124,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
     selected: _filter == w,
     onSelected: (_) {
       setState(() => _filter = w);
-      _reload();
+      unawaited(_reload());
     },
   );
 }

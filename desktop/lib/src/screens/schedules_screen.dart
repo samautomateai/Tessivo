@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
@@ -32,13 +34,13 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   @override
   void initState() {
     super.initState();
-    _reload();
+    unawaited(_reload());
   }
 
   @override
   void didUpdateWidget(SchedulesScreen old) {
     super.didUpdateWidget(old);
-    if (_loadedFor != _notebookId) _reload();
+    if (_loadedFor != _notebookId) unawaited(_reload());
   }
 
   @override

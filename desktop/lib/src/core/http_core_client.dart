@@ -36,9 +36,16 @@ class Endpoint {
   /// Reads the endpoint file; returns null when the core is not running.
   static Future<Endpoint?> discover({String? path, Map<String, String>? environment}) async {
     final file = File(path ?? defaultEndpointPath(environment ?? Platform.environment));
-    if (!await file.exists()) return null;
-    final raw = await file.readAsString();
-    if (raw.length > 64 * 1024) throw const FormatException('endpoint file is too large');
+    const maxBytes = 64 * 1024;
+    final String raw;
+    try {
+      // Check the size before reading: the file is outside our control.
+      if (await file.length() > maxBytes) throw const FormatException('endpoint file is too large');
+      raw = await file.readAsString();
+    } on PathNotFoundException {
+      return null; // the core is not running
+    }
+    if (raw.length > maxBytes) throw const FormatException('endpoint file is too large');
     final decoded = jsonDecode(raw);
     if (decoded is! Map<String, Object?>) throw const FormatException('endpoint file is not an object');
     return Endpoint.fromJson(decoded);

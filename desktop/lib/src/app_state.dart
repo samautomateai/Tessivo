@@ -34,7 +34,7 @@ class AppState extends ChangeNotifier {
 
   /// Subscribes to core events and reconnects with capped backoff.
   void listenForEvents() {
-    _events?.cancel();
+    unawaited(_events?.cancel());
     _events = core.events().listen(
       (e) {
         _retry = const Duration(seconds: 2);
@@ -66,7 +66,7 @@ class AppState extends ChangeNotifier {
 
   /// Stops listening; pending reconnects become no-ops.
   void stopEvents() {
-    _events?.cancel();
+    unawaited(_events?.cancel());
     _events = null;
   }
 
@@ -183,7 +183,7 @@ class AppState extends ChangeNotifier {
         }
         notifyListeners();
       }
-    } catch (err) {
+    } on Object catch (err) {
       status = 'Run failed: $err';
     } finally {
       running = false;

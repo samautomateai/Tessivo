@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
@@ -25,8 +27,8 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    chat.load();
-    _loadModels();
+    unawaited(chat.load());
+    unawaited(_loadModels());
   }
 
   Future<void> _loadModels() async {
