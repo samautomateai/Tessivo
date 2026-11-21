@@ -118,7 +118,7 @@ func newService(f config.File, env Env) (*service.Service, error) {
 	}
 	return &service.Service{
 		Config: f, Secrets: env.Secrets, NewModel: service.ModelFactory(env.NewModel),
-		Workspace: ws, UserAuditPath: userAudit, Actor: "cli", Templates: lib,
+		Workspace: ws, UserAuditPath: userAudit, Actor: "cli", Templates: lib, ConfigPath: env.ConfigPath,
 	}, nil
 }
 

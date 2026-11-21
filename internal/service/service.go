@@ -51,6 +51,7 @@ type Service struct {
 	Actor         string // cli, desktop, scheduler
 	Templates     template.Library
 	ChatDir       string // chat sessions and memory; default: "chat" next to Workspace
+	ConfigPath    string // the config file MCP server changes are written to; "" keeps them in memory
 
 	// NotebookDirs are notebook folders outside Workspace to search for agent
 	// runs (the CLI passes --notebook).
@@ -60,6 +61,7 @@ type Service struct {
 	// Now is the clock; nil means time.Now.
 	Now func() time.Time
 
+	cfgMu    sync.RWMutex // guards Config.MCP, which the API can change
 	jobsOnce sync.Once
 	jobs     *jobTable
 }
