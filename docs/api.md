@@ -61,14 +61,15 @@ anything that looks like a credential is rejected.
 
 `Schedule`: `{id, cron, prompt, promptName, vars, overrides, missed: "skip"|"run_once", enabled,
 createdAt, notebookId, nextRun, history: [{scheduledFor, startedAt, durationMs, status, runId,
-outputId, error}]}`. Cron: five fields, names, ranges, steps, lists, `@daily`-style macros and an
+outputId, error}]}` (status `ok`, `failed`, `skipped` or `waiting_approval`). Cron: five fields, names, ranges, steps, lists, `@daily`-style macros and an
 optional `CRON_TZ=Area/City` prefix; otherwise the core's local time zone.
 
 ## Events stream
 
 Each event is `event: event` with `data: {kind, notebookId, notebookName, scheduleId,
 scheduledFor, runId?, outputId?, title?, error?, time}` where `kind` is `schedule.started`,
-`schedule.finished`, `schedule.failed` or `schedule.skipped`. Slow subscribers drop events;
+`schedule.finished`, `schedule.failed`, `schedule.skipped` or `schedule.paused` (an agent run waits for approval;
+later occurrences are skipped with `error: "previous run awaiting approval"` until it is answered). Slow subscribers drop events;
 at most 16 streams at once.
 
 Agent runs add events with `{kind, runId, notebookId, notebookName, scheduleId?, approvalId?, tool?, error?,

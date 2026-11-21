@@ -232,3 +232,99 @@ func TestRunLoopStopsOnCancel(t *testing.T) {
 		t.Fatal("defaults")
 	}
 }
+
+// queue answers from a list of replies.
+type queue struct {
+	mu      sync.Mutex
+	replies []llm.Response
+}
+
+func (q *queue) ChatStream(context.Context, llm.Request, func(string)) (llm.Result, error) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if len(q.replies) == 0 {
+		return llm.Result{}, errors.New("no reply queued")
+	}
+	r := q.replies[0]
+	q.replies = q.replies[1:]
+	return llm.Result{Response: r, Target: "litellm/m"}, nil
+}
+
+// agentSchedule makes an every-minute agent schedule whose first run asks to
+// use grep (rule: ask), with a code folder to search.
+func agentSchedule(t *testing.T, h *harness) string {
+	t.Helper()
+	q := &queue{replies: []llm.Response{
+		{ToolCalls: []llm.ToolCall{{ID: "c1", Name: "grep", Arguments: `{"pattern":"x"}`}}},
+		{Content: "done"},
+		{Content: summary},
+	}}
+	h.svc.NewModel = func(config.File, config.Alias, secrets.Resolver) (executor.Model, error) { return q, nil }
+	h.svc.Config.Agent.Tools = map[string]string{"grep": "ask"}
+	src := t.TempDir()
+	if _, err := h.svc.AddContext(h.nbID, src); err != nil {
+		t.Fatal(err)
+	}
+	nb, _ := h.svc.OpenNotebook(h.nbID)
+	sch := notebook.Schedule{
+		ID: "agent", Cron: "* * * * *", Missed: notebook.MissedSkip, Enabled: true,
+		CreatedAt: h.now.Format(time.RFC3339),
+		Overrides: config.RunSettings{Mode: config.ModeAgent},
+	}
+	if err := nb.SaveSchedules([]notebook.Schedule{sch}); err != nil {
+		t.Fatal(err)
+	}
+	return sch.ID
+}
+
+func TestScheduledAgentRunPauses(t *testing.T) {
+	h := newHarness(t)
+	id := agentSchedule(t, h)
+	h.set(h.now.Add(70 * time.Second))
+	h.sched.Tick(context.Background())
+	h.sched.Wait()
+	if got := h.kinds(); len(got) != 2 || got[1] != EventPaused {
+		t.Fatalf("events: %v", got)
+	}
+	hist := h.history(t, id)
+	if len(hist) != 1 || hist[0].Status != "waiting_approval" || hist[0].RunID == "" {
+		t.Fatalf("history: %+v", hist)
+	}
+}
+
+func TestSkipWhilePending(t *testing.T) {
+	h := newHarness(t)
+	id := agentSchedule(t, h)
+	h.set(h.now.Add(70 * time.Second))
+	h.sched.Tick(context.Background())
+	h.sched.Wait()
+	h.set(h.now.Add(60 * time.Second))
+	h.sched.Tick(context.Background())
+	h.sched.Wait()
+	got := h.kinds()
+	if len(got) != 3 || got[2] != EventSkipped || h.events[2].Error != "previous run awaiting approval" {
+		t.Fatalf("events: %v (%+v)", got, h.events)
+	}
+	pending, err := h.svc.Pending()
+	if err != nil || len(pending) != 1 {
+		t.Fatalf("pending: %+v %v", pending, err)
+	}
+	if err := h.svc.Answer(pending[0].RunID, pending[0].ApprovalID, "allow", ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.svc.Resume(context.Background(), pending[0].RunID, nil); err != nil {
+		t.Fatal(err)
+	}
+	h.svc.NewModel = func(config.File, config.Alias, secrets.Resolver) (executor.Model, error) {
+		return &queue{replies: []llm.Response{{Content: "done"}, {Content: summary}}}, nil
+	}
+	h.set(h.now.Add(60 * time.Second))
+	h.sched.Tick(context.Background())
+	h.sched.Wait()
+	if got := h.kinds(); got[len(got)-1] != EventFinished {
+		t.Fatalf("after the approval the next occurrence must run: %v", got)
+	}
+	if hist := h.history(t, id); len(hist) != 3 {
+		t.Fatalf("history: %+v", hist)
+	}
+}

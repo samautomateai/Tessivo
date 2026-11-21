@@ -20,6 +20,7 @@ const (
 	EventFinished = "schedule.finished"
 	EventFailed   = "schedule.failed"
 	EventSkipped  = "schedule.skipped"
+	EventPaused   = "schedule.paused" // an agent run is waiting for approval
 )
 
 // Event describes something the scheduler did.
@@ -170,6 +171,10 @@ func (s *Scheduler) checkNotebook(ctx context.Context, id string, nb *notebook.N
 		}
 		occ, run, missed := s.due(c, sch, rs, now)
 		if occ.IsZero() || s.isRunning(id, sch.ID) {
+			continue
+		}
+		if s.Svc.PendingForSchedule(id, sch.ID) {
+			s.skip(id, nb, sch, occ, "previous run awaiting approval")
 			continue
 		}
 		s.handle(ctx, id, nb, sch, occ, run, missed)

@@ -14,20 +14,11 @@ import (
 func (s *Scheduler) handle(ctx context.Context, id string, nb *notebook.Notebook, sch notebook.Schedule,
 	occ time.Time, run, missed bool,
 ) {
-	base := Event{
-		NotebookID: id, NotebookName: nb.Manifest.Name, ScheduleID: sch.ID,
-		ScheduledFor: occ.UTC().Format(time.RFC3339),
-	}
 	if !run {
-		entry := notebook.HistoryEntry{
-			ScheduledFor: base.ScheduledFor, StartedAt: s.stamp(), Status: "skipped",
-			Error: "missed while Tessivo was not running",
-		}
-		s.update(nb, sch.ID, occ, &entry)
-		base.Kind, base.Error = EventSkipped, entry.Error
-		s.emit(base)
+		s.skip(id, nb, sch, occ, "missed while Tessivo was not running")
 		return
 	}
+	base := baseEvent(id, nb, sch, occ)
 	s.update(nb, sch.ID, occ, nil)
 	key := id + "/" + sch.ID
 	s.setRunning(key, true)
@@ -45,6 +36,24 @@ func (s *Scheduler) handle(ctx context.Context, id string, nb *notebook.Notebook
 	}()
 }
 
+func baseEvent(id string, nb *notebook.Notebook, sch notebook.Schedule, occ time.Time) Event {
+	return Event{
+		NotebookID: id, NotebookName: nb.Manifest.Name, ScheduleID: sch.ID,
+		ScheduledFor: occ.UTC().Format(time.RFC3339),
+	}
+}
+
+// skip records an occurrence that does not run, with the reason.
+func (s *Scheduler) skip(id string, nb *notebook.Notebook, sch notebook.Schedule, occ time.Time, reason string) {
+	base := baseEvent(id, nb, sch, occ)
+	entry := notebook.HistoryEntry{
+		ScheduledFor: base.ScheduledFor, StartedAt: s.stamp(), Status: "skipped", Error: reason,
+	}
+	s.update(nb, sch.ID, occ, &entry)
+	base.Kind, base.Error = EventSkipped, reason
+	s.emit(base)
+}
+
 func (s *Scheduler) execute(ctx context.Context, nb *notebook.Notebook, sch notebook.Schedule, base Event,
 	missed bool,
 ) {
@@ -54,7 +63,7 @@ func (s *Scheduler) execute(ctx context.Context, nb *notebook.Notebook, sch note
 	s.emit(started)
 	out, err := s.Svc.Run(ctx, service.RunRequest{
 		Notebook: nb, Prompt: sch.Prompt, PromptName: sch.PromptName, Vars: sch.Vars,
-		Overrides: sch.Overrides, Save: true, Actor: "scheduler",
+		Overrides: sch.Overrides, Save: true, Actor: "scheduler", ScheduleID: sch.ID,
 	}, nil)
 	entry := notebook.HistoryEntry{
 		ScheduledFor: base.ScheduledFor, StartedAt: start.UTC().Format(time.RFC3339),
@@ -65,10 +74,14 @@ func (s *Scheduler) execute(ctx context.Context, nb *notebook.Notebook, sch note
 	}
 	done := base
 	done.RunID, done.OutputID = out.RunID, out.OutputID
-	if err != nil {
+	switch {
+	case err != nil:
 		entry.Status, entry.Error = "failed", err.Error()
 		done.Kind, done.Error = EventFailed, err.Error()
-	} else {
+	case len(out.Paused) > 0:
+		entry.Status = notebook.StatusWaiting
+		done.Kind = EventPaused
+	default:
 		done.Kind, done.Title = EventFinished, titleOf(out)
 	}
 	s.update(nb, sch.ID, time.Time{}, &entry)
