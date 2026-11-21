@@ -45,7 +45,11 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Pinned notebook memory included in every run (`tess memory`, API) | MEM-1 | ☑ |
 | Desktop template gallery: filter by work type, use, save notebook as template, remove user templates | TPL-1, TPL-4 | ☑ |
 | Desktop: live settings and models, add context by path, memory, open outputs | SET-1, NB-1, REP-1 | ☑ |
-| Chat | CHAT-1–CHAT-7 | ☐ |
+| Chat core: sessions (new, rename, pin, search, archive, delete), streaming replies with stop, model and thinking per session | CHAT-1, CHAT-2 | ◐ (core and API ☑; desktop ☐) |
+| Chat attachments: files, folders, notebooks, outputs; kept for later turns | CHAT-3 | ◐ (core and API ☑; URLs and desktop ☐) |
+| Chat uses enabled MCP tools | CHAT-4 | ☐ (needs MCP) |
+| Global chat memory, separate from notebook memory | CHAT-5 | ◐ (core and API ☑; desktop ☐) |
+| Make a chat repeatable as a notebook; save a reply as a validated output | CHAT-6, CHAT-7 | ☐ |
 
 ## CLI reference (current)
 

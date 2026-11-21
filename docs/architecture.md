@@ -28,7 +28,19 @@
 | `cron` | Five-field cron parser; DST-safe next-time computation in the schedule's zone. |
 | `scheduler` | Runs notebook schedules inside `tess serve`: records each occurrence before running, no overlap, bounded concurrency, skip/run_once after downtime, history and events. |
 | `template` | Built-in and user templates (0600 JSON in the config dir): validate (limits, no secrets), apply to a notebook, capture from a notebook, extend with parent lineage, parent-update detection. |
+| `chat` | Chat sessions and global chat memory as 0600 JSON files (atomic, fsynced); limits on titles, messages, attachments and session size; search; one streaming reply per session; prompt assembly (system prompt, memory, history trimmed to the context budget, attached context fenced as data). |
 | `cli` | `tess` commands (including `tess serve`); `cmd/tess` only calls it. |
+
+## Chat store
+
+```
+~/Tessivo/chat/          (next to the notebooks workspace; Service.ChatDir overrides)
+  sessions/<id>.json     one session: settings and messages (id is 16 hex characters)
+  memory.json            global chat memory, separate from notebook memory
+```
+
+Chat replies are audited in the user-level audit log as `chat.message` entries (prompt digest,
+attachment refs, model, outcome), never the text itself.
 
 ## Notebook folder
 

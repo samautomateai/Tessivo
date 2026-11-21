@@ -63,6 +63,14 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/notebooks/{id}/schedules", s.addSchedule)
 	mux.HandleFunc("PATCH /v1/notebooks/{id}/schedules/{sid}", s.setSchedule)
 	mux.HandleFunc("DELETE /v1/notebooks/{id}/schedules/{sid}", s.deleteSchedule)
+	mux.HandleFunc("GET /v1/chats", s.listChats)
+	mux.HandleFunc("POST /v1/chats", s.createChat)
+	mux.HandleFunc("GET /v1/chats/{cid}", s.getChat)
+	mux.HandleFunc("PATCH /v1/chats/{cid}", s.updateChat)
+	mux.HandleFunc("DELETE /v1/chats/{cid}", s.deleteChat)
+	mux.HandleFunc("POST /v1/chats/{cid}/messages", s.sendChat)
+	mux.HandleFunc("GET /v1/chat-memory", s.chatMemory)
+	mux.HandleFunc("PUT /v1/chat-memory", s.setChatMemory)
 	return s.secure(mux)
 }
 

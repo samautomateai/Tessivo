@@ -25,6 +25,8 @@ holds credentials for model providers. Every control below exists in code and is
 | API abuse | 1 MiB bodies, strict JSON, header/read timeouts, ≤ 4 concurrent runs, panic recovery, errors redacted | `server` |
 | Path traversal via API | Notebooks addressed by `[a-z0-9-]` IDs inside the workspace; context paths must be absolute files the user picked | `service` |
 | Secrets or data leaking via shared templates | Templates hold prompts, slots, settings and memory only; context data is never captured; credential-looking text is rejected; files ≤ 256 KiB, strict JSON, 0600 | `template` |
+| Prompt injection through attached chat context | Attached text sits in `<source>` tags the system prompt marks as data; closing tags inside it are escaped; context capped at 3/5 of the budget | `chat/prompt.go` |
+| Chat store abuse | Sessions addressed by 16-hex IDs only; messages ≤ 64 KiB, replies ≤ 512 KiB, ≤ 20 attachments, ≤ 2000 messages, session files read ≤ 32 MiB; one reply per session at a time | `chat`, `service` |
 | Vulnerable dependencies | Standard library first; `go mod verify`, govulncheck, gosec, CodeQL, Dependabot | CI, `task audit` |
 
 ## Performance budgets

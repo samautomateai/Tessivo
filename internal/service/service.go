@@ -49,6 +49,7 @@ type Service struct {
 	UserAuditPath string // audit log for runs without a notebook
 	Actor         string // cli, desktop, scheduler
 	Templates     template.Library
+	ChatDir       string // chat sessions and memory; default: "chat" next to Workspace
 }
 
 // DefaultModelFactory builds an llm.Router.

@@ -32,6 +32,14 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/templates` | `{fromNotebook, name, id?, description?}` or `{extend, name, id?}` | `201 Template` |
 | `DELETE /v1/templates/{templateId}` | — | `204` (user templates only) |
 | `GET /v1/events` | — | SSE stream of scheduler events (keepalive comments every 25 s) |
+| `GET /v1/chats?q=&archived=` | — | `{"sessions": [ChatSummary]}` (pinned first, then newest) |
+| `POST /v1/chats` | `{title?, model?, thinkingEffort?}` | `201 ChatSession` |
+| `GET /v1/chats/{chatId}` | — | `ChatSession` with messages |
+| `PATCH /v1/chats/{chatId}` | `{title?, pinned?, archived?, model?, thinkingEffort?}` | `ChatSession` |
+| `DELETE /v1/chats/{chatId}` | — | `204` |
+| `POST /v1/chats/{chatId}/messages` | `{text, attachments?: [{kind, ref, label?}]}` | SSE stream (see below) |
+| `GET /v1/chat-memory` | — | `{"memory": [string]}` |
+| `PUT /v1/chat-memory` | `{memory: [string]}` (≤ 50 items, ≤ 1000 chars) | `{"memory": [string]}` |
 
 `Notebook`: `{id, name, workType, settings, createdAt, outputs, memory, template?, context: [{id, label, path,
 inPlace, enabled, addedAt, sources, estimatedTokens}]}`.
@@ -70,3 +78,30 @@ data: {"runId","outputId","valid","modelUsed","strategy","totalTokens","attempts
 
 A failed run ends with `event: error` and `{"status": 422, "error": "…"}`. Closing the
 connection cancels the run.
+
+## Chat
+
+`ChatSession`: `{id, title, pinned?, archived?, model?, thinkingEffort?, createdAt, updatedAt,
+messages: [ChatMessage]}`; `model` and `thinkingEffort` left empty use the app defaults.
+`ChatSummary`: `{id, title, pinned?, archived?, model?, updatedAt, messageCount, preview}`.
+`ChatMessage`: `{id, role: "user"|"assistant", content, createdAt, model?, stopped?, error?,
+tokens?, attachments?: [{kind, ref, label, tokens}]}`.
+
+Attachment kinds: `path` (absolute file or folder), `notebook` (its enabled context) and
+`output` (`ref` is `notebookID/outputID`). Context attached to earlier messages stays available
+to later turns. Search (`q`, ≤ 200 chars) matches titles and message text, case-insensitively.
+
+Sending validates first (`400` bad message, `404` unknown chat, `409` a reply is already
+streaming in that chat, `429` too many runs and replies), then streams:
+
+```
+event: delta
+data: {"text":"Rotate "}
+
+event: finished
+data: {"user": ChatMessage, "assistant": ChatMessage}
+```
+
+A model failure ends with `event: error` and `{"status", "error", "reply"}`; the failed reply is
+stored with `stopped: true` and a short `error`. Closing the connection is the stop button: the
+partial reply is stored with `stopped: true`.
