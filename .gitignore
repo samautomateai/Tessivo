@@ -26,12 +26,31 @@ profile.cov
 go.work
 go.work.sum
 
-# env file
+# Local environment and secrets (never commit these)
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+.claude/settings.local.json
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# Editor/IDE (shared .vscode settings may be committed deliberately)
+.idea/
+*.iml
+*.swp
+*~
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temporary files
+*.log
+*.tmp
 
 # Tessivo
 bin/

@@ -7,8 +7,7 @@ with the session token from `run/endpoint.json`. The app reuses a healthy core o
 and stops it on exit. If the core cannot start, the app falls back to `DemoCoreClient` sample data.
 
 ```sh
-task desktop:init    # once: generate macOS, Windows and Linux runners (flutter create)
-task desktop:run     # run on this OS
+task desktop:run     # run on this OS (needs the OS toolchain; task doctor prints the steps)
 task desktop:check   # pub get --enforce-lockfile, format check, analyze (fatal infos), tests with coverage ≥ 80%
 ```
 

@@ -14,6 +14,9 @@ analyzer:
   exclude:
     - lib/src/gen/**
     - build/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   rules:

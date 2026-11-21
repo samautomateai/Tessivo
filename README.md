@@ -39,7 +39,7 @@ task install        # reinstall every tool at its latest version
 task check          # every quality gate, Go and desktop: lengths, lint, coverage ≥ 80%, vulnerabilities
 task ci             # everything CI runs, locally: + text, tidy, build, race tests, fuzz smoke, desktop
 task build          # bin/tess
-task desktop:init   # once: generate Flutter platform runners
+task desktop:run    # run the desktop app on this OS
 task desktop:check  # format, analyze, test (coverage ≥ 80%) the desktop app
 ```
 

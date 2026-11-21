@@ -126,12 +126,6 @@ tasks:
       - go mod tidy
       - git diff --exit-code -- go.mod go.sum
 
-  desktop:init:
-    desc: Generate Flutter platform runners (macOS, Windows, Linux) once
-    dir: desktop
-    cmds:
-      - flutter create --platforms=macos,windows,linux --org dev.tessivo --project-name tessivo_desktop .
-
   desktop:check:
     desc: Analyze, format-check and test the Flutter app with coverage
     dir: desktop
