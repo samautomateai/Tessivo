@@ -10,6 +10,7 @@ import (
 
 	"github.com/samautomateai/tessivo/internal/notify"
 	"github.com/samautomateai/tessivo/internal/scheduler"
+	"github.com/samautomateai/tessivo/internal/service"
 )
 
 type fakeNotifier struct {
@@ -93,5 +94,38 @@ func TestStartNotes(t *testing.T) {
 	}
 	if n.count() != 1 {
 		t.Fatalf("want one note, got %d", n.count())
+	}
+}
+
+func TestRunNote(t *testing.T) {
+	cases := []struct {
+		e    service.RunEvent
+		body string
+		ok   bool
+	}{
+		{
+			service.RunEvent{Kind: service.RunApprovalNeeded, NotebookName: "Ops", Tool: "grep"},
+			"Approval needed: grep", true,
+		},
+		{
+			service.RunEvent{
+				Kind: service.RunFailed, NotebookName: "Ops", ScheduleID: "s1", Error: "Bearer sk-abcdefghijklmnop",
+			},
+			"", true,
+		},
+		{service.RunEvent{Kind: service.RunFailed, NotebookName: "Ops"}, "", false},
+		{service.RunEvent{Kind: service.RunFinished, NotebookName: "Ops"}, "", false},
+	}
+	for _, c := range cases {
+		n, ok := runNote(c.e)
+		if ok != c.ok || (c.body != "" && n.Body != c.body) {
+			t.Errorf("%s: %+v %v", c.e.Kind, n, ok)
+		}
+		if ok && n.Title != "Tessivo · Ops" {
+			t.Errorf("title %q", n.Title)
+		}
+		if strings.Contains(n.Body, "sk-abcdefghijklmnop") {
+			t.Errorf("secret not redacted: %q", n.Body)
+		}
 	}
 }

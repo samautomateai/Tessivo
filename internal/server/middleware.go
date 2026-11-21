@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/samautomateai/tessivo/internal/llm"
+	"github.com/samautomateai/tessivo/internal/notebook"
 	"github.com/samautomateai/tessivo/internal/secrets"
 	"github.com/samautomateai/tessivo/internal/service"
 )
@@ -118,7 +119,7 @@ func classify(err error) (int, string) {
 		return http.StatusBadRequest, msg
 	case errors.Is(err, service.ErrNotFound):
 		return http.StatusNotFound, msg
-	case errors.Is(err, service.ErrConflict):
+	case errors.Is(err, service.ErrConflict), errors.Is(err, notebook.ErrRunLocked):
 		return http.StatusConflict, msg
 	case errors.Is(err, llm.ErrInvalidOutput):
 		return http.StatusUnprocessableEntity, msg

@@ -7,6 +7,7 @@ import (
 	"github.com/samautomateai/tessivo/internal/notify"
 	"github.com/samautomateai/tessivo/internal/scheduler"
 	"github.com/samautomateai/tessivo/internal/secrets"
+	"github.com/samautomateai/tessivo/internal/service"
 )
 
 // cmdNotify sends a test notification so users can check their system.
@@ -47,4 +48,21 @@ func scheduleNote(e scheduler.Event) (notify.Note, bool) {
 	default:
 		return notify.Note{}, false
 	}
+}
+
+// runNote is the OS notification for an agent run event: always when a run
+// needs approval, and when a scheduled run fails.
+func runNote(e service.RunEvent) (notify.Note, bool) {
+	title := "Tessivo · " + e.NotebookName
+	switch {
+	case e.Kind == service.RunApprovalNeeded:
+		return notify.Note{Title: title, Body: "Approval needed: " + e.Tool}, true
+	case e.Kind == service.RunFailed && e.ScheduleID != "":
+		body := "Scheduled agent run failed"
+		if e.Error != "" {
+			body += ": " + secrets.RedactPatterns(e.Error)
+		}
+		return notify.Note{Title: title, Body: body}, true
+	}
+	return notify.Note{}, false
 }

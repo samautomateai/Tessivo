@@ -334,3 +334,32 @@ func TestAgentNeedsNotebook(t *testing.T) {
 		t.Fatalf("want an invalid-request error, got %v", err)
 	}
 }
+
+func TestResumeCheckAndStatus(t *testing.T) {
+	e := newAgentEnv(t, askCall(), llm.Response{Content: "done"}, llm.Response{Content: summary})
+	out := e.start(t, context.Background())
+	if err := e.svc.ResumeCheck(out.RunID); !errors.Is(err, ErrApprovalPending) {
+		t.Fatalf("unanswered: %v", err)
+	}
+	if st, err := e.svc.RunStatus(out.RunID); err != nil || st != notebook.StatusWaiting {
+		t.Fatalf("status: %q %v", st, err)
+	}
+	if err := e.svc.Answer(out.RunID, out.Paused[0].ApprovalID, "allow", "run"); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.svc.ResumeCheck(out.RunID); err != nil {
+		t.Fatalf("answered: %v", err)
+	}
+	if _, err := e.svc.Resume(context.Background(), out.RunID, nil); err != nil {
+		t.Fatal(err)
+	}
+	if st, err := e.svc.RunStatus(out.RunID); err != nil || st != notebook.StatusFinished {
+		t.Fatalf("status after resume: %q %v", st, err)
+	}
+	if err := e.svc.ResumeCheck(out.RunID); !errors.Is(err, ErrRunNotPaused) {
+		t.Fatalf("finished run: %v", err)
+	}
+	if _, err := e.svc.RunStatus("nope"); !errors.Is(err, ErrRunNotFound) {
+		t.Fatalf("unknown run: %v", err)
+	}
+}

@@ -175,8 +175,14 @@ func (s *Service) buildAgent(nb *notebook.Notebook, st *storedRun, model executo
 		return nil, &InvalidError{err.Error()}
 	}
 	var tools []agenttools.Tool
-	if len(st.Check.Roots) > 0 {
-		roots, err := agenttools.NewRoots(st.Check.Roots...)
+	var existing []string // a folder removed while the run was paused is skipped, not fatal
+	for _, p := range st.Check.Roots {
+		if fileExists(p) {
+			existing = append(existing, p)
+		}
+	}
+	if len(existing) > 0 {
+		roots, err := agenttools.NewRoots(existing...)
 		if err != nil {
 			return nil, fmt.Errorf("agent folders: %w", err)
 		}

@@ -17,7 +17,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |
 | `POST /v1/notebooks/{id}/context` | `{path}` (absolute) | `Notebook` |
 | `PATCH /v1/notebooks/{id}/context/{contextId}` | `{enabled}` | `Notebook` |
-| `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?}` | SSE stream |
+| `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?, toolRules?}` | SSE stream |
 | `GET /v1/outputs?notebook=&workType=` | — | `{"outputs": [Output]}` (no data) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}` | — | `Output` with `data` and `markdown` |
 | `GET /v1/settings` | — | config (key references only) |
@@ -43,6 +43,11 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/chats/{chatId}/messages/{messageId}/output` | `{workType}` | `201 {notebookId, outputId, runId, title, markdown}` |
 | `GET /v1/chat-memory` | — | `{"memory": [string]}` |
 | `PUT /v1/chat-memory` | `{memory: [string]}` (≤ 50 items, ≤ 1000 chars) | `{"memory": [string]}` |
+| `GET /v1/approvals` | — | `{"approvals": [PendingApproval]}` (unanswered, across the workspace) |
+| `POST /v1/runs/{runId}/approvals/{approvalId}` | `{decision, remember?}`: decision `allow` or `deny`; remember `run` or `notebook` | `202 {"status": "resuming"}` or `{"status": "answered"}` when another approval is still open |
+| `POST /v1/runs/{runId}/resume` | — | `202 {"status": "resuming"}` (interrupted runs, or paused runs with every approval answered) |
+| `POST /v1/runs/{runId}/cancel` | — | `204` |
+| `GET /v1/runs/{runId}/events` | — | SSE of a live run; otherwise one `status` event `{runId, status}` |
 
 `Notebook`: `{id, name, workType, settings, createdAt, outputs, memory, template?, context: [{id, label, path,
 inPlace, enabled, addedAt, sources, estimatedTokens}]}`.
@@ -66,6 +71,9 @@ scheduledFor, runId?, outputId?, title?, error?, time}` where `kind` is `schedul
 `schedule.finished`, `schedule.failed` or `schedule.skipped`. Slow subscribers drop events;
 at most 16 streams at once.
 
+Agent runs add events with `{kind, runId, notebookId, notebookName, scheduleId?, approvalId?, tool?, error?,
+time}` where `kind` is `run.approval_needed`, `run.resumed`, `run.finished`, `run.failed` or `run.cancelled`.
+
 ## Run stream
 
 ```
@@ -80,7 +88,17 @@ data: {"runId","outputId","valid","modelUsed","strategy","totalTokens","attempts
 ```
 
 A failed run ends with `event: error` and `{"status": 422, "error": "…"}`. Closing the
-connection cancels the run.
+connection cancels a pipeline run.
+
+Agent runs (`overrides.mode: "agent"`) also send `tool_call` `{text, id, tool, args}`, `tool_result`
+`{text, id, tool, result}` (≤ 2 KiB) and `approval_needed` `{text, runId, approvalId, tool, args}`. A run that
+stops to wait for approval ends with `event: paused` and `{runId, approvals: [PendingApproval]}`. Closing the
+connection does not stop an agent run: cancel it with `POST /v1/runs/{runId}/cancel` and re-attach with
+`GET /v1/runs/{runId}/events`. Errors: `404` unknown run or approval; `409` already answered, expired, still
+waiting for an approval, not paused, or in use by another process; `429` too many runs.
+
+`PendingApproval`: `{runId, notebookId, notebookName, scheduleId?, approvalId, tool, args, requestedAt, expiresAt}`.
+Approvals expire after `agent.approval_expiry_days` (default 7); the run then fails.
 
 ## Chat
 

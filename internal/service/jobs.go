@@ -327,3 +327,41 @@ func (s *Service) eachStored(fn func(*notebook.Notebook, *storedRun) error) erro
 	}
 	return errors.Join(errs...)
 }
+
+// ResumeCheck reports whether Resume would start now, without running it:
+// the run exists, is paused with every approval answered (or interrupted),
+// and no process holds it.
+func (s *Service) ResumeCheck(runID string) error {
+	if _, live := s.jobTable().get(runID); live {
+		return fmt.Errorf("run is executing: %w", ErrConflict)
+	}
+	nb, err := s.findRun(runID)
+	if err != nil {
+		return err
+	}
+	st, err := loadStored(nb, runID)
+	if err != nil {
+		return err
+	}
+	return resumable(st)
+}
+
+// RunStatus is the run's current status: from its checkpoint while one
+// exists, else from its run record.
+func (s *Service) RunStatus(runID string) (string, error) {
+	if _, live := s.jobTable().get(runID); live {
+		return notebook.StatusRunning, nil
+	}
+	nb, err := s.findRun(runID)
+	if err != nil {
+		return "", err
+	}
+	if st, err := loadStored(nb, runID); err == nil {
+		return st.Check.Status, nil
+	}
+	r, err := nb.LoadRun(runID)
+	if err != nil {
+		return "", err
+	}
+	return r.Status, nil
+}

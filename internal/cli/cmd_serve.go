@@ -79,8 +79,7 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 	defer func() { _ = os.Remove(*epPath) }()
 	_, _ = fmt.Fprintf(env.Stderr, "tessivo core listening on %s %s (endpoint: %s)\n", *network, ep.Address, *epPath)
 	api := server.New(svc, token, Version)
-	api.Events = server.NewBroker()
-	schedDone := startScheduler(ctx, svc, api, !*noSched, *notes, env)
+	schedDone := startBackground(ctx, svc, api, !*noSched, *notes, env)
 	err = server.Serve(ctx, ln, api.Handler())
 	<-schedDone
 	return err
@@ -88,17 +87,19 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 
 // startScheduler runs notebook schedules in the background (unless disabled)
 // and returns a channel closed when the scheduler has stopped.
-func startScheduler(ctx context.Context, svc *service.Service, api *server.Server, enabled, notes bool, env Env,
+func startScheduler(ctx context.Context, svc *service.Service, api *server.Server, enabled bool,
+	send func(notify.Note),
 ) <-chan struct{} {
 	done := make(chan struct{})
 	if !enabled {
 		close(done)
 		return done
 	}
-	onNote := startNotes(ctx, notes, env)
 	sched := &scheduler.Scheduler{Svc: svc, OnEvent: func(e scheduler.Event) {
 		api.Events.Publish(e)
-		onNote(e)
+		if note, ok := scheduleNote(e); ok {
+			send(note)
+		}
 	}}
 	go func() {
 		defer close(done)
@@ -110,8 +111,19 @@ func startScheduler(ctx context.Context, svc *service.Service, api *server.Serve
 // startNotes returns the scheduler hook for OS notifications: a no-op unless
 // enabled, otherwise a non-blocking send to a rate-limited dispatcher.
 func startNotes(ctx context.Context, enabled bool, env Env) func(scheduler.Event) {
+	send := noteSender(ctx, enabled, env)
+	return func(e scheduler.Event) {
+		if note, ok := scheduleNote(e); ok {
+			send(note)
+		}
+	}
+}
+
+// noteSender starts one rate-limited dispatcher shared by scheduler and run
+// events; disabled, it drops every note.
+func noteSender(ctx context.Context, enabled bool, env Env) func(notify.Note) {
 	if !enabled {
-		return func(scheduler.Event) {}
+		return func(notify.Note) {}
 	}
 	n := env.Notifier
 	if n == nil {
@@ -121,9 +133,29 @@ func startNotes(ctx context.Context, enabled bool, env Env) func(scheduler.Event
 		_, _ = fmt.Fprintf(env.Stderr, "tessivo: %v\n", err)
 	}}
 	go d.Run(ctx)
-	return func(e scheduler.Event) {
-		if note, ok := scheduleNote(e); ok {
-			d.Send(note)
+	return func(note notify.Note) { d.Send(note) }
+}
+
+// wireRunEvents publishes agent run events on the API's event stream and
+// notifies when a run needs approval.
+func wireRunEvents(svc *service.Service, api *server.Server, send func(notify.Note)) {
+	svc.OnRunEvent = func(e service.RunEvent) {
+		api.Events.Publish(e)
+		if note, ok := runNote(e); ok {
+			send(note)
 		}
 	}
+}
+
+// startBackground wires events and notifications, recovers agent runs left by
+// a previous core, and starts the scheduler.
+func startBackground(ctx context.Context, svc *service.Service, api *server.Server, sched, notes bool, env Env,
+) <-chan struct{} {
+	api.Events = server.NewBroker()
+	send := noteSender(ctx, notes, env)
+	wireRunEvents(svc, api, send)
+	if err := svc.Recover(); err != nil {
+		_, _ = fmt.Fprintf(env.Stderr, "tessivo: recovering agent runs: %v\n", err)
+	}
+	return startScheduler(ctx, svc, api, sched, send)
 }

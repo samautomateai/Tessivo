@@ -38,8 +38,12 @@ func New(svc *service.Service, token, version string) *Server {
 	}
 }
 
-// keyError is the JSON field and SSE event name for errors.
-const keyError = "error"
+// JSON keys used in several responses.
+const (
+	keyError  = "error"
+	keyStatus = "status"
+	keyRunID  = "runId"
+)
 
 // Handler returns the routed, secured handler.
 func (s *Server) Handler() http.Handler {
@@ -77,6 +81,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/chats/{cid}/messages/{mid}/output", s.saveReply)
 	mux.HandleFunc("GET /v1/chat-memory", s.chatMemory)
 	mux.HandleFunc("PUT /v1/chat-memory", s.setChatMemory)
+	mux.HandleFunc("GET /v1/approvals", s.listApprovals)
+	mux.HandleFunc("POST /v1/runs/{rid}/approvals/{aid}", s.answerApproval)
+	mux.HandleFunc("POST /v1/runs/{rid}/resume", s.resumeRun)
+	mux.HandleFunc("POST /v1/runs/{rid}/cancel", s.cancelRun)
+	mux.HandleFunc("GET /v1/runs/{rid}/events", s.runEvents)
 	return s.secure(mux)
 }
 
@@ -187,10 +196,13 @@ type runBody struct {
 	Vars       map[string]string  `json:"vars"`
 	Overrides  config.RunSettings `json:"overrides"`
 	Save       *bool              `json:"save"`
+	ToolRules  map[string]string  `json:"toolRules"`
 }
 
-// startRun streams a run as server-sent events: status, delta, then exactly
-// one of finished or error. Disconnecting cancels the run.
+// startRun streams a run as server-sent events: status, delta (and for agent
+// runs tool_call, tool_result, approval_needed), then exactly one of
+// finished, paused or error. Disconnecting cancels a pipeline run; an agent
+// run keeps going (stop it with POST /v1/runs/{id}/cancel).
 func (s *Server) startRun(w http.ResponseWriter, r *http.Request) {
 	var body runBody
 	if err := decode(w, r, &body); err != nil {
@@ -220,16 +232,28 @@ func (s *Server) startRun(w http.ResponseWriter, r *http.Request) {
 	}
 	req := service.RunRequest{
 		Notebook: nb, Prompt: body.Prompt, PromptName: body.PromptName, Vars: body.Vars,
-		Overrides: body.Overrides, Save: body.Save == nil || *body.Save,
+		Overrides: body.Overrides, Save: body.Save == nil || *body.Save, ToolRules: body.ToolRules, Detached: true,
 	}
-	onEvent := func(e executor.Event) { sse.send(e.Kind, map[string]string{"text": e.Text}) }
-	out, err := s.svc.Run(r.Context(), req, onEvent)
-	if err != nil {
+	out, err := s.svc.Run(r.Context(), req, func(e executor.Event) { sse.send(e.Kind, eventPayload(e)) })
+	switch {
+	case err != nil:
 		status, msg := classify(err)
-		sse.send(keyError, map[string]any{"status": status, keyError: msg})
-		return
+		sse.send(keyError, map[string]any{keyStatus: status, keyError: msg})
+	case len(out.Paused) > 0:
+		sse.send("paused", map[string]any{keyRunID: out.RunID, "approvals": out.Paused})
+	default:
+		sse.send("finished", finishedEvent(out))
 	}
-	sse.send("finished", finishedEvent(out))
+}
+
+// eventPayload is {"text": …} plus the event's structured fields.
+func eventPayload(e executor.Event) map[string]any {
+	m := make(map[string]any, len(e.Data)+1)
+	for k, v := range e.Data {
+		m[k] = v
+	}
+	m["text"] = e.Text
+	return m
 }
 
 func finishedEvent(out service.RunOutcome) map[string]any {
@@ -242,7 +266,7 @@ func finishedEvent(out service.RunOutcome) map[string]any {
 		attempts = append(attempts, m)
 	}
 	return map[string]any{
-		"runId": out.RunID, "outputId": out.OutputID, "valid": out.Result.Valid, "modelUsed": out.Result.Model,
+		keyRunID: out.RunID, "outputId": out.OutputID, "valid": out.Result.Valid, "modelUsed": out.Result.Model,
 		"strategy": out.Result.Strategy, "totalTokens": out.Result.TotalTokens, "attempts": attempts,
 		"data": out.Result.Data, "markdown": out.Markdown,
 	}
