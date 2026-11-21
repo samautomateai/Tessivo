@@ -446,6 +446,21 @@ func TestSamePath(t *testing.T) {
 	if samePath("", "/a", "linux") {
 		t.Error("samePath")
 	}
+	// The comparison follows the target OS, whatever OS runs the test.
+	for _, c := range []struct {
+		a, b, goos string
+		want       bool
+	}{
+		{`C:\Go\Bin\`, `c:/go/bin`, "windows", true},
+		{`C:\`, `c:\`, "windows", true},
+		{"/a/b/", "/a/b", "linux", true},
+		{"/a/./b", "/a/b", "darwin", true},
+		{`/a/b`, `\a\b`, "linux", false}, // a backslash is an ordinary character on Unix
+	} {
+		if got := samePath(c.a, c.b, c.goos); got != c.want {
+			t.Errorf("samePath(%q, %q, %s) = %v, want %v", c.a, c.b, c.goos, got, c.want)
+		}
+	}
 }
 
 func TestFindRoot(t *testing.T) {

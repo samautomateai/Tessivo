@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -161,11 +162,13 @@ func samePath(a, b, goos string) bool {
 	if a == "" || b == "" {
 		return false
 	}
-	a, b = filepath.Clean(a), filepath.Clean(b)
+	// Compare by the target OS's rules, not the host's: filepath.Clean would
+	// treat backslashes differently depending on where this runs.
 	if goos == windows {
-		return strings.EqualFold(a, b)
+		a, b = strings.ReplaceAll(a, `\`, "/"), strings.ReplaceAll(b, `\`, "/")
+		return strings.EqualFold(path.Clean(a), path.Clean(b))
 	}
-	return a == b
+	return path.Clean(a) == path.Clean(b)
 }
 
 // find returns the copy of a tool the shell would run, else the one in bin.
