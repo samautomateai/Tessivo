@@ -20,7 +20,7 @@
 | `worktype` | Built-in work types (Analyze, Summarize, Document, Report): starter prompt, suggested context, output schema. |
 | `schema` | Validates model output against a JSON-schema subset. |
 | `extract` | Context extractors by type: text, Markdown, code, CSV/TSV, JSON, DOCX, XLSX, PPTX, folders/code bases. Office files are read in memory with bounded decompression (per-part 32 MiB, total 128 MiB, ratio 200:1, 10k entries, 5M XML tokens). |
-| `notebook` | Notebook folder layout, manifest, context items, prompts, run records, outputs. |
+| `notebook` | Notebook folder layout, manifest, context items, prompts, run records (with status, tool calls and approvals), outputs; agent checkpoints (`runs/<id>.checkpoint.json`, 0600, ≤ 64 MiB) and cross-process run locks (`runs/<id>.lock`, refreshed every 30 s, stale after 2 min). |
 | `executor` | `Executor` interface; `pipeline` mode now, `agent` mode (Eino) next. |
 | `agenttools` | The agent's read-only tools (`read_file`, `list_directory`, `glob`, `grep`). Every path is resolved through `Roots`: cleaned, symlinks evaluated, refused outside the run's folders. Bounded: 256 KiB per read, 2,000 entries, 500 matches. |
 | `audit` | Tamper-evident audit log: append-only JSONL, each entry's SHA-256 covers the previous one; secrets redacted, prompts stored as digests; `Verify` detects edits, deletions and reordering. |

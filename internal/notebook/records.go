@@ -42,6 +42,56 @@ type Run struct {
 	Valid       bool              `json:"valid"`
 	Error       string            `json:"error,omitempty"`
 	OutputID    string            `json:"outputId,omitempty"`
+	Mode        string            `json:"mode,omitempty"`   // pipeline or agent
+	Status      string            `json:"status,omitempty"` // one of the Status constants
+	ScheduleID  string            `json:"scheduleId,omitempty"`
+	Steps       int               `json:"steps,omitempty"`
+	ToolCalls   []ToolCallRecord  `json:"toolCalls,omitempty"`
+	Approvals   []ApprovalRecord  `json:"approvals,omitempty"`
+}
+
+// Run statuses.
+const (
+	StatusRunning     = "running"
+	StatusWaiting     = "waiting_approval"
+	StatusInterrupted = "interrupted"
+	StatusFinished    = "finished"
+	StatusFailed      = "failed"
+	StatusCancelled   = "cancelled"
+)
+
+// ToolCallRecord is one tool call of an agent run. Args and Result are
+// redacted and cut to 8 KiB.
+type ToolCallRecord struct {
+	ID         string `json:"id"`
+	Tool       string `json:"tool"`
+	Args       string `json:"args,omitempty"`
+	Result     string `json:"result,omitempty"`
+	Policy     string `json:"policy,omitempty"`   // allow, ask or block
+	Decision   string `json:"decision,omitempty"` // allow or deny when the user was asked
+	Error      string `json:"error,omitempty"`
+	DurationMS int64  `json:"durationMs,omitempty"`
+}
+
+// ApprovalRecord is one question put to the user and its answer.
+type ApprovalRecord struct {
+	ID          string `json:"id"`
+	Tool        string `json:"tool"`
+	Args        string `json:"args,omitempty"`
+	RequestedAt string `json:"requestedAt"`
+	Answer      string `json:"answer,omitempty"` // allow or deny
+	AnsweredAt  string `json:"answeredAt,omitempty"`
+	Remember    string `json:"remember,omitempty"` // "", run or notebook
+}
+
+const maxRecordText = 8 << 10
+
+// TruncateRecord cuts s to 8 KiB for a run record, marking the cut.
+func TruncateRecord(s string) string {
+	if len(s) <= maxRecordText {
+		return s
+	}
+	return s[:maxRecordText] + "…[truncated]"
 }
 
 // Output is a saved, structured result filed by work type.
