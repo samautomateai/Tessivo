@@ -5,7 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'core/core_client.dart';
 import 'core/models.dart';
 
-enum Section { notebooks, schedules, library, settings }
+enum Section { notebooks, templates, schedules, library, settings }
 
 /// App-wide state on a plain [ChangeNotifier] (no state-management package).
 class AppState extends ChangeNotifier {
@@ -104,6 +104,13 @@ class AppState extends ChangeNotifier {
 
   Future<void> createNotebook(String name, WorkTypeId type) async {
     final nb = await core.createNotebook(name: name, workType: type);
+    notebooks = await core.listNotebooks();
+    select(nb.id);
+  }
+
+  /// Creates a notebook from a template and opens it.
+  Future<void> createFromTemplate(String templateId, {String? name}) async {
+    final nb = await core.createFromTemplate(templateId, name: name);
     notebooks = await core.listNotebooks();
     select(nb.id);
   }

@@ -12,6 +12,11 @@ task desktop:run     # run on this OS
 task desktop:check   # format check, analyze (fatal infos), tests with coverage ≥ 80%
 ```
 
+The **Templates** section is a gallery of built-in and user templates, filterable by work type.
+"Use template" creates and opens a notebook (context slots to fill, schedule disabled); the selected
+notebook can be saved as a user template, and user templates can be removed. The new-notebook dialog
+links here.
+
 The **Schedules** section lists the selected notebook's schedules (next run, last status, enable switch,
 remove) and adds new ones (cron, missed-run policy, optional prompt). The app subscribes to `/v1/events`
 and shows a dismissible banner when a scheduled run finishes, fails or is skipped; the stream reconnects

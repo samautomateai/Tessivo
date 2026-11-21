@@ -73,6 +73,14 @@ class _NewNotebookDialogState extends State<NewNotebookDialog> {
         ),
       ),
       actions: [
+        TextButton(
+          key: const Key('browse-templates'),
+          onPressed: () {
+            Navigator.of(context).pop();
+            widget.state.go(Section.templates);
+          },
+          child: const Text('Start from a template'),
+        ),
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         FilledButton(key: const Key('create-notebook'), onPressed: _create, child: const Text('Create')),
       ],

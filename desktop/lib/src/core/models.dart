@@ -178,3 +178,41 @@ class CoreEvent {
     _ => '$notebookName: scheduled run started',
   };
 }
+
+/// A context slot a template asks the user to fill (never filled data).
+class TemplateSlot {
+  const TemplateSlot({required this.name, required this.kind, this.description = '', this.required = false});
+  final String name;
+  final String kind;
+  final String description;
+  final bool required;
+}
+
+/// A reusable notebook blueprint: prompts, slots, memory and an optional schedule.
+class TemplateInfo {
+  const TemplateInfo({
+    required this.id,
+    required this.name,
+    required this.workType,
+    required this.source,
+    this.description = '',
+    this.version = 1,
+    this.parent,
+    this.prompts = const [],
+    this.slots = const [],
+    this.scheduleCron,
+  });
+
+  final String id;
+  final String name;
+  final WorkTypeId workType;
+  final String source; // builtin or user
+  final String description;
+  final int version;
+  final String? parent; // id@version this extends
+  final List<String> prompts; // prompt names
+  final List<TemplateSlot> slots;
+  final String? scheduleCron;
+
+  bool get isUser => source == 'user';
+}

@@ -43,7 +43,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Template library: 12 built-ins + user templates; create notebook from template (context slots, disabled schedule) | TPL-1, TPL-2 | ☑ |
 | Prompt library via template prompts; save notebook as template; extend with parent and version; parent-update notice with changed prompts | TPL-3–TPL-6 | ☑ |
 | Pinned notebook memory included in every run (`tess memory`, API) | MEM-1 | ☑ |
-| Desktop template gallery | TPL-1 | ☐ |
+| Desktop template gallery: filter by work type, use, save notebook as template, remove user templates | TPL-1, TPL-4 | ☑ |
 | Chat | CHAT-1–CHAT-7 | ☐ |
 
 ## CLI reference (current)

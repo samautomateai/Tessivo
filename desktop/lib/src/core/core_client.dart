@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'demo_templates.dart';
 import 'models.dart';
 
 /// The desktop app's view of the Go core. `HttpCoreClient` talks to the local
@@ -15,6 +16,11 @@ abstract interface class CoreClient {
   Future<ScheduleInfo> addSchedule(String notebookId, {required String cron, String prompt, String missed});
   Future<ScheduleInfo> setScheduleEnabled(String notebookId, String scheduleId, {required bool enabled});
   Future<void> deleteSchedule(String notebookId, String scheduleId);
+
+  Future<List<TemplateInfo>> listTemplates({WorkTypeId? workType});
+  Future<Notebook> createFromTemplate(String templateId, {String? name});
+  Future<TemplateInfo> saveAsTemplate(String notebookId, {required String name, String description});
+  Future<void> deleteTemplate(String templateId);
 
   /// Live notifications (scheduled runs). Never completes while the core runs.
   Stream<CoreEvent> events();
@@ -51,7 +57,7 @@ const builtInWorkTypes = <WorkType>[
   ),
 ];
 
-/// In-memory core with sample data, used until the gRPC client lands.
+/// In-memory core with sample data, used when no core can be reached.
 class DemoCoreClient implements CoreClient {
   DemoCoreClient({Duration tick = const Duration(milliseconds: 40)}) : _tick = tick;
 
@@ -71,6 +77,7 @@ class DemoCoreClient implements CoreClient {
     ],
   };
   final _events = StreamController<CoreEvent>.broadcast();
+  final List<TemplateInfo> _templates = [...demoTemplates];
 
   final List<Notebook> _notebooks = [
     const Notebook(
@@ -194,6 +201,43 @@ class DemoCoreClient implements CoreClient {
 
   /// Emits a demo event (used by tests and the demo mode).
   void emit(CoreEvent e) => _events.add(e);
+
+  @override
+  Future<List<TemplateInfo>> listTemplates({WorkTypeId? workType}) async =>
+      List.unmodifiable(_templates.where((t) => workType == null || t.workType == workType));
+
+  @override
+  Future<Notebook> createFromTemplate(String templateId, {String? name}) async {
+    final t = _templates.firstWhere(
+      (t) => t.id == templateId,
+      orElse: () => throw StateError('unknown template $templateId'),
+    );
+    final nb = Notebook(id: 'nb-${_nextId++}', name: name ?? t.name, workType: t.workType, context: const []);
+    _notebooks.add(nb);
+    return nb;
+  }
+
+  @override
+  Future<TemplateInfo> saveAsTemplate(String notebookId, {required String name, String description = ''}) async {
+    final nb = _notebooks.firstWhere(
+      (n) => n.id == notebookId,
+      orElse: () => throw StateError('unknown notebook $notebookId'),
+    );
+    final id = templateIdFor(name);
+    if (id.isEmpty) throw const FormatException('Enter a template name');
+    final t = TemplateInfo(id: id, name: name, workType: nb.workType, source: 'user', description: description);
+    _templates
+      ..removeWhere((x) => x.id == id && x.isUser)
+      ..add(t);
+    return t;
+  }
+
+  @override
+  Future<void> deleteTemplate(String templateId) async {
+    final i = _templates.indexWhere((t) => t.id == templateId);
+    if (i < 0 || !_templates[i].isUser) throw StateError('only user templates can be deleted');
+    _templates.removeAt(i);
+  }
 
   @override
   Future<List<OutputSummary>> listOutputs({WorkTypeId? workType}) async {

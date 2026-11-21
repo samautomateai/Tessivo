@@ -5,6 +5,7 @@ import 'screens/library_screen.dart';
 import 'screens/new_notebook_dialog.dart';
 import 'screens/schedules_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/templates_screen.dart';
 import 'screens/workspace_screen.dart';
 import 'theme.dart';
 
@@ -45,6 +46,7 @@ class AppShell extends StatelessWidget {
 
   Widget _content() => switch (state.section) {
     Section.notebooks => WorkspaceScreen(state: state),
+    Section.templates => TemplatesScreen(state: state),
     Section.schedules => SchedulesScreen(state: state),
     Section.library => LibraryScreen(core: state.core),
     Section.settings => const SettingsScreen(),
@@ -91,6 +93,11 @@ class _Sidebar extends StatelessWidget {
             ),
           ),
           const Divider(color: Tokens.sidebarSelected),
+          _NavItem(
+            label: 'Templates',
+            selected: state.section == Section.templates,
+            onTap: () => state.go(Section.templates),
+          ),
           _NavItem(
             label: 'Schedules',
             selected: state.section == Section.schedules,

@@ -242,6 +242,29 @@ class HttpCoreClient implements CoreClient {
     }
   }
 
+  @override
+  Future<List<TemplateInfo>> listTemplates({WorkTypeId? workType}) async {
+    final json = await _json('GET', '/v1/templates', query: workType == null ? null : {'workType': workType.name});
+    return _list(json['templates']).map(templateFromJson).toList();
+  }
+
+  @override
+  Future<Notebook> createFromTemplate(String templateId, {String? name}) async {
+    final body = {'templateId': templateId, if (name != null && name.isNotEmpty) 'name': name};
+    return notebookFromJson(await _json('POST', '/v1/notebooks', body: body));
+  }
+
+  @override
+  Future<TemplateInfo> saveAsTemplate(String notebookId, {required String name, String description = ''}) async {
+    final body = {'fromNotebook': notebookId, 'name': name, 'description': description};
+    return templateFromJson(await _json('POST', '/v1/templates', body: body));
+  }
+
+  @override
+  Future<void> deleteTemplate(String templateId) async {
+    await _json('DELETE', '/v1/templates/${Uri.encodeComponent(templateId)}');
+  }
+
   /// Releases connections.
   void close() => _client.close(force: true);
 }
@@ -270,6 +293,31 @@ CoreEvent eventFromJson(Map<String, Object?> j) => CoreEvent(
   title: j['title'] as String?,
   error: j['error'] as String?,
 );
+
+TemplateInfo templateFromJson(Map<String, Object?> j) {
+  final schedule = j['schedule'];
+  return TemplateInfo(
+    id: j['id'] as String? ?? '',
+    name: j['name'] as String? ?? '',
+    workType: _workType(j['workType']),
+    source: j['source'] as String? ?? 'builtin',
+    description: j['description'] as String? ?? '',
+    version: (j['version'] as num?)?.toInt() ?? 1,
+    parent: j['parent'] as String?,
+    prompts: _list(j['prompts']).map((p) => p['name'] as String? ?? '').toList(),
+    slots: _list(j['slots'])
+        .map(
+          (s) => TemplateSlot(
+            name: s['name'] as String? ?? '',
+            kind: s['kind'] as String? ?? 'any',
+            description: s['description'] as String? ?? '',
+            required: s['required'] as bool? ?? false,
+          ),
+        )
+        .toList(),
+    scheduleCron: schedule is Map<String, Object?> ? schedule['cron'] as String? : null,
+  );
+}
 
 List<Map<String, Object?>> _list(Object? v) =>
     v is List ? v.whereType<Map<String, Object?>>().toList() : const <Map<String, Object?>>[];
