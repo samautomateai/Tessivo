@@ -15,6 +15,7 @@ import (
 	"github.com/samautomateai/tessivo/internal/executor"
 	"github.com/samautomateai/tessivo/internal/keychain"
 	"github.com/samautomateai/tessivo/internal/llm"
+	"github.com/samautomateai/tessivo/internal/notify"
 	"github.com/samautomateai/tessivo/internal/secrets"
 )
 
@@ -40,6 +41,8 @@ type Env struct {
 	Keychain   keychain.Store
 	// NewModel builds the model for an alias; defaults to an llm.Router.
 	NewModel func(f config.File, alias config.Alias, sec secrets.Resolver) (executor.Model, error)
+	// Notifier shows OS notifications; defaults to notify.OS().
+	Notifier notify.Notifier
 	// ListModels lists a provider's models; defaults to the llm client.
 	ListModels func(ctx context.Context, p config.Provider, sec secrets.Resolver) ([]llm.Model, error)
 }
@@ -62,7 +65,8 @@ Usage:
   tess models [--provider NAME]             list models from configured providers
   tess worktypes                            list work types
   tess audit verify|show [<notebook-or-file>] [--last N]   check or read the tamper-evident audit log
-  tess serve [--network unix|tcp] [--addr A]   run the local API for the desktop app
+  tess serve [--network unix|tcp] [--addr A] [--notify]   run the local API (--notify: OS notifications)
+  tess notify test                          check that OS notifications work here
   tess schedule add <notebook> --cron EXPR [--prompt P] [--missed skip|run_once]
   tess schedule list|remove|enable|disable <notebook> [id]   tess schedule next "<cron>"
   tess template list [--type T] | show <id> | use <id> <dir> | save <notebook> --name N
@@ -134,7 +138,7 @@ var commands = map[string]handler{
 	"new": noCtx(cmdNew), "context": noCtx(cmdContext), "run": cmdRun, "outputs": noCtx(cmdOutputs),
 	"models": cmdModels, "config": noCtx(cmdConfig), "audit": noCtx(cmdAudit), "serve": cmdServe,
 	"secret": cmdSecret, "schedule": noCtx(cmdSchedule), "template": noCtx(cmdTemplate),
-	"memory": noCtx(cmdMemory), "chat": cmdChat,
+	"memory": noCtx(cmdMemory), "chat": cmdChat, "notify": cmdNotify,
 	"worktypes": func(_ context.Context, _ []string, env Env) error { return cmdWorkTypes(env) },
 }
 

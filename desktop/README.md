@@ -32,7 +32,8 @@ links here.
 
 The **Schedules** section lists the selected notebook's schedules (next run, last status, enable switch,
 remove) and adds new ones (cron, missed-run policy, optional prompt). The app subscribes to `/v1/events`
-and shows a dismissible banner when a scheduled run finishes, fails or is skipped; the stream reconnects
+and shows a dismissible banner when a scheduled run finishes, fails or is skipped (the core it starts also
+shows an OS notification, via `tess serve --notify`); the stream reconnects
 with backoff capped at one minute, and malformed or oversized frames are dropped.
 
 Material widgets come from the standalone `material_ui` package (moved out of the Flutter

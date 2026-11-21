@@ -74,7 +74,7 @@ void main() {
       pollInterval: Duration.zero,
     );
     expect(await s.ensureRunning(), ep);
-    expect(args, ['serve', '--exit-with-parent']);
+    expect(args, ['serve', '--exit-with-parent', '--notify']);
     expect(s.ownsProcess, isTrue);
     await s.stop();
     expect(proc.killed, [ProcessSignal.sigterm]);

@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/samautomateai/tessivo/internal/notify"
 	"github.com/samautomateai/tessivo/internal/scheduler"
 	"github.com/samautomateai/tessivo/internal/server"
+	"github.com/samautomateai/tessivo/internal/service"
 )
 
 // runtimeDir holds the socket and endpoint file (0700).
@@ -35,6 +37,7 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 	epPath := fs.String("endpoint-file", filepath.Join(dir, "endpoint.json"), "where to write connection details")
 	withParent := fs.Bool("exit-with-parent", false, "stop when the launching process (the desktop app) exits")
 	noSched := fs.Bool("no-scheduler", false, "do not run notebook schedules")
+	notes := fs.Bool("notify", false, "show OS notifications when scheduled runs finish, fail or are skipped")
 	if _, err := parse(fs, args); err != nil {
 		return err
 	}
@@ -77,17 +80,50 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 	_, _ = fmt.Fprintf(env.Stderr, "tessivo core listening on %s %s (endpoint: %s)\n", *network, ep.Address, *epPath)
 	api := server.New(svc, token, Version)
 	api.Events = server.NewBroker()
-	schedDone := make(chan struct{})
-	if *noSched {
-		close(schedDone)
-	} else {
-		sched := &scheduler.Scheduler{Svc: svc, OnEvent: func(e scheduler.Event) { api.Events.Publish(e) }}
-		go func() {
-			defer close(schedDone)
-			_ = sched.Run(ctx)
-		}()
-	}
+	schedDone := startScheduler(ctx, svc, api, !*noSched, *notes, env)
 	err = server.Serve(ctx, ln, api.Handler())
 	<-schedDone
 	return err
+}
+
+// startScheduler runs notebook schedules in the background (unless disabled)
+// and returns a channel closed when the scheduler has stopped.
+func startScheduler(ctx context.Context, svc *service.Service, api *server.Server, enabled, notes bool, env Env,
+) <-chan struct{} {
+	done := make(chan struct{})
+	if !enabled {
+		close(done)
+		return done
+	}
+	onNote := startNotes(ctx, notes, env)
+	sched := &scheduler.Scheduler{Svc: svc, OnEvent: func(e scheduler.Event) {
+		api.Events.Publish(e)
+		onNote(e)
+	}}
+	go func() {
+		defer close(done)
+		_ = sched.Run(ctx)
+	}()
+	return done
+}
+
+// startNotes returns the scheduler hook for OS notifications: a no-op unless
+// enabled, otherwise a non-blocking send to a rate-limited dispatcher.
+func startNotes(ctx context.Context, enabled bool, env Env) func(scheduler.Event) {
+	if !enabled {
+		return func(scheduler.Event) {}
+	}
+	n := env.Notifier
+	if n == nil {
+		n = notify.OS()
+	}
+	d := &notify.Dispatcher{N: n, OnErr: func(err error) {
+		_, _ = fmt.Fprintf(env.Stderr, "tessivo: %v\n", err)
+	}}
+	go d.Run(ctx)
+	return func(e scheduler.Event) {
+		if note, ok := scheduleNote(e); ok {
+			d.Send(note)
+		}
+	}
 }

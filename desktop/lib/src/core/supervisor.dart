@@ -83,7 +83,7 @@ class CoreSupervisor {
 
     final Process proc;
     try {
-      proc = await _start(executable, const ['serve', '--exit-with-parent']);
+      proc = await _start(executable, const ['serve', '--exit-with-parent', '--notify']);
     } on ProcessException catch (e) {
       throw CoreStartException('could not start $executable: ${e.message}');
     }

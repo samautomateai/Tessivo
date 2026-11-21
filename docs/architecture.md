@@ -29,6 +29,7 @@
 | `scheduler` | Runs notebook schedules inside `tess serve`: records each occurrence before running, no overlap, bounded concurrency, skip/run_once after downtime, history and events. |
 | `template` | Built-in and user templates (0600 JSON in the config dir): validate (limits, no secrets), apply to a notebook, capture from a notebook, extend with parent lineage, parent-update detection. |
 | `chat` | Chat sessions and global chat memory as 0600 JSON files (atomic, fsynced); limits on titles, messages, attachments and session size; search; one streaming reply per session; prompt assembly (system prompt, memory, history trimmed to the context budget, attached context fenced as data). |
+| `notify` | OS notifications without a library: AppleScript on stdin (macOS), `notify-send` with `--` (Linux), a fixed PowerShell toast script reading environment variables (Windows); text cleaned and shortened; a queued, rate-limited dispatcher (5 per minute, extras summarized). |
 | `cli` | `tess` commands (including `tess serve`); `cmd/tess` only calls it. |
 
 ## Chat store
