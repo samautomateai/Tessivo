@@ -26,7 +26,12 @@ jobs:
       - name: Lengths
         run: go run ./tools/lencheck -max-line 120 -max-file 500 -max-test-file 800 .
       - name: Tidy
-        run: go mod tidy && git diff --exit-code go.mod go.sum
+        # go.sum only exists once the module has dependencies.
+        run: |
+          go mod tidy
+          if [ -n "$(git status --porcelain -- go.mod go.sum)" ]; then
+            git --no-pager diff -- go.mod go.sum; echo "run: go mod tidy"; exit 1
+          fi
       - name: Lint
         uses: golangci/golangci-lint-action@v8
         with:
@@ -80,7 +85,12 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: dart format --output=none --set-exit-if-changed lib test
+      - name: Format check (prints the patch to apply when it fails)
+        run: |
+          dart format lib test
+          if ! git diff --quiet -- .; then
+            git --no-pager diff -- .; echo "run: task fmt (dart format)"; exit 1
+          fi
       - run: flutter analyze --fatal-infos
       - run: flutter test --coverage
       - name: Coverage gate (80%)
