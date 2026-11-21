@@ -126,3 +126,53 @@ func (s *Server) sendChat(w http.ResponseWriter, r *http.Request) {
 	}
 	sse.send("finished", reply)
 }
+
+func (s *Server) planRepeatable(w http.ResponseWriter, r *http.Request) {
+	plan, err := s.svc.PlanRepeatable(r.PathValue("cid"))
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, plan)
+}
+
+func (s *Server) makeRepeatable(w http.ResponseWriter, r *http.Request) {
+	var in service.RepeatableInput
+	if err := decode(w, r, &in); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	info, err := s.svc.MakeRepeatable(r.PathValue("cid"), in)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, info)
+}
+
+// saveReply restructures a reply into a validated output. It calls the model,
+// so it shares the run limit and outlives the normal write timeout.
+func (s *Server) saveReply(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		WorkType string `json:"workType"`
+	}
+	if err := decode(w, r, &body); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	select {
+	case s.runs <- struct{}{}:
+		defer func() { <-s.runs }()
+	default:
+		writeError(w, http.StatusTooManyRequests, fmt.Sprintf("at most %d runs or replies at once", MaxConcurrentRuns))
+		return
+	}
+	rc := http.NewResponseController(w)
+	_ = rc.SetWriteDeadline(time.Time{})
+	out, err := s.svc.SaveChatReply(r.Context(), r.PathValue("cid"), r.PathValue("mid"), body.WorkType)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, out)
+}

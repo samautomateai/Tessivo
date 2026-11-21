@@ -237,7 +237,7 @@ func (s *Service) attachmentDocs(a chat.Attachment) ([]extract.Document, string,
 		if err != nil {
 			return nil, "", err
 		}
-		return []extract.Document{{Source: o.Title, Kind: "markdown", Text: o.Markdown}}, o.Title, nil
+		return []extract.Document{{Source: o.Title, Kind: docMarkdown, Text: o.Markdown}}, o.Title, nil
 	}
 }
 

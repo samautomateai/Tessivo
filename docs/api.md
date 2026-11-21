@@ -38,6 +38,9 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `PATCH /v1/chats/{chatId}` | `{title?, pinned?, archived?, model?, thinkingEffort?}` | `ChatSession` |
 | `DELETE /v1/chats/{chatId}` | — | `204` |
 | `POST /v1/chats/{chatId}/messages` | `{text, attachments?: [{kind, ref, label?}]}` | SSE stream (see below) |
+| `GET /v1/chats/{chatId}/repeatable` | — | `RepeatablePlan` |
+| `POST /v1/chats/{chatId}/notebook` | `{name?, workType?, templateId?\|"none", prompt?}` | `201 Notebook` |
+| `POST /v1/chats/{chatId}/messages/{messageId}/output` | `{workType}` | `201 {notebookId, outputId, runId, title, markdown}` |
 | `GET /v1/chat-memory` | — | `{"memory": [string]}` |
 | `PUT /v1/chat-memory` | `{memory: [string]}` (≤ 50 items, ≤ 1000 chars) | `{"memory": [string]}` |
 
@@ -101,6 +104,17 @@ data: {"text":"Rotate "}
 event: finished
 data: {"user": ChatMessage, "assistant": ChatMessage}
 ```
+
+**Make this repeatable.** `RepeatablePlan` is `{name, workType, templateId?, templateName?, prompt,
+context: [absolute path], skipped: ["label: why"]}`: the work type is suggested from the chat's
+wording, a template of that type is suggested when it shares at least two words with the chat,
+the prompt is the last user message, and path and notebook attachments become context (saved
+outputs are skipped). Creating the notebook applies the plan with any overrides; the prompt is
+saved as `from-chat`.
+
+**Save a reply.** The model restructures the reply (with the question it answered) into the
+work type's output; it is validated against the schema and saved in the `chat-<workType>`
+notebook, created on first use. Invalid output returns `422` and nothing is saved.
 
 A model failure ends with `event: error` and `{"status", "error", "reply"}`; the failed reply is
 stored with `stopped: true` and a short `error`. Closing the connection is the stop button: the

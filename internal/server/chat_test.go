@@ -132,3 +132,59 @@ var errSecret = errorString("secret not set")
 type errorString string
 
 func (e errorString) Error() string { return string(e) }
+
+func TestChatRepeatableAndSaveAPI(t *testing.T) {
+	ts, _ := newTestServer(t, summary)
+	_, body := call(t, ts, "POST", "/v1/chats", `{}`)
+	var sess chat.Session
+	_ = json.Unmarshal([]byte(body), &sess)
+	if code, _ := call(t, ts, "GET", "/v1/chats/"+sess.ID+"/repeatable", ""); code != 400 {
+		t.Fatalf("plan for an empty chat: %d", code)
+	}
+	_, body = call(t, ts, "POST", "/v1/chats/"+sess.ID+"/messages", `{"text":"Summarize the board pack"}`)
+	var reply service.ChatReply
+	_ = json.Unmarshal([]byte(sseEvents(body)[1][1]), &reply)
+
+	code, body := call(t, ts, "GET", "/v1/chats/"+sess.ID+"/repeatable", "")
+	if code != 200 || !strings.Contains(body, `"workType":"summarize"`) {
+		t.Fatalf("plan: %d %s", code, body)
+	}
+	code, body = call(t, ts, "POST", "/v1/chats/"+sess.ID+"/notebook", `{"name":"Board pack"}`)
+	if code != 201 || !strings.Contains(body, `"id":"board-pack"`) {
+		t.Fatalf("make repeatable: %d %s", code, body)
+	}
+	path := "/v1/chats/" + sess.ID + "/messages/" + reply.Assistant.ID + "/output"
+	code, body = call(t, ts, "POST", path, `{"workType":"summarize"}`)
+	if code != 201 || !strings.Contains(body, `"notebookId":"chat-summarize"`) {
+		t.Fatalf("save reply: %d %s", code, body)
+	}
+	for _, c := range []struct{ path, body string }{
+		{path, `{"workType":"poetry"}`},
+		{path, `{`},
+		{"/v1/chats/" + sess.ID + "/notebook", `{"workType":"poetry"}`},
+		{"/v1/chats/" + sess.ID + "/notebook", `[`},
+	} {
+		if code, body := call(t, ts, "POST", c.path, c.body); code != 400 {
+			t.Errorf("%s %s: %d %s", c.path, c.body, code, body)
+		}
+	}
+}
+
+func TestSaveReplyRespectsRunLimit(t *testing.T) {
+	ts, s := newTestServer(t, summary)
+	for range MaxConcurrentRuns {
+		s.runs <- struct{}{}
+	}
+	defer func() {
+		for range MaxConcurrentRuns {
+			<-s.runs
+		}
+	}()
+	path := "/v1/chats/ffffffffffffffff/messages/x/output"
+	if code, _ := call(t, ts, "POST", path, `{"workType":"summarize"}`); code != 429 {
+		t.Fatalf("want 429, got %d", code)
+	}
+	if code, _ := call(t, ts, "POST", "/v1/chats/ffffffffffffffff/messages", `{"text":"hi"}`); code != 404 {
+		t.Fatalf("validation before the run limit: %d", code)
+	}
+}

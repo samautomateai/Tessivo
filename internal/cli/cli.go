@@ -68,6 +68,8 @@ Usage:
   tess template list [--type T] | show <id> | use <id> <dir> | save <notebook> --name N
   tess template extend <id> --name N | delete <id>
   tess memory list|add|remove <notebook> [text|number]   pinned facts included in every run
+  tess chat [--session ID] [--attach PATH]... [message]   chat (interactive without a message)
+  tess chat list|show|rename|pin|archive|delete|memory|repeat|save ...   see 'tess chat -h'
   tess secret set|delete|check <ref>          store API keys in the OS keychain (value read from stdin)
   tess config init|show|path
   tess version
@@ -131,7 +133,7 @@ var commands = map[string]handler{
 	"new": noCtx(cmdNew), "context": noCtx(cmdContext), "run": cmdRun, "outputs": noCtx(cmdOutputs),
 	"models": cmdModels, "config": noCtx(cmdConfig), "audit": noCtx(cmdAudit), "serve": cmdServe,
 	"secret": cmdSecret, "schedule": noCtx(cmdSchedule), "template": noCtx(cmdTemplate),
-	"memory":    noCtx(cmdMemory),
+	"memory": noCtx(cmdMemory), "chat": cmdChat,
 	"worktypes": func(_ context.Context, _ []string, env Env) error { return cmdWorkTypes(env) },
 }
 

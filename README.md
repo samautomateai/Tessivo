@@ -22,6 +22,8 @@ tess new risk --type analyze
 tess context add risk ./my-repo
 tess run risk --model litellm/<model>
 tess schedule add risk --cron "0 8 * * MON" --missed run_once   # runs while tess serve / the app is open
+tess chat --attach ./runbook.md "How often do we rotate keys?"   # prints the session id; --session continues it
+tess chat repeat <session> --name "Key rotation"                 # turn the chat into a notebook
 ```
 
 ## Develop
