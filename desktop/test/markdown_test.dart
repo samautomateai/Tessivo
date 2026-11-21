@@ -48,7 +48,7 @@ void main() {
 
   testWidgets('renders every block and cuts huge input', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
             child: MarkdownView('# T\n\n- a\n\n1. b\n\n```\nc\n```\n\n| x |\n|---|\n| y |\n\n> q\n\n***\n\np'),

@@ -2,7 +2,7 @@ part of 'http_core_client.dart';
 
 /// Chat endpoints of the local API (docs/api.md, "Chat").
 mixin _HttpChat {
-  Future<HttpClientResponse> _send(String method, String path, {Object? body, Map<String, String>? query});
+  Future<HttpClientResponse> _send(String method, String path, {Object? body});
   Future<Map<String, Object?>> _json(String method, String path, {Object? body, Map<String, String>? query});
 
   String _chatPath(String id) => '/v1/chats/${Uri.encodeComponent(id)}';

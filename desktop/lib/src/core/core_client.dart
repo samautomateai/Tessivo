@@ -8,6 +8,7 @@ import 'models.dart';
 
 export 'chat_models.dart';
 export 'checks.dart';
+export 'errors.dart';
 
 /// The desktop app's view of the Go core. `HttpCoreClient` talks to the local
 /// API (docs/api.md); [DemoCoreClient] serves sample data when no core runs.
@@ -304,7 +305,7 @@ class DemoCoreClient with DemoChat implements CoreClient {
     const all = {
       'litellm': ['fallback-model', 'primary-model'],
     };
-    return provider == null ? all : {if (all[provider] case final m?) provider: m};
+    return provider == null ? all : {provider: ?all[provider]};
   }
 
   @override

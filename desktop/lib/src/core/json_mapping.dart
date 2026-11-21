@@ -25,7 +25,6 @@ ScheduleInfo scheduleFromJson(Map<String, Object?> j) => ScheduleInfo(
 CoreEvent eventFromJson(Map<String, Object?> j) => CoreEvent(
   kind: j['kind'] as String? ?? '',
   notebookName: j['notebookName'] as String? ?? '',
-  notebookId: j['notebookId'] as String? ?? '',
   title: j['title'] as String?,
   error: j['error'] as String?,
 );
@@ -89,6 +88,7 @@ OutputSummary outputFromJson(Map<String, Object?> j) => OutputSummary(
   title: j['title'] as String? ?? '',
   workType: workTypeFrom(j['workType']),
   notebookName: j['notebookName'] as String? ?? '',
+  notebookId: j['notebookId'] as String? ?? '',
   notebookId: j['notebookId'] as String? ?? '',
   trigger: 'Manual',
   createdAt: j['createdAt'] as String? ?? '',

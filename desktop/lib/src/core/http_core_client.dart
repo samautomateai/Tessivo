@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'core_client.dart';
+import 'errors.dart';
 import 'json_mapping.dart';
 import 'models.dart';
 
+export 'errors.dart';
 export 'json_mapping.dart';
 
 part 'http_chat.dart';
@@ -60,15 +63,6 @@ String defaultEndpointPath(Map<String, String> env, {String? os}) {
   return [base, 'tessivo', 'run', 'endpoint.json'].join(sep);
 }
 
-/// An error returned by the core.
-class CoreException implements Exception {
-  const CoreException(this.status, this.message);
-  final int status;
-  final String message;
-
-  @override
-  String toString() => 'CoreException($status): $message';
-}
 
 /// Talks to the Go core's local API (docs/api.md) over a Unix socket or a
 /// loopback port, with the session token on every request.

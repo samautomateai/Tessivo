@@ -41,7 +41,7 @@ Future<(HttpServer, List<Map<String, Object?>>)> fakeTemplates() async {
       final wt = req.uri.queryParameters['workType'];
       res.write(
         jsonEncode({
-          'templates': wt == null || wt == 'report' ? [templateJson] : [],
+          'templates': wt == null || wt == 'report' ? [templateJson] : <Object>[],
         }),
       );
     } else if (req.method == 'POST' && path == '/v1/notebooks') {
@@ -57,8 +57,8 @@ Future<(HttpServer, List<Map<String, Object?>>)> fakeTemplates() async {
           'version': 2,
           'source': 'user',
           'parent': 'change-risk-review@1',
-          'prompts': [],
-          'slots': [],
+          'prompts': <Object>[],
+          'slots': <Object>[],
         }),
       );
     } else if (req.method == 'DELETE' && path == '/v1/templates/mine') {
