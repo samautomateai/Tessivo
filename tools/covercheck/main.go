@@ -1,9 +1,11 @@
-// Command covercheck fails when total statement coverage in a Go cover
-// profile is below a threshold.
+// Command covercheck fails when total coverage in a cover profile is below a
+// threshold. It reads Go profiles (statements) and LCOV files as written by
+// flutter test --coverage (lines).
 //
 // Usage:
 //
 //	covercheck -profile coverage.out -min 80
+//	covercheck -format lcov -profile desktop/coverage/lcov.info -min 80
 package main
 
 import (
@@ -23,9 +25,19 @@ func main() {
 func run(args []string, out io.Writer) int {
 	fl := flag.NewFlagSet("covercheck", flag.ContinueOnError)
 	fl.SetOutput(out)
-	profile := fl.String("profile", "coverage.out", "path to a go test -coverprofile file")
+	profile := fl.String("profile", "coverage.out", "path to a go test -coverprofile file or an LCOV file")
+	format := fl.String("format", "go", "profile format: go or lcov")
 	minPct := fl.Float64("min", 80, "minimum total coverage percentage")
 	if err := fl.Parse(args); err != nil {
+		return 2
+	}
+	total := Total
+	switch *format {
+	case "go":
+	case "lcov":
+		total = TotalLCOV
+	default:
+		_, _ = fmt.Fprintf(out, "covercheck: unknown format %q (want go or lcov)\n", *format)
 		return 2
 	}
 	f, err := os.Open(*profile)
@@ -34,7 +46,7 @@ func run(args []string, out io.Writer) int {
 		return 2
 	}
 	defer func() { _ = f.Close() }()
-	pct, err := Total(f)
+	pct, err := total(f)
 	if err != nil {
 		_, _ = fmt.Fprintln(out, "covercheck:", err)
 		return 2
@@ -105,4 +117,33 @@ func addLine(blocks map[string]*block, line string) error {
 		b.covered = true
 	}
 	return nil
+}
+
+// TotalLCOV sums the LF (lines found) and LH (lines hit) records of an LCOV
+// file and returns line coverage as a percentage.
+func TotalLCOV(r io.Reader) (float64, error) {
+	found, hit := 0, 0
+	sc := bufio.NewScanner(r)
+	for sc.Scan() {
+		key, val, ok := strings.Cut(strings.TrimSpace(sc.Text()), ":")
+		if !ok || (key != "LF" && key != "LH") {
+			continue
+		}
+		n, err := strconv.Atoi(val)
+		if err != nil || n < 0 {
+			return 0, fmt.Errorf("bad %s record %q", key, val)
+		}
+		if key == "LF" {
+			found += n
+		} else {
+			hit += n
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return 0, fmt.Errorf("read lcov: %w", err)
+	}
+	if found == 0 {
+		return 100, nil
+	}
+	return float64(hit) * 100 / float64(found), nil
 }

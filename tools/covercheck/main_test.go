@@ -58,3 +58,31 @@ func TestRun(t *testing.T) {
 		t.Fatalf("want 2, got %d", code)
 	}
 }
+
+func TestLCOV(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "lcov.info")
+	lcov := "SF:lib/a.dart\nDA:1,1\nLF:10\nLH:9\nend_of_record\nSF:lib/b.dart\nLF:10\nLH:7\nend_of_record\n"
+	if err := os.WriteFile(p, []byte(lcov), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	if code := run([]string{"-format", "lcov", "-profile", p, "-min", "80"}, &buf); code != 0 {
+		t.Fatalf("want 0, got %d: %s", code, &buf)
+	}
+	if !strings.Contains(buf.String(), "80.0%") {
+		t.Errorf("output: %s", &buf)
+	}
+	if code := run([]string{"-format", "lcov", "-profile", p, "-min", "81"}, &buf); code != 1 {
+		t.Fatalf("want 1, got %d", code)
+	}
+	if code := run([]string{"-format", "xml", "-profile", p}, &buf); code != 2 {
+		t.Fatalf("unknown format: want 2, got %d", code)
+	}
+	if pct, err := TotalLCOV(strings.NewReader("SF:x\nend_of_record\n")); err != nil || pct != 100 {
+		t.Errorf("empty: %v %v", pct, err)
+	}
+	if _, err := TotalLCOV(strings.NewReader("LF:abc\n")); err == nil {
+		t.Error("bad record accepted")
+	}
+}
