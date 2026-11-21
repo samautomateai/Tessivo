@@ -150,7 +150,7 @@ final _heading = RegExp(r'^(#{1,6})\s+(.*)$');
 final _bullet = RegExp(r'^\s*[-*+]\s+(.*)$');
 final _numbered = RegExp(r'^\s*\d+[.)]\s+(.*)$');
 final _rule = RegExp(r'^\s*([-*_])(\s*\1){2,}\s*$');
-final _tableSep = RegExp(r'^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$');
+final _tableSep = RegExp(r'^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$');
 
 /// Splits Markdown into blocks, line by line (linear time).
 List<MdBlock> parseMarkdown(String source) {

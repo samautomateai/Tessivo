@@ -5,6 +5,7 @@ import 'package:tessivo_desktop/src/app_state.dart';
 import 'package:tessivo_desktop/src/chat_state.dart';
 import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
+import 'package:tessivo_desktop/src/widgets/chat_widgets.dart';
 
 Future<AppState> pumpChat(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1600, 1200);
@@ -120,7 +121,11 @@ void main() {
     await tester.tap(find.byKey(const Key('chat-send')));
     await tester.pumpAndSettle();
     expect(find.text('And for API keys?'), findsOneWidget);
-    expect(find.textContaining('sample reply from the demo core'), findsOneWidget);
+    final reply = find.descendant(
+      of: find.byType(MessageList),
+      matching: find.textContaining('sample reply from the demo core'),
+    );
+    expect(reply, findsOneWidget);
   });
 
   testWidgets('new chat and attachments', (tester) async {
@@ -135,6 +140,8 @@ void main() {
     await tester.pumpAndSettle();
     await answer(tester, 'relative/path');
     expect(find.textContaining('Use an absolute path'), findsOneWidget);
+    tester.state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger)).removeCurrentSnackBar();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('chat-attach')));
     await tester.pumpAndSettle();

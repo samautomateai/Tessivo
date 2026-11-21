@@ -85,6 +85,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 /// Opens a saved output as selectable Markdown source.
 Future<void> showOutput(BuildContext context, CoreClient core, OutputSummary o) {
   final detail = core.getOutput(o.notebookId, o.id);
+  detail.ignore(); // the dialog's FutureBuilder shows any error; don't report it as unhandled first
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(

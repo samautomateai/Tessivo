@@ -133,7 +133,10 @@ class _SessionList extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               FilterChip(
                 key: const Key('chat-archived'),
@@ -141,7 +144,6 @@ class _SessionList extends StatelessWidget {
                 selected: chat.showArchived,
                 onSelected: (_) => chat.toggleArchived(),
               ),
-              const Spacer(),
               TextButton.icon(
                 key: const Key('chat-memory'),
                 onPressed: () => showChatMemoryDialog(context, chat),

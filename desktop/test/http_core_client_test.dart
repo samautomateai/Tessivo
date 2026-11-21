@@ -8,6 +8,8 @@ import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 import 'package:tessivo_desktop/src/core/supervisor.dart';
 
+import 'support/real_http.dart';
+
 const token = 'secret-token';
 
 const notebookJson = {
@@ -87,7 +89,10 @@ void main() {
 
   setUp(() async {
     server = await fakeCore(await HttpServer.bind(InternetAddress.loopbackIPv4, 0));
-    client = HttpCoreClient(Endpoint(network: 'tcp', address: '127.0.0.1:${server.port}', token: token));
+    client = HttpCoreClient(
+      Endpoint(network: 'tcp', address: '127.0.0.1:${server.port}', token: token),
+      client: realHttpClient(),
+    );
   });
 
   tearDown(() async {
@@ -135,7 +140,10 @@ void main() {
       client.startRun(notebookId: 'missing', prompt: 'p', vars: const {}).toList(),
       throwsA(isA<CoreException>().having((e) => e.status, 'status', 404)),
     );
-    final wrong = HttpCoreClient(Endpoint(network: 'tcp', address: '127.0.0.1:${server.port}', token: 'nope'));
+    final wrong = HttpCoreClient(
+      Endpoint(network: 'tcp', address: '127.0.0.1:${server.port}', token: 'nope'),
+      client: realHttpClient(),
+    );
     await expectLater(wrong.listNotebooks(), throwsA(isA<CoreException>().having((e) => e.status, 'status', 401)));
     wrong.close();
   });
@@ -145,7 +153,7 @@ void main() {
     final dir = await Directory.systemTemp.createTemp('tsv');
     final sock = '${dir.path}/core.sock';
     final unixServer = await fakeCore(await HttpServer.bind(InternetAddress(sock, type: InternetAddressType.unix), 0));
-    final unixClient = HttpCoreClient(Endpoint(network: 'unix', address: sock, token: token));
+    final unixClient = HttpCoreClient(Endpoint(network: 'unix', address: sock, token: token), client: realHttpClient());
     expect((await unixClient.listNotebooks()).single.id, 'board');
     unixClient.close();
     await unixServer.close(force: true);

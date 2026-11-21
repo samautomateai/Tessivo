@@ -10,6 +10,8 @@ import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 
+import 'support/real_http.dart';
+
 const token = 'secret-token';
 
 const scheduleJson = {
@@ -86,7 +88,10 @@ void main() {
 
     setUp(() async {
       server = await fakeSchedules();
-      client = HttpCoreClient(Endpoint(network: 'tcp', address: '127.0.0.1:${server.port}', token: token));
+      client = HttpCoreClient(
+        Endpoint(network: 'tcp', address: '127.0.0.1:${server.port}', token: token),
+        client: realHttpClient(),
+      );
     });
     tearDown(() async {
       client.close();
@@ -110,7 +115,10 @@ void main() {
     });
 
     test('events with a bad token fail', () async {
-      final bad = HttpCoreClient(Endpoint(network: 'tcp', address: '127.0.0.1:${server.port}', token: 'x'));
+      final bad = HttpCoreClient(
+        Endpoint(network: 'tcp', address: '127.0.0.1:${server.port}', token: 'x'),
+        client: realHttpClient(),
+      );
       addTearDown(bad.close);
       expect(bad.events().toList(), throwsA(isA<CoreException>()));
     });

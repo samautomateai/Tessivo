@@ -10,6 +10,8 @@ import 'package:tessivo_desktop/src/core/demo_templates.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 
+import 'support/real_http.dart';
+
 const token = 'secret-token';
 
 const templateJson = {
@@ -98,7 +100,10 @@ void main() {
 
     setUp(() async {
       (server, bodies) = await fakeTemplates();
-      client = HttpCoreClient(Endpoint(network: 'tcp', address: '127.0.0.1:${server.port}', token: token));
+      client = HttpCoreClient(
+        Endpoint(network: 'tcp', address: '127.0.0.1:${server.port}', token: token),
+        client: realHttpClient(),
+      );
     });
     tearDown(() async {
       client.close();
