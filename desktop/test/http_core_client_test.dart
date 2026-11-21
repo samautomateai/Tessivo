@@ -153,7 +153,10 @@ void main() {
     final dir = await Directory.systemTemp.createTemp('tsv');
     final sock = '${dir.path}/core.sock';
     final unixServer = await fakeCore(await HttpServer.bind(InternetAddress(sock, type: InternetAddressType.unix), 0));
-    final unixClient = HttpCoreClient(Endpoint(network: 'unix', address: sock, token: token), client: realHttpClient());
+    final unixClient = HttpCoreClient(
+      Endpoint(network: 'unix', address: sock, token: token),
+      client: realHttpClient(),
+    );
     expect((await unixClient.listNotebooks()).single.id, 'board');
     unixClient.close();
     await unixServer.close(force: true);
