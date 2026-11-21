@@ -77,6 +77,7 @@ type File struct {
 	Aliases      []Alias     `json:"aliases"`
 	Defaults     RunSettings `json:"defaults"`
 	Limits       Limits      `json:"limits"`
+	Agent        AgentConfig `json:"agent,omitzero"`
 }
 
 // Default returns a starter config pointing at a local LiteLLM proxy.
@@ -90,6 +91,7 @@ func Default() File {
 		Defaults: RunSettings{
 			Temperature: Ptr(0.2), MaxOutputTokens: Ptr(8000), ThinkingEffort: ThinkingMedium, Mode: ModePipeline,
 		},
+		Agent: AgentConfig{}.WithDefaults(),
 	}
 }
 
@@ -181,6 +183,7 @@ func (f File) Validate() error {
 	if err := f.Defaults.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("defaults: %w", err))
 	}
+	errs = append(errs, f.Agent.Validate())
 	return errors.Join(errs...)
 }
 

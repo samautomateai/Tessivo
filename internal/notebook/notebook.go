@@ -48,6 +48,12 @@ type Manifest struct {
 	Context   []ContextItem      `json:"context"`
 	Memory    []string           `json:"memory,omitempty"`   // pinned facts included in every run
 	Template  string             `json:"template,omitempty"` // "id@version" this notebook came from
+	Agent     AgentSettings      `json:"agent,omitzero"`
+}
+
+// AgentSettings are the notebook's agent-mode settings.
+type AgentSettings struct {
+	Tools map[string]string `json:"tools,omitempty"` // tool name or "prefix*" → allow, ask or block
 }
 
 // Notebook is an opened notebook folder.

@@ -12,7 +12,7 @@
 
 | Package | Responsibility |
 | --- | --- |
-| `config` | Layered settings: app → notebook → work type → prompt → run. Most specific wins; records the source of each value. |
+| `config` | Layered settings: app → notebook → work type → prompt → run. Most specific wins; records the source of each value. `agent` block: default tool rules (allow, ask, block; exact names or `prefix*`) and limits (40 steps, 400k tokens, 30 min, approvals expire after 7 days). |
 | `secrets` | Secret lookup and redaction; the default chain is environment variables, then the OS keychain. |
 | `keychain` | OS credential stores: macOS keychain, Linux Secret Service, Windows Credential Manager. Values pass through stdin or memory, never argv. |
 | `llm` | OpenAI-compatible client: models list, chat completions, SSE streaming, JSON-schema `response_format`, reasoning effort, tool calling (≤ 16 calls and 64 KiB of arguments per call, streamed deltas assembled). |
