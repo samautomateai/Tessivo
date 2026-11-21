@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import 'app_state.dart';
@@ -9,6 +11,7 @@ import 'screens/settings_screen.dart';
 import 'screens/templates_screen.dart';
 import 'screens/workspace_screen.dart';
 import 'theme.dart';
+import 'widgets/approvals_sheet.dart';
 
 /// Window layout: graphite sidebar plus the active section.
 class AppShell extends StatelessWidget {
@@ -97,6 +100,16 @@ class _Sidebar extends StatelessWidget {
             ),
           ),
           const Divider(color: Tokens.sidebarSelected),
+          if (state.approvals.isNotEmpty)
+            KeyedSubtree(
+              key: const Key('approvals-badge'),
+              child: _NavItem(
+                label: 'Approvals (${state.approvals.length})',
+                dot: Colors.orange,
+                selected: false,
+                onTap: () => unawaited(showApprovalsSheet(context, state)),
+              ),
+            ),
           _NavItem(
             label: 'Templates',
             selected: state.section == Section.templates,

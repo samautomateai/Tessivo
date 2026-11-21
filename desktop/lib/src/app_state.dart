@@ -27,6 +27,34 @@ class AppState extends ChangeNotifier {
 
   String get streamedText => _stream.toString();
 
+  // Agent mode: tool calls of the current run, and approvals it waits for.
+  final List<String> toolLog = [];
+  List<PendingApproval> paused = const [];
+
+  // Approvals waiting across all notebooks (sidebar badge).
+  List<PendingApproval> approvals = const [];
+
+  /// Reloads pending approvals; errors keep the last list.
+  Future<void> refreshApprovals() async {
+    try {
+      approvals = await core.pendingApprovals();
+    } on Object {
+      return;
+    }
+    if (!_disposed) notifyListeners();
+  }
+
+  /// Answers an approval. [remember] is `run` or `notebook`.
+  Future<void> answer(PendingApproval a, {required bool allow, String? remember}) async {
+    await core.answerApproval(a.runId, a.approvalId, allow: allow, remember: remember);
+    paused = [
+      for (final p in paused)
+        if (p.approvalId != a.approvalId) p,
+    ];
+    await refreshApprovals();
+    notifyListeners();
+  }
+
   // Notifications from the core's event stream (newest last, capped).
   final List<String> notices = [];
   StreamSubscription<CoreEvent>? _events;
@@ -38,7 +66,8 @@ class AppState extends ChangeNotifier {
     _events = core.events().listen(
       (e) {
         _retry = const Duration(seconds: 2);
-        if (e.kind == 'schedule.started') return; // only outcomes are worth a notice
+        if (e.isRunEvent || e.kind == 'schedule.paused') unawaited(refreshApprovals());
+        if (e.kind == 'schedule.started' || e.kind == 'run.resumed') return; // only outcomes are worth a notice
         notices.add(e.message);
         if (notices.length > 20) notices.removeAt(0);
         notifyListeners();
@@ -92,6 +121,7 @@ class AppState extends ChangeNotifier {
     selectedId ??= notebooks.isEmpty ? null : notebooks.first.id;
     loading = false;
     notifyListeners();
+    await refreshApprovals();
     if (selectedId case final id?) await _refresh(id);
   }
 
@@ -170,6 +200,8 @@ class AppState extends ChangeNotifier {
     running = true;
     outcome = null;
     _stream.clear();
+    toolLog.clear();
+    paused = const [];
     notifyListeners();
     try {
       await for (final e in core.startRun(notebookId: nb.id, prompt: prompt, vars: vars)) {
@@ -180,6 +212,13 @@ class AppState extends ChangeNotifier {
             _stream.write(text);
           case RunFinished(outcome: final o):
             outcome = o;
+          case RunToolCall(:final tool, :final args):
+            toolLog.add('→ $tool $args');
+          case RunToolResult(:final tool, :final result):
+            toolLog.add('← $tool: ${result.split('\n').first}');
+          case RunPaused(approvals: final list):
+            paused = list;
+            unawaited(refreshApprovals());
         }
         notifyListeners();
       }

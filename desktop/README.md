@@ -35,5 +35,10 @@ and shows a dismissible banner when a scheduled run finishes, fails or is skippe
 shows an OS notification, via `tess serve --notify`); the stream reconnects
 with backoff capped at one minute, and malformed or oversized frames are dropped.
 
+Agent runs (notebook mode `agent`) show each tool call in the output panel. When a tool needs approval the
+run pauses: the output panel shows the waiting call, and an **Approvals (n)** item in the sidebar lists every
+pending approval across notebooks with Allow once, Allow for this run, Allow for this notebook and Deny. The
+core resumes the run after the answer, even if the app was closed in between.
+
 Material widgets come from the standalone `material_ui` package (moved out of the Flutter
 framework in 3.47). State uses `ChangeNotifier`; no state-management package.

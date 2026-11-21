@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../app_state.dart';
 import '../core/models.dart';
 import '../theme.dart';
+import '../widgets/approvals_sheet.dart';
 import '../widgets/memory_card.dart';
 import '../widgets/text_prompt_dialog.dart';
 import '../widgets/work_type_badge.dart';
@@ -212,6 +213,16 @@ class _OutputPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (state.running) Text(state.status, style: const TextStyle(color: Tokens.textMuted)),
+          for (final line in state.toolLog)
+            Text(
+              line,
+              style: const TextStyle(color: Tokens.textMuted, fontFamily: 'monospace', fontSize: 12),
+            ),
+          if (state.paused.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('Waiting for approval', style: Theme.of(context).textTheme.titleSmall),
+            for (final a in state.paused) ApprovalTile(state: state, approval: a),
+          ],
           if (state.streamedText.isEmpty && !state.running)
             const Text('Run the notebook to see its output here.', style: TextStyle(color: Tokens.textMuted)),
           Text(state.streamedText, key: const Key('output')),

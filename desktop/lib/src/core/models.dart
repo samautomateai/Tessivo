@@ -135,6 +135,28 @@ class RunFinished extends RunEvent {
   final RunOutcome outcome;
 }
 
+/// Agent mode: the agent called a tool.
+class RunToolCall extends RunEvent {
+  const RunToolCall({required this.tool, this.args = ''});
+  final String tool;
+  final String args;
+}
+
+/// Agent mode: a tool answered (shortened by the core).
+class RunToolResult extends RunEvent {
+  const RunToolResult({required this.tool, this.result = ''});
+  final String tool;
+  final String result;
+}
+
+/// Agent mode: the run stopped to wait for approval; it continues in the core
+/// once answered.
+class RunPaused extends RunEvent {
+  const RunPaused({required this.runId, required this.approvals});
+  final String runId;
+  final List<PendingApproval> approvals;
+}
+
 /// One past scheduled run.
 class ScheduleRun {
   const ScheduleRun({required this.status, required this.startedAt, this.error});
@@ -176,19 +198,49 @@ class ScheduleInfo {
 
 /// A notification-worthy event from the core (e.g. a scheduled run finished).
 class CoreEvent {
-  const CoreEvent({required this.kind, required this.notebookName, this.title, this.error});
+  const CoreEvent({required this.kind, required this.notebookName, this.title, this.error, this.tool});
   final String kind;
   final String notebookName;
   final String? title;
   final String? error;
+  final String? tool;
+
+  /// Whether the event changes the list of pending approvals.
+  bool get isRunEvent => kind.startsWith('run.');
 
   /// Short message for an in-app notification.
   String get message => switch (kind) {
     'schedule.finished' => '$notebookName: ${title ?? 'scheduled run'} is ready',
     'schedule.failed' => '$notebookName: scheduled run failed${error == null ? '' : ' ($error)'}',
     'schedule.skipped' => '$notebookName: missed run skipped',
+    'schedule.paused' || 'run.approval_needed' => '$notebookName: approval needed${tool == null ? '' : ' for $tool'}',
+    'run.finished' => '$notebookName: agent run finished',
+    'run.failed' => '$notebookName: agent run failed${error == null ? '' : ' ($error)'}',
+    'run.cancelled' => '$notebookName: agent run cancelled',
     _ => '$notebookName: scheduled run started',
   };
+}
+
+/// An agent tool call waiting for the user's answer.
+class PendingApproval {
+  const PendingApproval({
+    required this.runId,
+    required this.approvalId,
+    required this.tool,
+    this.notebookId = '',
+    this.notebookName = '',
+    this.args = '',
+    this.requestedAt = '',
+    this.expiresAt = '',
+  });
+  final String runId;
+  final String notebookId;
+  final String notebookName;
+  final String approvalId;
+  final String tool;
+  final String args;
+  final String requestedAt;
+  final String expiresAt;
 }
 
 /// A context slot a template asks the user to fill (never filled data).

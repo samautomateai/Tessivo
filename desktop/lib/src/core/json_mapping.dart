@@ -27,6 +27,18 @@ CoreEvent eventFromJson(Map<String, Object?> j) => CoreEvent(
   notebookName: j['notebookName'] as String? ?? '',
   title: j['title'] as String?,
   error: j['error'] as String?,
+  tool: j['tool'] as String?,
+);
+
+PendingApproval approvalFromJson(Map<String, Object?> j) => PendingApproval(
+  runId: j['runId'] as String? ?? '',
+  notebookId: j['notebookId'] as String? ?? '',
+  notebookName: j['notebookName'] as String? ?? '',
+  approvalId: j['approvalId'] as String? ?? '',
+  tool: j['tool'] as String? ?? '',
+  args: j['args'] as String? ?? '',
+  requestedAt: j['requestedAt'] as String? ?? '',
+  expiresAt: j['expiresAt'] as String? ?? '',
 );
 
 TemplateInfo templateFromJson(Map<String, Object?> j) {

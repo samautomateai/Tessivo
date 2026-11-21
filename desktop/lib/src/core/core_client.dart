@@ -58,6 +58,16 @@ abstract interface class CoreClient {
 
   /// Live notifications (scheduled runs). Never completes while the core runs.
   Stream<CoreEvent> events();
+
+  /// Agent tool calls waiting for an answer, across all notebooks.
+  Future<List<PendingApproval>> pendingApprovals();
+
+  /// Answers an approval; the core then resumes the run in the background.
+  /// [remember] is `run` or `notebook` to allow later calls of the same tool.
+  Future<void> answerApproval(String runId, String approvalId, {required bool allow, String? remember});
+
+  /// Stops an agent run (running, paused or interrupted).
+  Future<void> cancelRun(String runId);
 }
 
 const builtInWorkTypes = <WorkType>[
@@ -238,6 +248,31 @@ class DemoCoreClient with DemoChat implements CoreClient {
 
   /// Emits a demo event (used by tests and the demo mode).
   void emit(CoreEvent e) => _events.add(e);
+
+  // One sample approval so demo mode shows the approvals flow.
+  final List<PendingApproval> _approvals = [
+    const PendingApproval(
+      runId: 'demo-run',
+      notebookId: 'nb-1',
+      notebookName: 'Change risk review',
+      approvalId: 'demo-approval',
+      tool: 'grep',
+      args: '{"pattern":"TODO"}',
+      requestedAt: '2026-11-21T10:00:00Z',
+      expiresAt: '2026-11-28T10:00:00Z',
+    ),
+  ];
+
+  @override
+  Future<List<PendingApproval>> pendingApprovals() async => List.unmodifiable(_approvals);
+
+  @override
+  Future<void> answerApproval(String runId, String approvalId, {required bool allow, String? remember}) async {
+    _approvals.removeWhere((a) => a.runId == runId && a.approvalId == approvalId);
+  }
+
+  @override
+  Future<void> cancelRun(String runId) async => _approvals.removeWhere((a) => a.runId == runId);
 
   Notebook _find(String id) =>
       _notebooks.firstWhere((n) => n.id == id, orElse: () => throw StateError('unknown notebook $id'));

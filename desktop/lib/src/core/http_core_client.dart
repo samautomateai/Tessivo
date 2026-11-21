@@ -193,6 +193,15 @@ class HttpCoreClient with _HttpChat implements CoreClient {
           yield RunDelta((map['text'] as String?) ?? '');
         case 'finished':
           yield RunFinished(outcomeFromJson(map));
+        case 'tool_call':
+          yield RunToolCall(tool: (map['tool'] as String?) ?? '', args: (map['args'] as String?) ?? '');
+        case 'tool_result':
+          yield RunToolResult(tool: (map['tool'] as String?) ?? '', result: (map['result'] as String?) ?? '');
+        case 'paused':
+          yield RunPaused(
+            runId: (map['runId'] as String?) ?? '',
+            approvals: jsonList(map['approvals']).map(approvalFromJson).toList(),
+          );
         case 'error':
           throw CoreException((map['status'] as num?)?.toInt() ?? 500, (map['error'] as String?) ?? 'run failed');
       }
@@ -259,6 +268,25 @@ class HttpCoreClient with _HttpChat implements CoreClient {
   @override
   Future<void> deleteSchedule(String notebookId, String scheduleId) async {
     await _json('DELETE', '${_schedulesPath(notebookId)}/${Uri.encodeComponent(scheduleId)}');
+  }
+
+  String _run(String id) => '/v1/runs/${Uri.encodeComponent(id)}';
+
+  @override
+  Future<List<PendingApproval>> pendingApprovals() async {
+    final json = await _json('GET', '/v1/approvals');
+    return jsonList(json['approvals']).map(approvalFromJson).toList();
+  }
+
+  @override
+  Future<void> answerApproval(String runId, String approvalId, {required bool allow, String? remember}) async {
+    final body = {'decision': allow ? 'allow' : 'deny', 'remember': ?remember};
+    await _json('POST', '${_run(runId)}/approvals/${Uri.encodeComponent(approvalId)}', body: body);
+  }
+
+  @override
+  Future<void> cancelRun(String runId) async {
+    await _json('POST', '${_run(runId)}/cancel');
   }
 
   @override
