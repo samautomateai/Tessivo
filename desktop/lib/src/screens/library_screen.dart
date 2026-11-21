@@ -77,7 +77,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     title: Text(o.title),
     subtitle: Text('${o.notebookName} · ${o.trigger} · ${o.createdAt}'),
     leading: WorkTypeBadge(workType: o.workType),
-    trailing: Text('v${o.versions}', style: const TextStyle(color: Tokens.textMuted)),
+    trailing: Text('v${o.version}', style: const TextStyle(color: Tokens.textMuted)),
     onTap: o.notebookId.isEmpty ? null : () => showOutput(context, widget.core, o),
   );
 }

@@ -11,6 +11,7 @@ export 'errors.dart';
 export 'json_mapping.dart';
 
 part 'http_chat.dart';
+part 'http_threads.dart';
 
 /// Connection details the core writes to `run/endpoint.json` (0600).
 class Endpoint {
@@ -71,7 +72,7 @@ String defaultEndpointPath(Map<String, String> env, {String? os}) {
 
 /// Talks to the Go core's local API (docs/api.md) over a Unix socket or a
 /// loopback port, with the session token on every request.
-class HttpCoreClient with _HttpChat implements CoreClient {
+class HttpCoreClient with _HttpChat, _HttpThreads implements CoreClient {
   HttpCoreClient(this.endpoint, {HttpClient? client}) : _client = client ?? HttpClient() {
     _client
       ..findProxy = ((_) => 'DIRECT')
@@ -161,8 +162,9 @@ class HttpCoreClient with _HttpChat implements CoreClient {
   }
 
   @override
-  Future<List<OutputSummary>> listOutputs({WorkTypeId? workType}) async {
-    final json = await _json('GET', '/v1/outputs', query: workType == null ? null : {'workType': workType.name});
+  Future<List<OutputSummary>> listOutputs({WorkTypeId? workType, String? notebookId}) async {
+    final query = {'workType': ?workType?.name, 'notebook': ?notebookId};
+    final json = await _json('GET', '/v1/outputs', query: query.isEmpty ? null : query);
     return jsonList(json['outputs']).map(outputFromJson).toList();
   }
 

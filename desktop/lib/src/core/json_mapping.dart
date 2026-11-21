@@ -1,5 +1,6 @@
 import 'chat_models.dart';
 import 'models.dart';
+import 'thread_models.dart';
 
 // Maps the core's JSON (docs/api.md) to UI models. Every field is optional and
 // type-checked: responses are treated as untrusted.
@@ -104,7 +105,8 @@ OutputSummary outputFromJson(Map<String, Object?> j) => OutputSummary(
   notebookId: j['notebookId'] as String? ?? '',
   trigger: 'Manual',
   createdAt: j['createdAt'] as String? ?? '',
-  versions: 1,
+  version: (j['version'] as num?)?.toInt() ?? 1,
+  parentId: j['parentId'] as String?,
 );
 
 RunOutcome outcomeFromJson(Map<String, Object?> j) {
@@ -181,7 +183,11 @@ ChatAttachment chatAttachmentFromJson(Map<String, Object?> j) => ChatAttachment(
 
 ChatMessage chatMessageFromJson(Map<String, Object?> j) => ChatMessage(
   id: j['id'] as String? ?? '',
-  role: j['role'] == 'user' ? 'user' : 'assistant',
+  role: switch (j['role']) {
+    'user' => 'user',
+    'note' => 'note',
+    _ => 'assistant',
+  },
   content: j['content'] as String? ?? '',
   createdAt: j['createdAt'] as String? ?? '',
   model: j['model'] as String?,
@@ -228,3 +234,23 @@ ChatOutput chatOutputFromJson(Map<String, Object?> j) => ChatOutput(
 
 /// A JSON array of strings; other entries are dropped.
 List<String> jsonStrings(Object? v) => _strings(v);
+
+PromptTarget promptTargetFromJson(Map<String, Object?> j) => PromptTarget(
+  kind: j['kind'] as String? ?? 'new',
+  current: j['current'] as String? ?? '',
+  promptName: j['promptName'] as String?,
+  scheduleId: j['scheduleId'] as String?,
+  schedules: _strings(j['schedules']),
+);
+
+Suggestion suggestionFromJson(Map<String, Object?> j) {
+  final target = j['target'];
+  return Suggestion(
+    id: j['id'] as String? ?? '',
+    kind: j['kind'] == 'prompt' ? 'prompt' : 'memory',
+    text: j['text'] as String? ?? '',
+    status: j['status'] as String? ?? 'open',
+    reason: j['reason'] as String?,
+    target: target is Map<String, Object?> ? promptTargetFromJson(target) : null,
+  );
+}

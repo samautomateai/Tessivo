@@ -4,11 +4,14 @@ import 'chat_models.dart';
 import 'checks.dart';
 import 'demo_chat.dart';
 import 'demo_templates.dart';
+import 'demo_threads.dart';
 import 'models.dart';
+import 'thread_models.dart';
 
 export 'chat_models.dart';
 export 'checks.dart';
 export 'errors.dart';
+export 'thread_models.dart';
 
 /// The desktop app's view of the Go core. `HttpCoreClient` talks to the local
 /// API (docs/api.md); [DemoCoreClient] serves sample data when no core runs.
@@ -18,7 +21,7 @@ abstract interface class CoreClient {
   Future<Notebook> createNotebook({required String name, required WorkTypeId workType});
   Future<Notebook> setContextEnabled({required String notebookId, required String contextId, required bool enabled});
   Stream<RunEvent> startRun({required String notebookId, required String prompt, required Map<String, String> vars});
-  Future<List<OutputSummary>> listOutputs({WorkTypeId? workType});
+  Future<List<OutputSummary>> listOutputs({WorkTypeId? workType, String? notebookId});
   Future<Notebook> getNotebook(String notebookId);
   Future<Notebook> addContext(String notebookId, String path);
   Future<Notebook> setMemory(String notebookId, List<String> memory);
@@ -71,6 +74,20 @@ abstract interface class CoreClient {
 
   /// Resumes an interrupted run (or a paused one whose approvals are answered).
   Future<void> resumeRun(String runId);
+
+  // Output threads (docs/api.md, "Output threads").
+  Future<ChatSession> getThread(String notebookId, String outputId);
+  Future<ChatSession> setThreadSettings(String notebookId, String outputId, {String? model, String? thinkingEffort});
+  Stream<ThreadEvent> sendThread(String notebookId, String outputId, String text, {List<ChatAttachment> attachments});
+  Future<List<Suggestion>> listSuggestions(String notebookId, String outputId);
+  Future<List<Suggestion>> generateSuggestions(String notebookId, String outputId);
+  Future<({Suggestion suggestion, String? promptName})> applySuggestion(
+    String notebookId,
+    String outputId,
+    String suggestionId,
+  );
+  Future<Suggestion> dismissSuggestion(String notebookId, String outputId, String suggestionId);
+  Future<OutputSummary> newVersion(String notebookId, String outputId, {String? fromMessageId});
 }
 
 const builtInWorkTypes = <WorkType>[
@@ -105,7 +122,7 @@ const builtInWorkTypes = <WorkType>[
 ];
 
 /// In-memory core with sample data, used when no core can be reached.
-class DemoCoreClient with DemoChat implements CoreClient {
+class DemoCoreClient with DemoChat, DemoThreads implements CoreClient {
   DemoCoreClient({Duration tick = const Duration(milliseconds: 40)}) : _tick = tick;
 
   final Duration _tick;
@@ -387,39 +404,8 @@ class DemoCoreClient with DemoChat implements CoreClient {
   }
 
   @override
-  Future<List<OutputSummary>> listOutputs({WorkTypeId? workType}) async {
-    const all = [
-      OutputSummary(
-        id: 'o1',
-        notebookId: 'nb-1',
-        title: 'PR #482 risk report',
-        workType: WorkTypeId.analyze,
-        notebookName: 'Change risk review',
-        trigger: 'Manual',
-        createdAt: 'Today 22:01',
-        versions: 2,
-      ),
-      OutputSummary(
-        id: 'o2',
-        notebookId: 'nb-4',
-        title: 'Weekly ops report, week 47',
-        workType: WorkTypeId.report,
-        notebookName: 'Weekly ops report',
-        trigger: 'Scheduled',
-        createdAt: 'Mon 08:00',
-        versions: 1,
-      ),
-      OutputSummary(
-        id: 'o3',
-        notebookId: 'nb-2',
-        title: 'Vendor contracts digest',
-        workType: WorkTypeId.summarize,
-        notebookName: 'Vendor contracts digest',
-        trigger: 'Manual',
-        createdAt: 'Nov 18',
-        versions: 3,
-      ),
-    ];
-    return workType == null ? all : all.where((o) => o.workType == workType).toList();
-  }
+  Future<List<OutputSummary>> listOutputs({WorkTypeId? workType, String? notebookId}) async => [
+    for (final o in demoOutputs.reversed)
+      if ((workType == null || o.workType == workType) && (notebookId == null || o.notebookId == notebookId)) o,
+  ];
 }

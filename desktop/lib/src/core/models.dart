@@ -83,7 +83,8 @@ class OutputSummary {
     required this.notebookName,
     required this.trigger,
     required this.createdAt,
-    required this.versions,
+    this.version = 1,
+    this.parentId,
     this.notebookId = '',
   });
 
@@ -95,7 +96,12 @@ class OutputSummary {
   final String notebookName;
   final String trigger;
   final String createdAt;
-  final int versions;
+
+  /// 1 for an original output, one more for each revision of it.
+  final int version;
+
+  /// The output this version revises.
+  final String? parentId;
 }
 
 /// A finished run as the UI shows it.
