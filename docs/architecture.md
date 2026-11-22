@@ -82,5 +82,12 @@ up to 1024, a source whose fingerprint matches its stored summary is not sent ag
 `research.summary.started|ready|failed` on `/v1/events`. A ready summary switches a new source to the `summary`
 level unless the user already picked one. The CLI summarizes in-process and waits.
 
+Opening a notebook and sending a question check summarized sources against their content: a source is read for its
+fingerprint at most every 30 s, a changed one is summarized again at most every 5 minutes (so a source that changes on
+every read cannot loop), and a source that cannot be read shows as `unreadable` and is skipped with a note. Context
+totals use each source's cached size and never re-read it. A source too large for 16 condensing calls is summarized
+from evenly spaced samples, and its summary says so. A file source whose manifest path is not its own copy under
+`sources/` is treated as unreadable and is never read or deleted.
+
 SQLite (FTS, retrieval) arrives with the desktop MVP; the folder stays the source of truth so
 notebooks remain portable and diff-able.

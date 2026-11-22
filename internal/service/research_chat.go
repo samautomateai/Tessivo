@@ -158,7 +158,7 @@ func (s *Service) SendResearch(ctx context.Context, id, chatID, text string, onD
 	if err != nil {
 		return ResearchReply{}, err
 	}
-	items, skipped := s.researchItems(ctx, nb)
+	items, skipped := s.researchItems(ctx, nb, false)
 	built := research.Build(nb.Manifest.Name, nb.Manifest.Description, items, relabelled(sess.Messages, cites), text,
 		budget(settings))
 	user := chat.Message{

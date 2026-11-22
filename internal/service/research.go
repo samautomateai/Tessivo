@@ -20,10 +20,11 @@ const ResearchDirName = "research"
 
 // Summary states shown for a source.
 const (
-	SummaryReady    = "ready"
-	SummaryFailed   = "failed"
-	SummaryPending  = "pending"
-	SummaryUpdating = "updating"
+	SummaryReady      = "ready"
+	SummaryFailed     = "failed"
+	SummaryPending    = "pending"
+	SummaryUpdating   = "updating"
+	SummaryUnreadable = "unreadable" // the source cannot be read now (moved, deleted, server down)
 )
 
 // ResearchInfo is a research notebook as the API shows it.
@@ -227,10 +228,7 @@ func (s *Service) checkedInfo(ctx context.Context, nb *research.Notebook) Resear
 		case state == SummaryPending:
 			s.enqueueSummary(nb.Manifest.ID, src.ID)
 		case state == SummaryReady && src.Level != research.LevelOff:
-			if read, err := s.readResearchSource(ctx, nb, src); err == nil && read.fingerprint != sum.Fingerprint {
-				s.enqueueSummary(nb.Manifest.ID, src.ID)
-				return SummaryUpdating, ""
-			}
+			return s.recheck(ctx, nb, src, sum)
 		}
 		return state, msg
 	})

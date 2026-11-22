@@ -126,11 +126,13 @@ func TestSummaryNotRepeatedForSameContent(t *testing.T) {
 
 func TestChangedSourceQueuedAndMarkedUpdating(t *testing.T) {
 	s, m := researchSvc(t)
+	move := movableClock(s)
 	nb, _ := s.CreateResearch("Board", "")
 	dir := t.TempDir()
 	_ = os.WriteFile(filepath.Join(dir, "a.md"), []byte("v1"), 0o600)
 	info, _ := s.AddResearchSource(context.Background(), nb.ID, dir, "", "", true)
 	_ = os.WriteFile(filepath.Join(dir, "a.md"), []byte("v2 changed"), 0o600)
+	move(resummaryAfter)         // past the cooldown that follows the first summary
 	m.gate = make(chan struct{}) // hold the re-summary so "updating" is visible
 	got, err := s.GetResearch(context.Background(), nb.ID)
 	if err != nil || got.Sources[0].Summary != SummaryUpdating {

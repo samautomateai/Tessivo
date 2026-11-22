@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/extract"
@@ -23,8 +24,9 @@ const (
 
 // maxSummaryJobs bounds concurrent summaries; maxQueued bounds waiting ones.
 const (
-	maxSummaryJobs = 2
-	maxQueued      = 1024
+	maxSummaryJobs   = 2
+	maxQueued        = 1024
+	maxSummaryPieces = 16 // most pieces a huge source is condensed in before its summary
 )
 
 const summaryPrompt = `Summarize this source for someone deciding whether to read it in full: what it is, its ` +
@@ -162,6 +164,7 @@ func (s *Service) finishSummary(notebookID, sourceID string, read sourceRead, su
 			if err := nb.SaveSummary(*sum); err != nil {
 				return err
 			}
+			s.markSummarized(notebookID, sourceID)
 		}
 		src := &nb.Manifest.Sources[i]
 		src.Tokens, src.TokensFor = read.tokens, read.fingerprint
@@ -246,9 +249,11 @@ func (s *Service) summaryText(ctx context.Context, nb *research.Notebook, read s
 	}
 	material := read.flat()
 	limit := budget(settings) * 3 / 4
+	sampled := false
 	if extract.EstimateTokens(material) > limit {
-		var notes []string
-		for _, piece := range splitRunes(material, limit*4) {
+		var notes, parts []string
+		parts, sampled = pieces(material, limit*4, maxSummaryPieces)
+		for _, piece := range parts {
 			n, err := ask(condensePrompt, piece)
 			if err != nil {
 				return "", "", err
@@ -258,18 +263,45 @@ func (s *Service) summaryText(ctx context.Context, nb *research.Notebook, read s
 		material = cutTo(strings.Join(notes, "\n\n"), limit*4)
 	}
 	text, err = ask(summaryPrompt, material)
+	if err == nil && sampled {
+		text += sampledNote
+	}
 	return text, settings.Model, err
 }
 
-func splitRunes(s string, n int) []string {
-	r := []rune(s)
-	var out []string
-	for len(r) > 0 {
-		k := min(n, len(r))
-		out = append(out, string(r[:k]))
-		r = r[k:]
+const sampledNote = "\n\n_(This source is too large to read in full; the summary is made from evenly spaced samples.)_"
+
+// pieces splits s into chunks of at most n bytes at rune boundaries. When
+// that would take more than limit chunks, it takes limit chunks evenly spaced
+// across s instead and reports sampled.
+func pieces(s string, n, limit int) (out []string, sampled bool) {
+	if n < 1 {
+		n = 1
 	}
-	return out
+	if (len(s)+n-1)/n <= limit {
+		for len(s) > 0 {
+			k := runeStart(s, min(n, len(s)))
+			if k == 0 {
+				k = min(n, len(s)) // n is shorter than one rune
+			}
+			out, s = append(out, s[:k]), s[k:]
+		}
+		return out, false
+	}
+	for i := range limit {
+		start := runeStart(s, i*(len(s)/limit))
+		end := runeStart(s, min(start+n, len(s)))
+		out = append(out, s[start:end])
+	}
+	return out, true
+}
+
+// runeStart moves i back to the start of the rune it falls in.
+func runeStart(s string, i int) int {
+	for i > 0 && i < len(s) && !utf8.RuneStart(s[i]) {
+		i--
+	}
+	return i
 }
 
 func cutTo(s string, n int) string {

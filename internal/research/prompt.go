@@ -26,6 +26,8 @@ type Item struct {
 	Level string
 	Text  string
 	Files []File
+	// Size is the item's estimated tokens when its text is not loaded (context totals only).
+	Size int
 }
 
 // File is one file of a folder source.
@@ -160,4 +162,38 @@ func recent(msgs []chat.Message, budget int) []llm.Message {
 		out = append(out, llm.Message{Role: m.Role, Content: m.Content})
 	}
 	return out
+}
+
+// Estimate is what Build would report as Tokens and Cut, without the text:
+// an item with Size counts that many tokens.
+func Estimate(items []Item, budget int) (tokens int, cut []string) {
+	if budget < minBudget {
+		budget = minBudget
+	}
+	limit := budget * shareNum / shareDen
+	sizes := make([]int, len(items))
+	for i, it := range items {
+		sizes[i] = it.Size
+		if sizes[i] <= 0 {
+			sizes[i] = extract.EstimateTokens(render(it))
+		}
+		tokens += sizes[i]
+	}
+	order := make([]int, len(sizes))
+	for i := range order {
+		order[i] = i
+	}
+	sort.SliceStable(order, func(a, b int) bool { return sizes[order[a]] < sizes[order[b]] })
+	remaining, left := limit, len(sizes)
+	for _, i := range order {
+		share, used := remaining/left, sizes[i]
+		if used > share {
+			used = share
+			cut = append(cut, items[i].Label)
+		}
+		remaining -= used
+		left--
+	}
+	sort.Strings(cut)
+	return tokens, cut
 }

@@ -29,7 +29,7 @@ var citeRE = regexp.MustCompile(`\[(\d{1,6})(?::([^\]\n]{1,512}))?\]`)
 // citation keeps its source). Duplicates collapse.
 func ParseCitations(text string, items []Item) []Citation {
 	var out []Citation
-	for _, m := range citeRE.FindAllStringSubmatch(text, -1) {
+	for _, m := range markers(text) {
 		c, ok := resolve(m[1], m[2], items)
 		if ok && !slices.Contains(out, c) {
 			out = append(out, c)
@@ -83,18 +83,55 @@ func Relabel(text string, cites []Citation) string {
 			paths[c.N] = append(paths[c.N], c.Path)
 		}
 	}
-	return citeRE.ReplaceAllStringFunc(text, func(m string) string {
-		parts := citeRE.FindStringSubmatch(m)
-		n, _ := strconv.Atoi(parts[1])
+	var sb strings.Builder
+	last := 0
+	for _, m := range markerIndexes(text) {
+		n, _ := strconv.Atoi(text[m[2]:m[3]])
 		label, ok := labels[n]
 		if !ok {
-			return m
+			continue
 		}
-		if p := cleanPath(parts[2]); p != "" && slices.Contains(paths[n], p) {
-			return "[" + label + ": " + p + "]"
+		sb.WriteString(text[last:m[0]])
+		last = m[1]
+		if m[4] >= 0 {
+			if p := cleanPath(text[m[4]:m[5]]); p != "" && slices.Contains(paths[n], p) {
+				sb.WriteString("[" + label + ": " + p + "]")
+				continue
+			}
 		}
-		return "[" + label + "]"
-	})
+		sb.WriteString("[" + label + "]")
+	}
+	sb.WriteString(text[last:])
+	return sb.String()
+}
+
+// codeRE finds fenced code blocks (an unclosed fence runs to the end) and inline code spans.
+var codeRE = regexp.MustCompile("(?s)```.*?(?:```|$)|`[^`\n]+`")
+
+// markerIndexes returns citeRE's submatch indexes for markers outside code:
+// `items[1]` in an answer about code is not a citation.
+func markerIndexes(text string) [][]int {
+	code := codeRE.FindAllStringIndex(text, -1)
+	var out [][]int
+	for _, m := range citeRE.FindAllStringSubmatchIndex(text, -1) {
+		if !slices.ContainsFunc(code, func(c []int) bool { return m[0] >= c[0] && m[0] < c[1] }) {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// markers is markerIndexes as [whole, number, path] strings.
+func markers(text string) [][3]string {
+	idx := markerIndexes(text)
+	out := make([][3]string, len(idx))
+	for i, m := range idx {
+		out[i] = [3]string{text[m[0]:m[1]], text[m[2]:m[3]], ""}
+		if m[4] >= 0 {
+			out[i][2] = text[m[4]:m[5]]
+		}
+	}
+	return out
 }
 
 // LoadCitations reads a conversation's citations (message ID → citations);

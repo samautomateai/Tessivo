@@ -251,7 +251,7 @@ are under `/v1/research`.
 
 `Research`: `{id, name, description, createdAt, settings, notes, sources: [Source]}`. `Source`:
 `{id, label, kind: "file"|"folder"|"mcp-resource", path?, server?, uri?, level, levelSet?, tokens?, summary:
-"ready"|"failed"|"pending"|"updating", error?}`. `Note`: `{id, title, text, origin: "human"|"ai", include}`.
+"ready"|"failed"|"pending"|"updating"|"unreadable", error?}` (`unreadable`: the source cannot be read now; it is skipped when sending). `Note`: `{id, title, text, origin: "human"|"ai", include}`.
 `Citation`: `{n, kind: "source"|"note", id, label, level?, path?}`.
 
 **Summaries.** One per source, made in the background (at most 2 at a time) with the notebook's model, and remade

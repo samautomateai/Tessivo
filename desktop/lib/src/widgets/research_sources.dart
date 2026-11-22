@@ -82,6 +82,7 @@ class _SourceCard extends StatelessWidget {
     'ready' => source.tokens > 0 ? 'Summary ready · ≈ ${source.tokens ~/ 1000}k tokens in full' : 'Summary ready',
     'updating' => 'Updating summary…',
     'failed' => 'Summary failed${source.error == null ? '' : ': ${source.error}'}',
+    'unreadable' => 'Cannot read this source${source.error == null ? '' : ': ${source.error}'}',
     _ => 'Summarizing…',
   };
 
@@ -123,7 +124,13 @@ class _SourceCard extends StatelessWidget {
                 ),
               ],
             ),
-            Text(_status, style: TextStyle(color: s.summary == 'failed' ? Colors.red : Tokens.textMuted, fontSize: 12)),
+            Text(
+              _status,
+              style: TextStyle(
+                color: s.summary == 'failed' || s.summary == 'unreadable' ? Colors.red : Tokens.textMuted,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 6),
             Wrap(
               spacing: 6,

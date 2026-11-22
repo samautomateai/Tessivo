@@ -127,6 +127,9 @@ func Open(dir string) (*Notebook, error) {
 		default:
 			m.Sources[i].Level, m.Sources[i].LevelSet = LevelFull, false
 		}
+		if m.Sources[i].Kind == KindFile && !copiedPath(m.Sources[i]) {
+			m.Sources[i].Path = "" // hand-edited to point elsewhere: unreadable, never read or deleted
+		}
 	}
 	if m.Sources == nil {
 		m.Sources = []Source{}

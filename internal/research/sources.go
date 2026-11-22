@@ -107,8 +107,8 @@ func (n *Notebook) RemoveSource(id string) error {
 		return err
 	}
 	var errs []error
-	if s.Kind == KindFile {
-		errs = append(errs, removeIfExists(n.SourcePath(s)))
+	if p := n.SourcePath(s); s.Kind == KindFile && p != "" {
+		errs = append(errs, removeIfExists(p))
 	}
 	if itemID.MatchString(s.ID) {
 		errs = append(errs, removeIfExists(filepath.Join(n.Dir, summariesDir, s.ID+".json")))
@@ -129,8 +129,19 @@ func (n *Notebook) SourcePath(s Source) string {
 	case KindFolder:
 		return s.Path
 	case KindFile:
+		if !copiedPath(s) {
+			return ""
+		}
 		return filepath.Join(n.Dir, s.Path)
 	default:
 		return ""
 	}
+}
+
+// copiedPath reports whether a file source's path is its own copy,
+// sources/<id>-<name>, written with either separator.
+func copiedPath(s Source) bool {
+	p := filepath.Clean(filepath.FromSlash(strings.ReplaceAll(s.Path, `\`, "/")))
+	return s.ID != "" && filepath.IsLocal(p) && filepath.Dir(p) == sourcesDir &&
+		strings.HasPrefix(filepath.Base(p), s.ID+"-")
 }
