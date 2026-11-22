@@ -268,6 +268,26 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
+  Future<Uint8List> exportOutput(String notebookId, String outputId, String format) async {
+    final path = '${_nb(notebookId)}/outputs/${Uri.encodeComponent(outputId)}/export';
+    final resp = await _send('GET', path, query: {'format': format});
+    final builder = BytesBuilder(copy: false);
+    await for (final chunk in resp) {
+      builder.add(chunk);
+      if (builder.length > maxResponseBytes) throw const CoreException(502, 'export too large');
+    }
+    final bytes = builder.takeBytes();
+    if (resp.statusCode >= 400) {
+      final decoded = bytes.isEmpty ? null : jsonDecode(utf8.decode(bytes, allowMalformed: true));
+      throw CoreException(
+        resp.statusCode,
+        (decoded is Map<String, Object?> ? decoded['error'] as String? : null) ?? 'export failed',
+      );
+    }
+    return bytes;
+  }
+
+  @override
   Future<SettingsInfo> getSettings() async => settingsFromJson(await _json('GET', '/v1/settings'));
 
   @override

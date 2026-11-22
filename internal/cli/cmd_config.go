@@ -69,7 +69,7 @@ func cmdConfig(args []string, env Env) error {
 		b, _ := json.MarshalIndent(f, "", "  ")
 		_, err = fmt.Fprintln(env.Stdout, string(b))
 		return wrapWrite(err)
-	case "get", subSet, "export", "import":
+	case "get", subSet, subExport, "import":
 		return configKeys(args, p, env)
 	default:
 		return usagef("config: unknown subcommand %q", args[0])

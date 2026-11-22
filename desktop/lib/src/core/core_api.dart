@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'chat_models.dart';
 import 'mcp_models.dart';
 import 'models.dart';
@@ -39,6 +41,9 @@ abstract interface class CoreClient {
   Future<Notebook> addTextContext(String notebookId, String text, {String label});
   Future<Notebook> setMemory(String notebookId, List<String> memory);
   Future<OutputDetail> getOutput(String notebookId, String outputId);
+
+  /// An output as a file: format md or docx.
+  Future<Uint8List> exportOutput(String notebookId, String outputId, String format);
   Future<SettingsInfo> getSettings();
 
   /// Saves providers, aliases, defaults and limits (a SettingsDraft body).

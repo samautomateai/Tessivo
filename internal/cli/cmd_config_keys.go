@@ -39,7 +39,7 @@ func configKeys(args []string, p string, env Env) error {
 			return err
 		}
 		return f.Save(p)
-	case "export":
+	case subExport:
 		return configExport(args[1:], env)
 	default:
 		return configImport(args[1:], p, env)

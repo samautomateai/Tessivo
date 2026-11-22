@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'checks.dart';
 import 'core_api.dart';
@@ -333,6 +335,13 @@ class DemoCoreClient
       orElse: () => throw StateError('unknown output $outputId'),
     );
     return OutputDetail(id: o.id, title: o.title, markdown: '# ${o.title}\n\nSample output from ${o.notebookName}.');
+  }
+
+  @override
+  Future<Uint8List> exportOutput(String notebookId, String outputId, String format) async {
+    if (format != 'md' && format != 'docx') throw CoreException(400, 'format "$format": want md or docx');
+    final o = await getOutput(notebookId, outputId);
+    return Uint8List.fromList(utf8.encode(format == 'md' ? o.markdown : 'PK demo docx of ${o.title}'));
   }
 
   @override

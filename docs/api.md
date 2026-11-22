@@ -26,6 +26,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?, toolRules?}` | SSE stream |
 | `GET /v1/outputs?notebook=&workType=` | — | `{"outputs": [Output]}` (no data) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}` | — | `Output` with `data` and `markdown` |
+| `GET /v1/notebooks/{id}/outputs/{outputId}/export?format=md|docx` | — | the file (`Content-Disposition: attachment`): Markdown, or a Word document made with the standard library |
 | `GET /v1/settings` | — | config (key references only) |
 | `PUT /v1/settings` | `{providers, aliases, defaults, limits}` | the config after the change; validated, saved to the config file and applied at once (MCP servers have their own routes) |
 | `GET /v1/secrets/{ref}` | — | `{set: bool}`: whether an API key is available (keychain or environment); its value never leaves the core |

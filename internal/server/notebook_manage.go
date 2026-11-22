@@ -1,6 +1,7 @@
 package server
 
 import (
+	"mime"
 	"net/http"
 
 	"github.com/samautomateai/tessivo/internal/service"
@@ -9,6 +10,7 @@ import (
 func (s *Server) notebookManageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /v1/notebooks/{id}", s.updateNotebook)
 	mux.HandleFunc("DELETE /v1/notebooks/{id}", s.deleteNotebook)
+	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/export", s.exportOutput)
 }
 
 func (s *Server) updateNotebook(w http.ResponseWriter, r *http.Request) {
@@ -31,4 +33,17 @@ func (s *Server) deleteNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) exportOutput(w http.ResponseWriter, r *http.Request) {
+	f, err := s.svc.ExportOutput(r.PathValue("id"), r.PathValue("out"), r.URL.Query().Get("format"))
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", f.ContentType)
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": f.Name}))
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(f.Data)
 }

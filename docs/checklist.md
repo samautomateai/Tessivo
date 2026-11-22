@@ -41,6 +41,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | `tess config get|set <key> [value]` (dotted keys such as `defaults.model` or `providers.0.base_url`; values decoded strictly and validated), `config export [file]` and `config import <file> [--force]` (the replaced config is kept as `.bak`) | SET-9 | ☑ |
 | Desktop settings: edit run defaults and token limits, add providers, set API keys (to the OS keychain through the core; never shown), edit alias fallback chains; a setup banner until a provider, a default model and its key are set (`PUT /v1/settings`, `/v1/secrets/{ref}`) | SET-1, SET-3, SET-4 | ☑ |
 | Web pages (fetched on every run) and pasted text (saved as Markdown) as notebook sources (`tess context add <nb> https://…` or `--text`, the context API, desktop Sources menu) | SRC-2 | ☑ |
+| Export an output as Markdown or Word (.docx, built with the standard library; fuzzed) (`tess output export`, `…/outputs/{id}/export`, desktop Export menu). PDF export is not built yet | REP-2 | ◐ (PDF ☐) |
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |
 | Agent mode phase 1 (ADR 0005): our own loop with LLM tool calling, rooted read-only code tools, allow/ask/block rules, durable pause and resume across restarts, runs as jobs, `tess run` approve, deny, resume, cancel and pending, approval endpoints and events, desktop approvals | WT/E11 | ☑ |
 | Agent mode phase 2: commands from a per-notebook allow-list (no shell) | WT/E11 | ☐ |
@@ -85,7 +86,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 `tess new`, `tess notebook rename|archive|unarchive|delete --yes`, `tess prompt list|show|save|rm`, `tess usage`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
 `--prompt-name`, `--var`, `--model`, `--thinking`, `--mode agent`, `--tool name=rule`, `--json`, `--out`, `--no-save`),
 `tess run pending|approve|deny|resume|cancel` (agent approvals; `--notebook DIR`, `--remember run|notebook`), `tess outputs`,
-`tess output ask|suggest|suggestions|apply|dismiss|refine <notebook> <output-id>` (output threads; `refine --from ID`),
+`tess output ask|suggest|suggestions|apply|dismiss|refine|export <notebook> <output-id>` (output threads; `refine --from ID`; `export --format md|docx --out FILE`),
 `tess schedule add|list|remove|enable|disable|next`,
 `tess research new|list|show|delete|source add|list|level|remove|refresh|ask|note add|list|rm`, `tess template`, `tess memory`, `tess serve`, `tess secret`, `tess audit`,
 `tess models`, `tess worktypes`, `tess config init|show|path|get|set|export|import`, `tess version`.

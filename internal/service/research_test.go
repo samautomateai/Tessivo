@@ -18,14 +18,18 @@ import (
 
 // counting answers every request with reply and counts the calls.
 type counting struct {
-	mu    sync.Mutex
-	reply string
-	calls int
-	reqs  []llm.Request
-	gate  chan struct{} // when set, each call waits for a value
+	mu      sync.Mutex
+	reply   string
+	calls   int
+	reqs    []llm.Request
+	gate    chan struct{} // when set, each call waits for a value
+	entered chan struct{} // when set, gets a value as each call starts (before the gate)
 }
 
 func (m *counting) ChatStream(ctx context.Context, req llm.Request, onDelta func(string)) (llm.Result, error) {
+	if m.entered != nil {
+		m.entered <- struct{}{}
+	}
 	if m.gate != nil {
 		select {
 		case <-m.gate:
