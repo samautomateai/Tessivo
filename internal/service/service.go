@@ -62,6 +62,8 @@ type Service struct {
 	Now func() time.Time
 
 	cfgMu    sync.RWMutex // guards Config.MCP, which the API can change
+	sumOnce  sync.Once    // starts the research summary runner on first use
+	sum      *summaryRunner
 	jobsOnce sync.Once
 	jobs     *jobTable
 }

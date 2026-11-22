@@ -48,6 +48,7 @@ type RunEvent struct {
 	ScheduleID   string `json:"scheduleId,omitempty"`
 	ApprovalID   string `json:"approvalId,omitempty"`
 	Tool         string `json:"tool,omitempty"`
+	SourceID     string `json:"sourceId,omitempty"` // research summary events
 	Error        string `json:"error,omitempty"`
 	Time         string `json:"time"`
 }
