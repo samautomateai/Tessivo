@@ -27,6 +27,8 @@ ScheduleInfo scheduleFromJson(Map<String, Object?> j) => ScheduleInfo(
 CoreEvent eventFromJson(Map<String, Object?> j) => CoreEvent(
   kind: j['kind'] as String? ?? '',
   notebookName: j['notebookName'] as String? ?? '',
+  notebookId: j['notebookId'] as String? ?? '',
+  sourceId: j['sourceId'] as String?,
   title: j['title'] as String?,
   error: j['error'] as String?,
   tool: j['tool'] as String?,

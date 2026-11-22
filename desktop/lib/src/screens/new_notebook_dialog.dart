@@ -24,12 +24,15 @@ class NewNotebookDialog extends StatefulWidget {
 
 class _NewNotebookDialogState extends State<NewNotebookDialog> {
   WorkTypeId _type = WorkTypeId.analyze;
+  bool _research = false;
   final _name = TextEditingController();
+  final _description = TextEditingController();
   String? _error;
 
   @override
   void dispose() {
     _name.dispose();
+    _description.dispose();
     super.dispose();
   }
 
@@ -40,43 +43,75 @@ class _NewNotebookDialogState extends State<NewNotebookDialog> {
       return;
     }
     final navigator = Navigator.of(context);
-    await widget.state.createNotebook(name, _type);
+    if (_research) {
+      await widget.state.createResearch(name, description: _description.text.trim());
+    } else {
+      await widget.state.createNotebook(name, _type);
+    }
     navigator.pop();
   }
+
+  Widget _kind(String key, String label, String hint, bool research) => Tooltip(
+    message: hint,
+    child: ChoiceChip(
+      key: Key(key),
+      label: Text(label),
+      selected: _research == research,
+      onSelected: (_) => setState(() => _research = research),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     final selected = builtInWorkTypes.firstWhere((w) => w.id == _type);
     return AlertDialog(
-      title: const Text('What kind of work is this notebook for?'),
+      title: Text(_research ? 'What will you research?' : 'What kind of work is this notebook for?'),
       content: SizedBox(
         width: 640,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(spacing: 12, runSpacing: 12, children: [for (final w in builtInWorkTypes) _typeCard(w)]),
+            Wrap(
+              spacing: 8,
+              children: [
+                _kind('kind-job', 'Job', 'Run prompts over context and keep the outputs', false),
+                _kind('kind-research', 'Research', 'Ask questions across sources and keep notes', true),
+              ],
+            ),
             const SizedBox(height: 16),
-            Text('Suggested context: ${selected.suggestedContext.join(', ')}'),
-            const SizedBox(height: 16),
+            if (!_research) ...[
+              Wrap(spacing: 12, runSpacing: 12, children: [for (final w in builtInWorkTypes) _typeCard(w)]),
+              const SizedBox(height: 16),
+              Text('Suggested context: ${selected.suggestedContext.join(', ')}'),
+              const SizedBox(height: 16),
+            ],
             TextField(
               key: const Key('notebook-name'),
               controller: _name,
               decoration: InputDecoration(labelText: 'Notebook name', errorText: _error),
               onChanged: (_) => setState(() => _error = null),
             ),
+            if (_research)
+              TextField(
+                key: const Key('research-description'),
+                controller: _description,
+                maxLength: 500,
+                decoration: const InputDecoration(labelText: 'What is it about? (optional)'),
+              ),
           ],
         ),
       ),
       actions: [
-        TextButton(
-          key: const Key('browse-templates'),
-          onPressed: () {
-            Navigator.of(context).pop();
-            widget.state.go(Section.templates);
-          },
-          child: const Text('Start from a template'),
-        ),
+        if (!_research)
+          TextButton(
+            key: const Key('browse-templates'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.state.go(Section.templates);
+            },
+            child: const Text('Start from a template'),
+          ),
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         FilledButton(key: const Key('create-notebook'), onPressed: _create, child: const Text('Create')),
       ],

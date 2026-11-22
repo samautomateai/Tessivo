@@ -74,7 +74,7 @@ mixin DemoResearch {
     final nb = _rnb(id);
     final label = path != null ? path.split(RegExp(r'[/\\]')).where((p) => p.isNotEmpty).last : (uri ?? '');
     final source = ResearchSource(
-      id: 'rs${++_researchSeq}',
+      id: 'src${++_researchSeq}',
       label: label,
       kind: path != null ? (label.contains('.') ? 'file' : 'folder') : 'mcp-resource',
       level: 'summary',
@@ -168,7 +168,7 @@ mixin DemoResearch {
   Future<ResearchNote> saveResearchNote(String id, ResearchNote note) async {
     final list = _researchNotes[id] ??= [];
     final saved = ResearchNote(
-      id: note.id.isEmpty ? 'rn${++_researchSeq}' : note.id,
+      id: note.id.isEmpty ? 'note${++_researchSeq}' : note.id,
       title: note.title,
       text: note.text,
       origin: note.origin,

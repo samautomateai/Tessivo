@@ -6,6 +6,7 @@ import 'app_state.dart';
 import 'screens/chat_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/new_notebook_dialog.dart';
+import 'screens/research_screen.dart';
 import 'screens/schedules_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/templates_screen.dart';
@@ -51,6 +52,7 @@ class AppShell extends StatelessWidget {
   Widget _content() => switch (state.section) {
     Section.chat => ChatScreen(state: state),
     Section.notebooks => WorkspaceScreen(state: state),
+    Section.research => ResearchScreen(state: state),
     Section.templates => TemplatesScreen(state: state),
     Section.schedules => SchedulesScreen(state: state),
     Section.library => LibraryScreen(core: state.core),
@@ -95,6 +97,18 @@ class _Sidebar extends StatelessWidget {
                     trailing: nb.schedule,
                     selected: state.section == Section.notebooks && nb.id == state.selectedId,
                     onTap: () => state.select(nb.id),
+                  ),
+                const SizedBox(height: 8),
+                const _Caption('RESEARCH'),
+                for (final r in state.research)
+                  KeyedSubtree(
+                    key: Key('research-${r.id}'),
+                    child: _NavItem(
+                      label: r.name,
+                      trailing: r.sources.isEmpty ? null : '${r.sources.length}',
+                      selected: state.section == Section.research && r.id == state.researchState?.notebookId,
+                      onTap: () => state.selectResearch(r.id),
+                    ),
                   ),
               ],
             ),
