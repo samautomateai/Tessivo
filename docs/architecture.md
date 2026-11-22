@@ -25,6 +25,7 @@
 | `executor/agent` | Agent mode: tool-using loop over the router with allow/ask/block rules (`Policy`), up to 4 tools in parallel, results ≤ 32 KiB, old results elided past 60% of the context budget, limits (steps, tokens, time). Saves a checkpoint after every step; an unanswered "ask" pauses the run (`PausedError`); `Continue` resumes, reporting calls in flight at a crash as "outcome unknown". Ends with `executor.Generate` over the findings. |
 | `agenttools` | The agent's read-only tools (`read_file`, `list_directory`, `glob`, `grep`). Every path is resolved through `Roots`: cleaned, symlinks evaluated, refused outside the run's folders. Bounded: 256 KiB per read, 2,000 entries, 500 matches. |
 | `mcp` | MCP client, ported from Zero (MIT): JSON-RPC framing (line-delimited or Content-Length, ≤ 4 MiB per message), stdio servers (program + args, no shell, allow-listed environment, stopped by closing stdin then killing the direct process after 2 s) and Streamable HTTP (the llm package's hardened client, session header). `tools/list`, `tools/call`, `resources/list`, `resources/read` (text ≤ 2 MiB), `prompts/list`, paginated up to 500/500/200; 30 s per request, 120 s per tool call. MCP types stay in this package and the service. |
+| `research` | Research notebooks, separate from job notebooks: folder store (`research.json` manifest, ≤ 200 sources, ≤ 500 notes of ≤ 64 KiB), sources (files copied, folders in place, MCP resources) with a level each (`full`, `summary`, `off`), summaries (≤ 8 KiB, keyed by a SHA-256 fingerprint of what was read), the prompt builder (sources as numbered `<source>` blocks in 3/5 of the budget, largest cut first; included notes; history trimmed) and citations (`[n]`, `[n:path]` resolved against the numbered items, relabelled to names before an answer is sent again). |
 | `audit` | Tamper-evident audit log: append-only JSONL, each entry's SHA-256 covers the previous one; secrets redacted, prompts stored as digests; `Verify` detects edits, deletions and reordering. |
 | `service` | Application layer shared by CLI and server: workspace notebooks by validated ID, runs (settings, audit, records), outputs, settings, models. MCP: servers added, removed (refused while a notebook attaches them) and tested; config writes go through one lock to the config file; attached servers connect when an agent run starts or resumes and close when it ends or pauses; MCP resource sources are read per run, one connection per server. Output threads: one conversation per output (notebook memory and context, `suggest_memory`/`suggest_prompt` tools or one structured call for suggestions; apply checks staleness and new variables; audited as `thread.message` and `suggestion.apply`) and new versions (the parent revised through the pipeline, linked by `parentId`). Agent runs are jobs: the run holds its lock while executing; `Answer`, `Resume`, `Cancel`, `Pending`, `Recover` (startup: executing runs become interrupted, expired approvals fail); `RunEvent`s for approvals and outcomes; tool calls audited as digests (`tool.call`, `tool.decision`, `run.resume`). |
 | `server` | Local API: routes, auth/host/origin checks, strict JSON, SSE runs, listeners, endpoint file. See [api.md](api.md). |
@@ -61,6 +62,25 @@ attachment refs, model, outcome), never the text itself.
   schedule-state.json  last handled occurrence and run history (scheduler-only)
   audit.jsonl        tamper-evident log of runs, model attempts, tool calls, saved outputs
 ```
+
+## Research notebook folder
+
+Research notebooks live beside the workspace (`<workspace parent>/research/<id>/`), so job notebooks, their
+listing and their runs never see them.
+
+```
+<research>/
+  research.json        manifest: id, name, description, settings, sources (kind, path or server+URI, level)
+  sources/             copied files (folders are referenced in place)
+  summaries/<sid>.json summary text, fingerprint of what was read, model, status (ready or failed) and error
+  notes/<nid>.json     note: title, text, origin (human or ai), include in context
+  chats/<cid>.json     conversations (chat sessions); <cid>.citations.json maps answers to their citations
+```
+
+Summaries are made in the core's background by a runner started with `tess serve`: at most 2 at a time, a queue of
+up to 1024, a source whose fingerprint matches its stored summary is not sent again. Each job emits
+`research.summary.started|ready|failed` on `/v1/events`. A ready summary switches a new source to the `summary`
+level unless the user already picked one. The CLI summarizes in-process and waits.
 
 SQLite (FTS, retrieval) arrives with the desktop MVP; the folder stays the source of truth so
 notebooks remain portable and diff-able.

@@ -15,3 +15,5 @@
   [phase 1 plan](superpowers/plans/2026-11-21-agent-mode-phase1.md)
 - Output threads: [design](superpowers/specs/2026-11-21-output-threads-design.md) ·
   [plan](superpowers/plans/2026-11-21-output-threads.md) (stories OUT-1 to OUT-4)
+- Research notebooks: [design](superpowers/specs/2026-11-22-research-notebooks-design.md) ·
+  [plan](superpowers/plans/2026-11-22-research-notebooks.md) (stories RES-1 to RES-3)
