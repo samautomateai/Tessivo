@@ -4,17 +4,20 @@ import 'chat_models.dart';
 import 'checks.dart';
 import 'demo_chat.dart';
 import 'demo_mcp.dart';
+import 'demo_research.dart';
 import 'demo_templates.dart';
 import 'demo_threads.dart';
 import 'errors.dart';
 import 'mcp_models.dart';
 import 'models.dart';
+import 'research_models.dart';
 import 'thread_models.dart';
 
 export 'chat_models.dart';
 export 'checks.dart';
 export 'errors.dart';
 export 'mcp_models.dart';
+export 'research_models.dart';
 export 'thread_models.dart';
 
 /// The desktop app's view of the Go core. `HttpCoreClient` talks to the local
@@ -100,6 +103,26 @@ abstract interface class CoreClient {
   Future<McpTestResult> testMcpServer(String name);
   Future<Notebook> setNotebookMcp(String notebookId, List<String> servers);
   Future<Notebook> addMcpContext(String notebookId, String server, String uri);
+
+  // Research notebooks (docs/api.md, "Research notebooks").
+  Future<List<ResearchNotebook>> listResearch();
+  Future<ResearchNotebook> createResearch(String name, {String description});
+  Future<ResearchNotebook> getResearch(String id);
+  Future<void> deleteResearch(String id);
+  Future<ResearchNotebook> addResearchSource(String id, {String? path, String? server, String? uri});
+  Future<ResearchNotebook> setSourceLevel(String id, String sourceId, String level);
+  Future<ResearchNotebook> removeResearchSource(String id, String sourceId);
+  Future<void> refreshSummary(String id, String sourceId);
+  Future<ResearchSourceText> researchSource(String id, String sourceId);
+  Future<ContextTotals> researchContext(String id);
+  Future<List<ChatSummary>> listResearchChats(String id);
+  Future<ChatSession> createResearchChat(String id, {String title});
+  Future<ResearchChat> getResearchChat(String id, String chatId);
+  Stream<ResearchEvent> sendResearch(String id, String chatId, String text);
+  Future<List<ResearchNote>> researchNotes(String id);
+  Future<ResearchNote> saveResearchNote(String id, ResearchNote note);
+  Future<void> deleteResearchNote(String id, String noteId);
+  Future<ResearchNote> noteFromMessage(String id, String chatId, String messageId);
 }
 
 const builtInWorkTypes = <WorkType>[
@@ -134,7 +157,7 @@ const builtInWorkTypes = <WorkType>[
 ];
 
 /// In-memory core with sample data, used when no core can be reached.
-class DemoCoreClient with DemoChat, DemoThreads, DemoMcp implements CoreClient {
+class DemoCoreClient with DemoChat, DemoThreads, DemoMcp, DemoResearch implements CoreClient {
   DemoCoreClient({Duration tick = const Duration(milliseconds: 40)}) : _tick = tick;
 
   final Duration _tick;
