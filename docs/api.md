@@ -15,6 +15,8 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks` | — | `{"notebooks": [Notebook]}` (no context stats) |
 | `POST /v1/notebooks` | `{name, workType}` or `{templateId, name?}` | `201 Notebook` |
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |
+| `PATCH /v1/notebooks/{id}` | `{name?, archived?}` | `Notebook` (archived notebooks keep their schedules but do not run them) |
+| `DELETE /v1/notebooks/{id}` | — | `204`; `409` while a run is executing, paused for an approval or interrupted |
 | `POST /v1/notebooks/{id}/context` | `{path}` (absolute), or `{server, uri, label?}` for an MCP resource | `Notebook` |
 | `PATCH /v1/notebooks/{id}/context/{contextId}` | `{enabled}` | `Notebook` |
 | `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?, toolRules?}` | SSE stream |

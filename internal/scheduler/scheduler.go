@@ -98,6 +98,9 @@ func (s *Scheduler) Tick(ctx context.Context) {
 	}
 	now := s.Now()
 	for _, info := range nbs {
+		if info.Archived {
+			continue // archived notebooks keep their schedules but do not run them
+		}
 		nb, err := s.Svc.OpenNotebook(info.ID)
 		if err != nil {
 			continue

@@ -263,6 +263,54 @@ class AppState extends ChangeNotifier {
     if (e.kind == 'research.summary.failed') _notice(e.message);
   }
 
+  /// Whether the sidebar lists archived notebooks.
+  bool showArchived = false;
+
+  void toggleArchived() {
+    showArchived = !showArchived;
+    notifyListeners();
+  }
+
+  /// Renames a notebook; a refusal becomes a notice.
+  Future<void> renameNotebook(String id, String name) => _manage(id, () => core.updateNotebook(id, name: name));
+
+  /// Archives or restores a notebook; a refusal becomes a notice.
+  Future<void> setArchived(String id, bool archived) => _manage(id, () => core.updateNotebook(id, archived: archived));
+
+  Future<void> _manage(String id, Future<Notebook> Function() action) async {
+    try {
+      final u = await action();
+      final old = notebooks.where((n) => n.id == id).firstOrNull;
+      _put(old == null ? u : old.copyWith(name: u.name, archived: u.archived));
+    } on CoreException catch (e) {
+      _notice(e.message);
+    }
+  }
+
+  /// Deletes a notebook (the core refuses while a run is active or paused)
+  /// and opens the next one.
+  Future<void> deleteNotebook(String id) async {
+    try {
+      await core.deleteNotebook(id);
+    } on CoreException catch (e) {
+      _notice(e.message);
+      return;
+    }
+    notebooks = await core.listNotebooks();
+    if (selectedId != id) {
+      notifyListeners();
+      return;
+    }
+    final next = notebooks.where((n) => !n.archived).firstOrNull;
+    if (next != null) {
+      select(next.id);
+      return;
+    }
+    selectedId = null;
+    outputs = const [];
+    _openOutput(null);
+  }
+
   /// Chat view state, created on first use.
   late final ChatState chat = ChatState(core);
 

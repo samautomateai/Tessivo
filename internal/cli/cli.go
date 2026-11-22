@@ -58,6 +58,7 @@ const usage = `tess — analyze, summarize, document and report with self-hosted
 
 Usage:
   tess new <dir> --type analyze|summarize|document|report [--name NAME]
+  tess notebook rename|archive|unarchive <notebook> [name]   tess notebook delete --yes <notebook>
   tess context add <notebook> <path>...      attach files (copied) or folders (referenced)
   tess context list <notebook>
   tess context enable|disable <notebook> <id-or-label>
@@ -144,8 +145,9 @@ func noCtx(f func([]string, Env) error) handler {
 }
 
 var commands = map[string]handler{
-	"new": noCtx(cmdNew), "context": noCtx(cmdContext), "run": cmdRun, "outputs": noCtx(cmdOutputs),
-	"models": cmdModels, "config": noCtx(cmdConfig), "audit": noCtx(cmdAudit), "serve": cmdServe,
+	"new": noCtx(cmdNew), "notebook": noCtx(cmdNotebook), "context": noCtx(cmdContext), "run": cmdRun,
+	"outputs": noCtx(cmdOutputs),
+	"models":  cmdModels, "config": noCtx(cmdConfig), "audit": noCtx(cmdAudit), "serve": cmdServe,
 	"secret": cmdSecret, "schedule": noCtx(cmdSchedule), "template": noCtx(cmdTemplate),
 	"memory": noCtx(cmdMemory), "chat": cmdChat, "notify": cmdNotify, "output": cmdOutput, "mcp": cmdMCP,
 	"research":  cmdResearch,

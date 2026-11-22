@@ -33,6 +33,7 @@ type NotebookInfo struct {
 	Memory     []string           `json:"memory"`
 	Template   string             `json:"template,omitempty"`
 	MCPServers []string           `json:"mcpServers"` // servers agent runs may use
+	Archived   bool               `json:"archived"`
 	nb         *notebook.Notebook
 }
 
@@ -148,6 +149,7 @@ func describe(id string, nb *notebook.Notebook, stats bool) NotebookInfo {
 		Created: nb.Manifest.CreatedAt, Context: []ContextInfo{}, nb: nb,
 		Memory: append([]string{}, nb.Manifest.Memory...), Template: nb.Manifest.Template,
 		MCPServers: append([]string{}, nb.Manifest.Agent.MCPServers...),
+		Archived:   nb.Manifest.Archived,
 	}
 	for _, c := range nb.Manifest.Context {
 		ci := ContextInfo{ContextItem: c}
@@ -286,4 +288,48 @@ func (s *Service) Models(ctx context.Context, provider string) (map[string][]str
 		out[p.Name] = ids
 	}
 	return out, nil
+}
+
+// NotebookUpdate changes a notebook's name or archived state; nil fields stay.
+type NotebookUpdate struct {
+	Name     *string `json:"name,omitempty"`
+	Archived *bool   `json:"archived,omitempty"`
+}
+
+// UpdateNotebook renames, archives or restores a workspace notebook.
+func (s *Service) UpdateNotebook(id string, in NotebookUpdate) (NotebookInfo, error) {
+	nb, err := s.OpenNotebook(id)
+	if err != nil {
+		return NotebookInfo{}, err
+	}
+	if in.Name != nil {
+		clean, err := notebook.CheckName(*in.Name)
+		if err != nil {
+			return NotebookInfo{}, &InvalidError{err.Error()}
+		}
+		nb.Manifest.Name = clean
+	}
+	if in.Archived != nil {
+		nb.Manifest.Archived = *in.Archived
+	}
+	if err := nb.Save(); err != nil {
+		return NotebookInfo{}, err
+	}
+	return describe(id, nb, false), nil
+}
+
+// DeleteNotebook removes a workspace notebook and everything in it. A
+// notebook with a run in progress, paused or interrupted is a conflict.
+func (s *Service) DeleteNotebook(id string) error {
+	nb, err := s.OpenNotebook(id)
+	if err != nil {
+		return err
+	}
+	if err := notebook.Remove(nb.Dir); err != nil {
+		if errors.Is(err, notebook.ErrBusy) {
+			return fmt.Errorf("%w: %w", ErrConflict, err)
+		}
+		return err
+	}
+	return nil
 }

@@ -26,6 +26,12 @@ abstract interface class CoreClient {
   Future<List<WorkType>> listWorkTypes();
   Future<List<Notebook>> listNotebooks();
   Future<Notebook> createNotebook({required String name, required WorkTypeId workType});
+
+  /// Renames, archives or restores a notebook; null fields stay.
+  Future<Notebook> updateNotebook(String notebookId, {String? name, bool? archived});
+
+  /// Deletes a notebook and everything in it (409 while a run is active or paused).
+  Future<void> deleteNotebook(String notebookId);
   Future<Notebook> setContextEnabled({required String notebookId, required String contextId, required bool enabled});
   Stream<RunEvent> startRun({required String notebookId, required String prompt, required Map<String, String> vars});
   Future<List<OutputSummary>> listOutputs({WorkTypeId? workType, String? notebookId});
@@ -214,6 +220,20 @@ class DemoCoreClient with DemoChat, DemoThreads, DemoMcp, DemoResearch implement
     final nb = Notebook(id: 'nb-${_nextId++}', name: name, workType: workType, context: const []);
     _notebooks.add(nb);
     return nb;
+  }
+
+  @override
+  Future<Notebook> updateNotebook(String notebookId, {String? name, bool? archived}) async {
+    if (name != null && name.trim().isEmpty) throw const CoreException(400, 'name is required');
+    final i = _notebooks.indexWhere((n) => n.id == notebookId);
+    if (i < 0) throw CoreException(404, 'notebook $notebookId not found');
+    return _notebooks[i] = _notebooks[i].copyWith(name: name?.trim(), archived: archived);
+  }
+
+  @override
+  Future<void> deleteNotebook(String notebookId) async {
+    if (!_notebooks.any((n) => n.id == notebookId)) throw CoreException(404, 'notebook $notebookId not found');
+    _notebooks.removeWhere((n) => n.id == notebookId);
   }
 
   @override

@@ -4,6 +4,7 @@ import '../app_state.dart';
 import '../core/models.dart';
 import '../theme.dart';
 import '../widgets/approvals_sheet.dart';
+import '../widgets/notebook_menu.dart';
 import '../widgets/output_thread.dart';
 import 'notebook_outputs_pane.dart';
 import 'notebook_sources_pane.dart';
@@ -85,6 +86,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   onPressed: () => _toggle(_SidePane.outputs),
                   icon: const Icon(Icons.history),
                 ),
+              NotebookMenu(state: state, notebook: nb),
             ],
           ),
         ),

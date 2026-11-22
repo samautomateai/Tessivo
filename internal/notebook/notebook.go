@@ -72,6 +72,7 @@ type Manifest struct {
 	Memory    []string           `json:"memory,omitempty"`   // pinned facts included in every run
 	Template  string             `json:"template,omitempty"` // "id@version" this notebook came from
 	Agent     AgentSettings      `json:"agent,omitzero"`
+	Archived  bool               `json:"archived,omitempty"` // listed apart; schedules do not run
 }
 
 // AgentSettings are the notebook's agent-mode settings.

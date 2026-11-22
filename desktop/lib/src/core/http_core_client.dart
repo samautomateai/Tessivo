@@ -154,6 +154,15 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
+  Future<Notebook> updateNotebook(String notebookId, {String? name, bool? archived}) async =>
+      notebookFromJson(await _json('PATCH', _nb(notebookId), body: {'name': ?name, 'archived': ?archived}));
+
+  @override
+  Future<void> deleteNotebook(String notebookId) async {
+    await _json('DELETE', _nb(notebookId));
+  }
+
+  @override
   Future<Notebook> setContextEnabled({
     required String notebookId,
     required String contextId,

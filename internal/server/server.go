@@ -96,6 +96,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/runs/{rid}/events", s.runEvents)
 	s.threadRoutes(mux)
 	s.mcpRoutes(mux)
+	s.notebookManageRoutes(mux)
 	s.researchRoutes(mux)
 	return s.secure(mux)
 }

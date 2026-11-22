@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import 'app_state.dart';
+import 'core/models.dart';
 import 'screens/chat_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/new_notebook_dialog.dart';
@@ -91,13 +92,19 @@ class _Sidebar extends StatelessWidget {
             child: ListView(
               children: [
                 for (final nb in state.notebooks)
-                  _NavItem(
-                    label: nb.name,
-                    dot: colorsFor(nb.workType).dot,
-                    trailing: nb.schedule,
-                    selected: state.section == Section.notebooks && nb.id == state.selectedId,
-                    onTap: () => state.select(nb.id),
+                  if (!nb.archived) _notebookItem(nb),
+                if (state.notebooks.any((n) => n.archived))
+                  KeyedSubtree(
+                    key: const Key('archived-toggle'),
+                    child: _NavItem(
+                      label: '${state.showArchived ? '▾' : '▸'} Archived (${_archivedCount()})',
+                      selected: false,
+                      onTap: state.toggleArchived,
+                    ),
                   ),
+                if (state.showArchived)
+                  for (final nb in state.notebooks)
+                    if (nb.archived) _notebookItem(nb),
                 const SizedBox(height: 8),
                 const _Caption('RESEARCH'),
                 for (final r in state.research)
@@ -148,6 +155,21 @@ class _Sidebar extends StatelessWidget {
       ),
     );
   }
+}
+
+extension on _Sidebar {
+  int _archivedCount() => state.notebooks.where((n) => n.archived).length;
+
+  Widget _notebookItem(Notebook nb) => KeyedSubtree(
+    key: Key('nav-${nb.id}'),
+    child: _NavItem(
+      label: nb.name,
+      dot: colorsFor(nb.workType).dot,
+      trailing: nb.schedule,
+      selected: state.section == Section.notebooks && nb.id == state.selectedId,
+      onTap: () => state.select(nb.id),
+    ),
+  );
 }
 
 /// In-app notification for the newest core event (schedule finished or failed).

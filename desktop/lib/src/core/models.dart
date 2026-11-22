@@ -52,6 +52,7 @@ class Notebook {
     this.schedule,
     this.memory = const [],
     this.mcpServers = const [],
+    this.archived = false,
   });
 
   final String id;
@@ -66,16 +67,26 @@ class Notebook {
   /// Short facts the notebook keeps across runs (≤ 50 items, ≤ 1000 chars each).
   final List<String> memory;
 
+  /// Archived notebooks are listed apart and their schedules do not run.
+  final bool archived;
+
   int get enabledTokens => context.where((c) => c.enabled).fold(0, (sum, c) => sum + c.estimatedTokens);
 
-  Notebook copyWith({List<ContextItem>? context, List<String>? memory, List<String>? mcpServers}) => Notebook(
+  Notebook copyWith({
+    List<ContextItem>? context,
+    List<String>? memory,
+    List<String>? mcpServers,
+    String? name,
+    bool? archived,
+  }) => Notebook(
     id: id,
-    name: name,
+    name: name ?? this.name,
     workType: workType,
     context: context ?? this.context,
     schedule: schedule,
     memory: memory ?? this.memory,
     mcpServers: mcpServers ?? this.mcpServers,
+    archived: archived ?? this.archived,
   );
 }
 
