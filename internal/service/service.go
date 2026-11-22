@@ -66,6 +66,7 @@ type Service struct {
 	sum       *summaryRunner
 	checkOnce sync.Once // creates checks on first use
 	checks    *checkTable
+	usageMu   sync.Mutex // serializes usage.json updates in this process
 	jobsOnce  sync.Once
 	jobs      *jobTable
 }
@@ -89,6 +90,7 @@ type RunRequest struct {
 	ToolRules  map[string]string // agent mode: rules for this run only (most specific layer)
 	ScheduleID string            // the schedule that started the run, if any
 	Detached   bool              // agent mode: the run outlives ctx; stop it with Cancel
+	MaxTokens  int               // this run's token limit (a schedule's maxTokens); 0: limits.max_tokens_per_run
 }
 
 // RunOutcome is a finished run.
@@ -112,6 +114,7 @@ func (s *Service) Run(ctx context.Context, req RunRequest, onEvent func(executor
 	if err != nil {
 		return RunOutcome{}, err
 	}
+	model = s.capRun(model, req)
 	if spec.Settings.Mode == config.ModeAgent {
 		return s.runAgent(ctx, req, spec, model, onEvent)
 	}
@@ -152,11 +155,7 @@ func (s *Service) modelFor(spec executor.Spec) (executor.Model, error) {
 	if err != nil {
 		return nil, &InvalidError{err.Error()}
 	}
-	factory := s.NewModel
-	if factory == nil {
-		factory = DefaultModelFactory
-	}
-	return factory(s.Config, alias, s.Secrets)
+	return s.aliasModel(alias)
 }
 
 func (s *Service) now() time.Time {

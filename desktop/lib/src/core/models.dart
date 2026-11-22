@@ -257,6 +257,7 @@ class CoreEvent {
     'run.finished' => '$notebookName: agent run finished',
     'run.failed' => '$notebookName: agent run failed${error == null ? '' : ' ($error)'}',
     'run.cancelled' => '$notebookName: agent run cancelled',
+    'usage.warning' || 'usage.limit' => 'Token usage: ${error ?? 'limit reached'}',
     'research.summary.failed' => '$notebookName: a summary failed${error == null ? '' : ' ($error)'}',
     _ => '$notebookName: scheduled run started',
   };

@@ -37,3 +37,14 @@ func TestPromptChecksAndDelete(t *testing.T) {
 		t.Fatal("bad name accepted")
 	}
 }
+
+func TestScheduleMaxTokensMustNotBeNegative(t *testing.T) {
+	s := Schedule{ID: "s", Cron: "0 8 * * 1", Missed: MissedSkip, MaxTokens: -1}
+	if err := s.Validate(); err == nil {
+		t.Fatal("negative maxTokens accepted")
+	}
+	s.MaxTokens = 5000
+	if err := s.Validate(); err != nil {
+		t.Fatal(err)
+	}
+}

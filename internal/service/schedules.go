@@ -24,6 +24,7 @@ type ScheduleInput struct {
 	Vars       map[string]string `json:"vars"`
 	Missed     string            `json:"missed"`
 	Enabled    *bool             `json:"enabled"`
+	MaxTokens  int               `json:"maxTokens"`
 }
 
 // AddSchedule validates and stores a new schedule.
@@ -38,6 +39,7 @@ func (s *Service) AddSchedule(id string, in ScheduleInput) (ScheduleInfo, error)
 	sch := notebook.Schedule{
 		ID: notebook.NewID(), Cron: in.Cron, Prompt: in.Prompt, PromptName: in.PromptName, Vars: in.Vars,
 		Missed: in.Missed, Enabled: in.Enabled == nil || *in.Enabled, CreatedAt: time.Now().UTC().Format(time.RFC3339),
+		MaxTokens: in.MaxTokens,
 	}
 	if err := sch.Validate(); err != nil {
 		return ScheduleInfo{}, &InvalidError{err.Error()}

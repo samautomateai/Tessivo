@@ -6,7 +6,7 @@ writes its address and token to `endpoint.json` (0600) in the config dir's `run/
 Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bodies are JSON
 (`Content-Type: application/json`, ≤ 1 MiB, unknown fields rejected). Errors are
 `{"error": "..."}` with 400 (invalid), 401, 403 (browser request), 404, 421 (bad host),
-422 (output failed validation), 429 (too many runs) or 500.
+422 (output failed validation), 429 (too many runs, or a token limit reached) or 500.
 
 | Method and path | Body | Response |
 | --- | --- | --- |
@@ -20,6 +20,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks/{id}/prompts` | — | `{"prompts": [Prompt]}` sorted by name |
 | `PUT /v1/notebooks/{id}/prompts/{name}` | `{text, settings?}` | `Prompt` (name: letters, digits, `.`, `_`, `-`; text 1 B–16 KiB) |
 | `DELETE /v1/notebooks/{id}/prompts/{name}` | — | `204`; `409` while a schedule runs it |
+| `GET /v1/usage` | — | `{day, tokens, dayLimit, runLimit}`: today's tokens across every model call, and `limits.max_tokens_per_day` / `max_tokens_per_run` (0: none) |
 | `POST /v1/notebooks/{id}/context` | `{path}` (absolute), or `{server, uri, label?}` for an MCP resource | `Notebook` |
 | `PATCH /v1/notebooks/{id}/context/{contextId}` | `{enabled}` | `Notebook` |
 | `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?, toolRules?}` | SSE stream |
@@ -82,7 +83,7 @@ output a version revises and `fromThread` the thread reply it was made from.
 
 `Prompt`: `{name, text, settings: {model?, temperature?, max_output_tokens?, thinking_effort?}}`; a run or schedule given `promptName` uses its text and settings (layered between the notebook and the run).
 
-`Schedule`: `{id, cron, prompt, promptName, vars, overrides, missed: "skip"|"run_once", enabled,
+`Schedule`: `{id, cron, prompt, promptName, vars, overrides, maxTokens?, missed: "skip"|"run_once", enabled,
 createdAt, notebookId, nextRun, history: [{scheduledFor, startedAt, durationMs, status, runId,
 outputId, error}]}` (status `ok`, `failed`, `skipped` or `waiting_approval`). Cron: five fields, names, ranges, steps, lists, `@daily`-style macros and an
 optional `CRON_TZ=Area/City` prefix; otherwise the core's local time zone.

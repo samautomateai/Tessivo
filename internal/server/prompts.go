@@ -11,6 +11,7 @@ func (s *Server) promptRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/notebooks/{id}/prompts", s.listPrompts)
 	mux.HandleFunc("PUT /v1/notebooks/{id}/prompts/{name}", s.savePrompt)
 	mux.HandleFunc("DELETE /v1/notebooks/{id}/prompts/{name}", s.deletePrompt)
+	mux.HandleFunc("GET /v1/usage", s.usage)
 }
 
 func (s *Server) listPrompts(w http.ResponseWriter, r *http.Request) {
@@ -47,4 +48,13 @@ func (s *Server) deletePrompt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) usage(w http.ResponseWriter, r *http.Request) {
+	u, err := s.svc.Usage()
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, u)
 }

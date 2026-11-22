@@ -116,10 +116,16 @@ func newService(f config.File, env Env) (*service.Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &service.Service{
+	svc := &service.Service{
 		Config: f, Secrets: env.Secrets, NewModel: service.ModelFactory(env.NewModel),
 		Workspace: ws, UserAuditPath: userAudit, Actor: "cli", Templates: lib, ConfigPath: env.ConfigPath,
-	}, nil
+	}
+	svc.OnRunEvent = func(e service.RunEvent) { // tess serve replaces this with its event stream
+		if e.Kind == service.EventUsageWarning || e.Kind == service.EventUsageLimit {
+			_, _ = fmt.Fprintln(env.Stderr, "tess: warning: "+e.Error)
+		}
+	}
+	return svc, nil
 }
 
 func stdinDocs(env Env) ([]extract.Document, error) {

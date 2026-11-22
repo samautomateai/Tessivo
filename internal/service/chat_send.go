@@ -135,7 +135,11 @@ func (s *Service) aliasModel(alias config.Alias) (executor.Model, error) {
 	if factory == nil {
 		factory = DefaultModelFactory
 	}
-	return factory(s.Config, alias, s.Secrets)
+	m, err := factory(s.Config, alias, s.Secrets)
+	if err != nil {
+		return nil, err
+	}
+	return metered{inner: m, s: s}, nil
 }
 
 // streamText streams one model call, forwarding deltas until the reply
