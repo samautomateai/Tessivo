@@ -238,7 +238,7 @@ func (s *Service) summaryText(ctx context.Context, nb *research.Notebook, read s
 				{Role: llm.RoleSystem, Content: prompt},
 				{Role: llm.RoleUser, Content: "<source>\n" + material + "\n</source>"},
 			},
-		}, nil)
+		}, func(string) {}) // summaries are not streamed
 		if err != nil {
 			return "", fmt.Errorf("summarize: %w", err)
 		}

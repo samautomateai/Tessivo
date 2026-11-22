@@ -90,11 +90,11 @@ func (s *Server) sendThread(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reply, err := s.svc.SendThread(r.Context(), nb, out, in,
-		func(d string) { sse.send("delta", map[string]string{"text": d}) },
+		func(d string) { sse.send("delta", map[string]string{keyText: d}) },
 		func(sg notebook.Suggestion) { sse.send("suggestion", sg) })
 	if err != nil {
 		status, msg := classify(err)
-		sse.send(keyError, map[string]any{keyStatus: status, keyError: msg, "reply": reply})
+		sse.send(keyError, map[string]any{keyStatus: status, keyError: msg, keyReply: reply})
 		return
 	}
 	sse.send("finished", reply)

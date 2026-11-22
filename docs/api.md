@@ -223,3 +223,44 @@ notebook, through one connection per server, and counts toward the context budge
 `estimatedTokens` is 0 until then. Only text is accepted (or a blob whose type is text or JSON), at most 2 MiB. A
 resource that cannot be read fails the run with the server and URI in the message. Runs record it as
 `mcp:<server>/<uri>`. The CLI form is `tess context add <notebook> mcp://<server>/<uri>`.
+
+## Research notebooks
+
+A second kind of notebook, stored under `<workspace parent>/research/<id>/`, separate from job notebooks. All routes
+are under `/v1/research`.
+
+| Route | Body | Returns |
+|---|---|---|
+| `GET /v1/research` | — | `{"notebooks": [Research]}` (no content checks) |
+| `POST /v1/research` | `{name, description?}` | `201 Research` |
+| `GET /v1/research/{id}` | — | `Research`; sources at full or summary are checked against their content, and changed or pending ones are queued for a summary |
+| `PATCH /v1/research/{id}` | `{name?, description?, settings?}` | `Research` |
+| `DELETE /v1/research/{id}` | — | `204` |
+| `POST …/{id}/sources` | `{path}` (absolute file or folder) or `{server, uri}` (MCP resource) | `Research`; the summary runs in the background |
+| `GET …/{id}/sources/{sid}` | — | `{text, summary}` (folders: files joined with their paths) |
+| `PATCH …/{id}/sources/{sid}` | `{level: "full"\|"summary"\|"off"}` | `Research` (`400` for summary without a ready summary) |
+| `DELETE …/{id}/sources/{sid}` | — | `Research` |
+| `POST …/{id}/sources/{sid}/summary` | — | `202` (summarized again only if the content changed) |
+| `GET …/{id}/context` | — | `{sources, summaries, notes, tokens, cut: [label]}`: what a question would send now, its size before fitting, and the sources that would be shortened |
+| `GET\|POST …/{id}/chats` | `{title?}` | `{"sessions": [ChatSummary]}` / `201 ChatSession` |
+| `GET …/{id}/chats/{cid}` | — | `{session: ChatSession, citations: {messageId: [Citation]}}` |
+| `PATCH\|DELETE …/{id}/chats/{cid}` | `{title?, model?, thinkingEffort?}` | `ChatSession` / `204` |
+| `POST …/{id}/chats/{cid}/messages` | `{text}` | SSE: `delta {text}`, then `finished` (`{user, assistant, citations, skipped?}`) or `error` |
+| `POST …/{id}/chats/{cid}/messages/{mid}/note` | — | `201 Note` |
+| `GET\|POST …/{id}/notes` · `PATCH\|DELETE …/{id}/notes/{nid}` | `{title?, text?, include?}` | `{"notes": [Note]}` / `Note` / `204` |
+
+`Research`: `{id, name, description, createdAt, settings, notes, sources: [Source]}`. `Source`:
+`{id, label, kind: "file"|"folder"|"mcp-resource", path?, server?, uri?, level, levelSet?, tokens?, summary:
+"ready"|"failed"|"pending"|"updating", error?}`. `Note`: `{id, title, text, origin: "human"|"ai", include}`.
+`Citation`: `{n, kind: "source"|"note", id, label, level?, path?}`.
+
+**Summaries.** One per source, made in the background (at most 2 at a time) with the notebook's model, and remade
+only when the source's content changes (a sha256 fingerprint of what extraction reads). A new source starts at
+`full` and switches to `summary` when its first summary is ready, unless the user set a level. The events stream
+sends `research.summary.started|ready|failed` with `notebookId` and `sourceId`.
+
+**Questions.** Sources at `full` send their text (a folder as one block of files), sources at `summary` their
+summary, then included notes; sources and notes may use 3/5 of the budget, largest cut first. The model cites with
+`[n]` or `[n:path]`; numbers it was not given are ignored, and a path outside the folder is dropped. Earlier answers
+are sent with their numbers replaced by labels. A source that cannot be read is skipped, and the stored answer
+starts with a line naming it.

@@ -117,11 +117,11 @@ func (s *Server) sendChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reply, err := s.svc.SendChat(r.Context(), r.PathValue("cid"), in, func(d string) {
-		sse.send("delta", map[string]string{"text": d})
+		sse.send("delta", map[string]string{keyText: d})
 	})
 	if err != nil {
 		status, msg := classify(err)
-		sse.send(keyError, map[string]any{keyStatus: status, keyError: msg, "reply": reply})
+		sse.send(keyError, map[string]any{keyStatus: status, keyError: msg, keyReply: reply})
 		return
 	}
 	sse.send("finished", reply)
