@@ -43,6 +43,7 @@ var cliTargets = []target{
 // the app finds it next to its own executable.
 type desktopTarget struct {
 	goos, bundle, tessDir string
+	docsDir               string // where LICENSE and THIRD_PARTY.md go inside the bundle
 }
 
 var desktopTargets = map[string]desktopTarget{
@@ -50,7 +51,7 @@ var desktopTargets = map[string]desktopTarget{
 	"windows": {goos: goosWindows, bundle: "desktop/build/windows/{arch}/runner/Release"},
 	"macos": {
 		goos: goosDarwin, bundle: "desktop/build/macos/Build/Products/Release/tessivo_desktop.app",
-		tessDir: "Contents/MacOS",
+		tessDir: "Contents/MacOS", docsDir: "Contents/Resources",
 	},
 }
 
@@ -94,12 +95,30 @@ func (a *app) stageCLI(ctx context.Context, version string, t target, dir string
 	if err := a.goBuild(ctx, newBuild(a.root, version, t, filepath.Join(dir, exe("tess", t.goos)))); err != nil {
 		return err
 	}
-	readme, err := os.ReadFile(filepath.Join(a.root, "README.md"))
-	if err != nil {
-		return fmt.Errorf("read README.md: %w", err)
+	return a.stageDocs(dir, append([]string{"README.md"}, legalFiles...)...)
+}
+
+// legalFiles ship in every archive: the license and the notices of code we ported.
+var legalFiles = []string{"LICENSE", "THIRD_PARTY.md"}
+
+// stageDocs copies files from the repo root into dir.
+func (a *app) stageDocs(dir string, files ...string) error {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return fmt.Errorf("create %s: %w", dir, err)
 	}
-	if err := writePublic(filepath.Join(dir, "README.md"), readme); err != nil {
-		return fmt.Errorf("stage README.md: %w", err)
+	root, err := os.OpenRoot(a.root) // files are read from inside the repo only
+	if err != nil {
+		return fmt.Errorf("open %s: %w", a.root, err)
+	}
+	defer func() { _ = root.Close() }()
+	for _, f := range files {
+		b, err := root.ReadFile(f)
+		if err != nil {
+			return fmt.Errorf("read %s: %w", f, err)
+		}
+		if err := writePublic(filepath.Join(dir, f), b); err != nil {
+			return fmt.Errorf("stage %s: %w", f, err)
+		}
 	}
 	return nil
 }
@@ -118,6 +137,9 @@ func (a *app) desktop(ctx context.Context, version, dist, platform, arch string)
 	t := target{dt.goos, arch}
 	tess := filepath.Join(bundle, filepath.FromSlash(dt.tessDir), exe("tess", dt.goos))
 	if err := a.goBuild(ctx, newBuild(a.root, version, t, tess)); err != nil {
+		return err
+	}
+	if err := a.stageDocs(filepath.Join(bundle, filepath.FromSlash(dt.docsDir)), legalFiles...); err != nil {
 		return err
 	}
 	if err := os.MkdirAll(dist, 0o750); err != nil {

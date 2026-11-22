@@ -59,3 +59,8 @@ task desktop:check  # format, analyze, test (coverage ≥ 80%) the desktop app
 
 Docs: [architecture](docs/architecture.md) · [decisions](docs/adr) · [security](SECURITY.md) ·
 [rules for contributors](CLAUDE.md)
+
+## License
+
+[MIT](LICENSE). Third-party notices, including the MIT-licensed code ported from Zero, are in
+[THIRD_PARTY.md](THIRD_PARTY.md); every release archive carries both files.

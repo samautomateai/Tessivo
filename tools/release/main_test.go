@@ -28,8 +28,10 @@ func (f *fakeGo) build(_ context.Context, b build) error {
 func newApp(t *testing.T) (*app, *fakeGo, string) {
 	t.Helper()
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Tessivo\n"), 0o644); err != nil {
-		t.Fatal(err)
+	for _, f := range []string{"README.md", "LICENSE", "THIRD_PARTY.md"} {
+		if err := os.WriteFile(filepath.Join(root, f), []byte(f+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	g := &fakeGo{}
 	return &app{root: root, goBuild: g.build, out: io.Discard}, g, root
@@ -106,12 +108,15 @@ func TestCLIBuildsEveryTarget(t *testing.T) {
 		}
 	}
 	got := names(t, filepath.Join(dist, "tess_v1.2.3_windows_amd64.zip"))
-	want := []string{"tess_v1.2.3_windows_amd64/README.md", "tess_v1.2.3_windows_amd64/tess.exe"}
+	want := []string{
+		"tess_v1.2.3_windows_amd64/LICENSE", "tess_v1.2.3_windows_amd64/README.md",
+		"tess_v1.2.3_windows_amd64/THIRD_PARTY.md", "tess_v1.2.3_windows_amd64/tess.exe",
+	}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("windows archive: %v", got)
 	}
 	got = names(t, filepath.Join(dist, "tess_v1.2.3_darwin_arm64.tar.gz"))
-	if len(got) != 2 || got[1] != "tess_v1.2.3_darwin_arm64/tess" {
+	if len(got) != 4 || got[3] != "tess_v1.2.3_darwin_arm64/tess" {
 		t.Fatalf("macOS archive: %v", got)
 	}
 }
@@ -137,7 +142,10 @@ func TestDesktopBundlesTess(t *testing.T) {
 		t.Fatalf("tess must be built for the bundle's platform: %+v", b)
 	}
 	got := strings.Join(names(t, filepath.Join(dist, "tessivo-desktop_v1.0.0_linux_amd64.tar.gz")), "\n")
-	for _, want := range []string{"tessivo-desktop_v1.0.0_linux_amd64/tess", "lib/libapp.so"} {
+	for _, want := range []string{
+		"tessivo-desktop_v1.0.0_linux_amd64/tess", "lib/libapp.so",
+		"tessivo-desktop_v1.0.0_linux_amd64/LICENSE", "tessivo-desktop_v1.0.0_linux_amd64/THIRD_PARTY.md",
+	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("archive lacks %s:\n%s", want, got)
 		}
@@ -159,6 +167,9 @@ func TestDesktopMacPutsTessInsideApp(t *testing.T) {
 	}
 	if !strings.HasSuffix(filepath.ToSlash(g.builds[0].out), "tessivo_desktop.app/Contents/MacOS/tess") {
 		t.Fatalf("tess must sit next to the app's executable: %s", g.builds[0].out)
+	}
+	if _, err := os.Stat(filepath.Join(app, "Contents", "Resources", "LICENSE")); err != nil {
+		t.Fatalf("the macOS app must carry the license in Contents/Resources: %v", err)
 	}
 }
 

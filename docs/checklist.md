@@ -24,7 +24,8 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Dev setup: `task install` (tools + hooks), `task doctor` (diagnose and repair), `task update` (latest Go toolchain and tools) | NFR Quality | ☑ |
 | Desktop gates on par with Go: stricter analyzer rules (leaked streams/sinks/futures are errors), osv-scanner on `pubspec.lock`, `--enforce-lockfile`, Dart in `task check` and the pre-commit hook, Flutter CI on Windows, macOS and Linux | NFR Quality | ☑ |
 | Desktop runners for Windows, macOS and Linux committed (`desktop/windows`, `macos`, `linux`; org `dev.tessivo`); `desktop:init` removed; fuller `.gitignore` (IDE, OS, logs, local secrets, Flutter ephemeral output); `task text` also checks Xcode project files, `.metadata` and `pubspec.lock` | NFR Quality | ☑ |
-| Downloadable builds: `tools/release` (Go) cross-compiles `tess` for Linux, macOS and Windows (amd64, arm64), packages each desktop bundle with `tess` beside the app, writes `SHA256SUMS`; `release` workflow keeps artifacts for `main` and publishes a GitHub Release for `v*` tags | NFR Quality | ☑ |
+| Downloadable builds: `tools/release` (Go) cross-compiles `tess` for Linux, macOS and Windows (amd64, arm64), packages each desktop bundle with `tess` beside the app, writes `SHA256SUMS`; every archive carries `LICENSE` and `THIRD_PARTY.md`; `release` workflow keeps artifacts for `main` and publishes a GitHub Release for `v*` tags | NFR Quality | ☑ |
+| MIT license (`LICENSE`) and third-party notices (`THIRD_PARTY.md`: Zero for `internal/mcp`; Flutter `NOTICES` for the desktop) | NFR Legal | ☑ |
 | Hardened HTTP: TLS 1.2+, no redirects, bounded timeouts, idle-stream timeout; plaintext to remote hosts refused | NFR Security | ☑ |
 | Parallel code-base extraction (bounded pool); benchmarks; fuzz targets for schema, CSV/JSON, Office, audit | NFR Performance | ☑ |
 | Desktop ↔ core contract: local JSON API + SSE (ADR 0004, docs/api.md) | — | ☑ |
