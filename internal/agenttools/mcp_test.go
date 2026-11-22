@@ -49,7 +49,7 @@ func FuzzSanitizeToolName(f *testing.F) {
 }
 
 func TestMCPToolsDedupe(t *testing.T) {
-	tools := MCPTools("x", []MCPToolSpec{{Name: "Read"}, {Name: "read"}, {Name: "READ"}}, &fakeCaller{})
+	tools := MCPTools("x", []MCPToolSpec{{Name: "Read"}, {Name: "read"}, {Name: "READ"}}, &fakeCaller{}, nil)
 	var names []string
 	for _, tl := range tools {
 		names = append(names, tl.Def().Name)
@@ -63,8 +63,8 @@ func TestMCPToolRunAndSchema(t *testing.T) {
 	c := &fakeCaller{text: "result"}
 	tools := MCPTools("gh", []MCPToolSpec{
 		{Name: "search", Description: "Search issues", Schema: json.RawMessage(`{"type":"object","properties":{}}`)},
-		{Name: "bad", Schema: json.RawMessage(`[1,2]`)},
-	}, c)
+		{Name: "zbad", Schema: json.RawMessage(`[1,2]`)}, // sorts after "search"
+	}, c, nil)
 	if def := tools[0].Def(); !strings.Contains(def.Description, "gh") || string(def.Parameters) !=
 		`{"type":"object","properties":{}}` {
 		t.Fatalf("def: %+v", def)
@@ -83,5 +83,31 @@ func TestMCPToolRunAndSchema(t *testing.T) {
 	c.err = errors.New("server exited")
 	if _, err := tools[0].Run(context.Background(), nil); err == nil {
 		t.Fatal("want error")
+	}
+}
+
+// The same tools listed in another order (after a pause, say) keep their names.
+func TestMCPToolNamesIgnoreListingOrder(t *testing.T) {
+	names := func(specs []MCPToolSpec) map[string]string {
+		out := map[string]string{}
+		for _, tl := range MCPTools("x", specs, &fakeCaller{}, nil) {
+			out[tl.(*mcpTool).remote] = tl.Def().Name
+		}
+		return out
+	}
+	a := names([]MCPToolSpec{{Name: "Read"}, {Name: "read"}})
+	b := names([]MCPToolSpec{{Name: "read"}, {Name: "Read"}})
+	if a["Read"] != b["Read"] || a["read"] != b["read"] {
+		t.Fatalf("names depend on order: %v vs %v", a, b)
+	}
+}
+
+// Two servers whose names sanitize alike must not offer the same tool name.
+func TestMCPToolNamesUniqueAcrossServers(t *testing.T) {
+	taken := map[string]bool{}
+	first := MCPTools("a-b", []MCPToolSpec{{Name: "x"}}, &fakeCaller{}, taken)
+	second := MCPTools("a_b", []MCPToolSpec{{Name: "x"}}, &fakeCaller{}, taken)
+	if first[0].Def().Name == second[0].Def().Name {
+		t.Fatalf("both servers offer %q", first[0].Def().Name)
 	}
 }

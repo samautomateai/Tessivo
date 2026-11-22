@@ -30,7 +30,7 @@ func (m mcpCaller) CallTool(ctx context.Context, name string, args json.RawMessa
 	if err != nil {
 		return "", false, errors.New(m.redact(err.Error()))
 	}
-	return res.Text, res.IsError, nil
+	return m.redact(res.Text), res.IsError, nil // a server may echo its own credentials
 }
 
 // mcpTools connects to the notebook's attached servers and returns their
@@ -38,7 +38,7 @@ func (m mcpCaller) CallTool(ctx context.Context, name string, args json.RawMessa
 // pauses. A server that cannot be reached fails the call, naming it.
 func (s *Service) mcpTools(ctx context.Context, nb *notebook.Notebook,
 ) (tools []agenttools.Tool, closeAll func(), err error) {
-	var clients []*mcp.Client
+	var clients []*mcpSession
 	closeAll = func() {
 		for _, c := range clients {
 			_ = c.Close()
@@ -47,6 +47,7 @@ func (s *Service) mcpTools(ctx context.Context, nb *notebook.Notebook,
 			}
 		}
 	}
+	taken := map[string]bool{} // tool names stay unique across servers
 	for _, name := range nb.Manifest.Agent.MCPServers {
 		c, err := s.connectMCP(ctx, name)
 		if err != nil {
@@ -60,7 +61,7 @@ func (s *Service) mcpTools(ctx context.Context, nb *notebook.Notebook,
 		list, err := c.ListTools(ctx)
 		if err != nil {
 			closeAll()
-			return nil, func() {}, fmt.Errorf("attached MCP server %s: %w", name, s.mcpErr(err))
+			return nil, func() {}, fmt.Errorf("attached MCP server %s: %w", name, c.err(err))
 		}
 		specs := make([]agenttools.MCPToolSpec, 0, len(list))
 		for _, t := range list {
@@ -68,7 +69,7 @@ func (s *Service) mcpTools(ctx context.Context, nb *notebook.Notebook,
 				Server: name, Name: t.Name, Description: t.Description, Schema: t.InputSchema,
 			})
 		}
-		tools = append(tools, agenttools.MCPTools(name, specs, mcpCaller{c: c, redact: s.redactor()})...)
+		tools = append(tools, agenttools.MCPTools(name, specs, mcpCaller{c: c.Client, redact: c.redact}, taken)...)
 	}
 	return tools, closeAll, nil
 }

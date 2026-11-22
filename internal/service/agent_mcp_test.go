@@ -11,6 +11,8 @@ import (
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/llm"
 	"github.com/samautomateai/tessivo/internal/mcp/mcptest"
+	"github.com/samautomateai/tessivo/internal/notebook"
+	"github.com/samautomateai/tessivo/internal/secrets"
 )
 
 func echoCall(text string) llm.Response {
@@ -131,5 +133,30 @@ func TestSetNotebookMCP(t *testing.T) {
 	}
 	if info, err = e.svc.SetNotebookMCP(e.nbID, nil); err != nil || len(info.MCPServers) != 0 {
 		t.Fatalf("detach all: %v %+v", err, info.MCPServers)
+	}
+}
+
+// A server that echoes its resolved secret must not get it into the run.
+func TestAgentRedactsMCPSecretsInResults(t *testing.T) {
+	envCall := llm.ToolCall{ID: "m1", Name: "mcp__fake__env", Arguments: `{"name":"GH_TOKEN"}`}
+	e := newAgentEnv(t, llm.Response{ToolCalls: []llm.ToolCall{envCall}}, llm.Response{Content: "done"},
+		llm.Response{Content: summary})
+	e.svc.Secrets = secrets.Map{"TESSIVO_LITELLM_KEY": "k", "GH": fakeSecret}
+	srv := fakeServer(t, "fake", mcptest.ModeOK)
+	srv.Env["GH_TOKEN"] = "${secret:GH}"
+	if _, err := e.svc.AddMCPServer(srv); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.svc.SetNotebookMCP(e.nbID, []string{"fake"}); err != nil {
+		t.Fatal(err)
+	}
+	out, err := e.run(t, map[string]string{"mcp__fake__env": "allow"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	nb, _ := e.svc.OpenNotebook(e.nbID)
+	raw, _ := os.ReadFile(filepath.Join(nb.Dir, notebook.RunsDir, out.RunID+".json"))
+	if len(raw) == 0 || strings.Contains(string(raw), fakeSecret) {
+		t.Fatalf("secret in the run record (or no record): %d bytes", len(raw))
 	}
 }

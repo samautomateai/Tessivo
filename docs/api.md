@@ -201,7 +201,7 @@ program started over stdio, no shell) or `url` (Streamable HTTP; `https`, or `ht
 `allow_insecure_http`). Names use `a-z`, `0-9`, `_` and `-` (at most 32); at most 50 servers. Servers are saved in
 the config file under `mcp.servers`.
 
-Credentials never go in the config: `env` and `headers` values may hold `${secret:NAME}` placeholders, resolved
+Credentials never go in the config: `env` and `headers` values may hold `${secret:NAME}` placeholders (arguments and URLs may not hold credentials at all), resolved
 from the environment or the OS keychain only when the server starts. A value that looks like a credential, or any
 text besides placeholders and a scheme word (`Bearer`, `Basic`, `Token`) under a name that looks sensitive (token,
 key, secret, password, auth, cookie, credential), is refused with `400`. Values are returned as stored.

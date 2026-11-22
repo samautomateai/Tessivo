@@ -107,3 +107,19 @@ func TestConfigRoundTripsMCP(t *testing.T) {
 		t.Fatal("Validate must check MCP servers")
 	}
 }
+
+func TestMCPRejectsCredentialsInArgsAndURL(t *testing.T) {
+	for _, s := range []MCPServer{
+		{Name: "a", Command: "npx", Args: []string{"server", "--token=ghp_" + strings.Repeat("a", 36)}},
+		{Name: "b", Command: "npx", Args: []string{"--api-key", "sk-abc123def456ghi789"}},
+		{Name: "c", URL: "https://mcp.example.com/mcp?api_key=abc123def456"},
+	} {
+		if err := s.Check(); err == nil || !strings.Contains(err.Error(), "credential") {
+			t.Errorf("%s: want a credential error, got %v", s.Name, err)
+		}
+	}
+	ok := MCPServer{Name: "d", Command: "npx", Args: []string{"-y", "@modelcontextprotocol/server-github"}}
+	if err := ok.Check(); err != nil {
+		t.Fatal(err)
+	}
+}

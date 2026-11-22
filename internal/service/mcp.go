@@ -11,6 +11,7 @@ import (
 
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/mcp"
+	"github.com/samautomateai/tessivo/internal/notebook"
 	"github.com/samautomateai/tessivo/internal/secrets"
 )
 
@@ -95,7 +96,8 @@ func (s *Service) RemoveMCPServer(name string) error {
 		return fmt.Errorf("mcp server %q: %w", name, ErrNotFound)
 	}
 	if users := s.notebooksUsingMCP(name); len(users) > 0 {
-		return fmt.Errorf("%w: mcp server %q is attached to %s; detach it first", ErrConflict, name,
+		return fmt.Errorf("%w: mcp server %q is used by %s (attached or as a source); remove it there first",
+			ErrConflict, name,
 			strings.Join(users, ", "))
 	}
 	next := config.MCPConfig{}
@@ -114,7 +116,10 @@ func (s *Service) notebooksUsingMCP(name string) []string {
 	}
 	var users []string
 	for _, n := range nbs {
-		if slices.Contains(n.nb.Manifest.Agent.MCPServers, name) {
+		usesSource := slices.ContainsFunc(n.nb.Manifest.Context, func(c notebook.ContextItem) bool {
+			return c.IsMCP() && c.Server == name
+		})
+		if usesSource || slices.Contains(n.nb.Manifest.Agent.MCPServers, name) {
 			users = append(users, n.Name)
 		}
 	}
@@ -153,7 +158,7 @@ func (s *Service) TestMCPServer(ctx context.Context, name string) (MCPTestResult
 	defer func() { _ = c.Close() }()
 	tools, err := c.ListTools(ctx)
 	if err != nil {
-		return MCPTestResult{}, s.mcpErr(err)
+		return MCPTestResult{}, c.err(err)
 	}
 	res := MCPTestResult{Tools: []MCPToolInfo{}, Resources: []MCPResourceInfo{}, Prompts: []MCPPromptInfo{}}
 	for _, t := range tools {
@@ -172,9 +177,20 @@ func (s *Service) TestMCPServer(ctx context.Context, name string) (MCPTestResult
 	return res, nil
 }
 
+// mcpSession is a connected server and the redaction that goes with it: the
+// provider keys, credential-shaped text, and the values its placeholders
+// resolved to. Everything the server sends back passes through redact.
+type mcpSession struct {
+	*mcp.Client
+	redact func(string) string
+}
+
+// err redacts an error from this server.
+func (m *mcpSession) err(e error) error { return redactErr(m.redact, e) }
+
 // connectMCP resolves a server's placeholders and connects. Errors are
 // redacted, including the values the placeholders resolved to.
-func (s *Service) connectMCP(ctx context.Context, name string) (*mcp.Client, error) {
+func (s *Service) connectMCP(ctx context.Context, name string) (*mcpSession, error) {
 	srv, ok := s.mcpConfig().Find(name)
 	if !ok {
 		return nil, fmt.Errorf("mcp server %q: %w", name, ErrNotFound)
@@ -200,11 +216,13 @@ func (s *Service) connectMCP(ctx context.Context, name string) (*mcp.Client, err
 	if resolved.Headers, err = expandAll(srv.Headers, get); err != nil {
 		return nil, fmt.Errorf("mcp server %q: %w", name, err)
 	}
+	base := s.redactor()
+	redact := func(text string) string { return secrets.Redact(base(text), used...) }
 	c, err := mcp.Connect(ctx, resolved)
 	if err != nil {
-		return nil, s.mcpErr(err, used...)
+		return nil, redactErr(redact, err)
 	}
-	return c, nil
+	return &mcpSession{Client: c, redact: redact}, nil
 }
 
 func expandAll(in map[string]string, get func(string) (string, error)) (map[string]string, error) {
@@ -219,10 +237,9 @@ func expandAll(in map[string]string, get func(string) (string, error)) (map[stri
 	return out, nil
 }
 
-// mcpErr redacts an MCP error: provider keys, the given secret values and
-// credential-shaped text.
-func (s *Service) mcpErr(err error, values ...string) error {
-	msg := secrets.Redact(s.redactor()(err.Error()), values...)
+// redactErr rewrites err through redact, keeping a timeout recognisable.
+func redactErr(redact func(string) string, err error) error {
+	msg := redact(err.Error())
 	if errors.Is(err, context.DeadlineExceeded) {
 		return fmt.Errorf("%s: %w", msg, context.DeadlineExceeded)
 	}

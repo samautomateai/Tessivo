@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // streamable is a minimal Streamable HTTP MCP server: initialize answers JSON
@@ -92,5 +93,34 @@ func TestHTTPErrorStatus(t *testing.T) {
 	if _, err := Connect(context.Background(), Server{Name: "u", URL: srv.URL}); err == nil ||
 		!strings.Contains(err.Error(), "401") {
 		t.Fatalf("401: %v", err)
+	}
+}
+
+// A tool call may take longer than a list request: the transport must not
+// cut it at the request timeout.
+func TestHTTPSlowToolCallWithinCallTimeout(t *testing.T) {
+	oldReq, oldCall := requestTimeout, callTimeout
+	requestTimeout, callTimeout = 200*time.Millisecond, 5*time.Second
+	t.Cleanup(func() { requestTimeout, callTimeout = oldReq, oldCall })
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var m message
+		_ = json.NewDecoder(r.Body).Decode(&m)
+		switch {
+		case m.ID == nil:
+			w.WriteHeader(http.StatusAccepted)
+		case m.Method == "tools/call":
+			time.Sleep(time.Second)
+			fallthrough
+		default:
+			w.Header().Set("Content-Type", "application/json")
+			const result = `"result":{"content":[{"type":"text","text":"slow"}]}`
+			_, _ = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,%s}`, m.ID, result)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	c := connect(t, Server{Name: "slow", URL: srv.URL})
+	res, err := c.CallTool(context.Background(), "x", nil)
+	if err != nil || res.Text != "slow" {
+		t.Fatalf("%v %+v", err, res)
 	}
 }

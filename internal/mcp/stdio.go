@@ -33,7 +33,7 @@ type stdioConn struct {
 	stdin  io.WriteCloser
 	stderr *capped
 
-	writeMu sync.Mutex
+	writes  chan writeOp // the one writer goroutine drains it; bounded
 	mu      sync.Mutex
 	pending map[int64]chan message
 	dead    error         // set once the reader stops
@@ -56,13 +56,14 @@ func startStdio(ctx context.Context, s Server) (*stdioConn, error) {
 	}
 	c := &stdioConn{
 		cmd: cmd, stdin: stdin, stderr: &capped{limit: maxStderr},
-		pending: map[int64]chan message{}, exited: make(chan struct{}),
+		pending: map[int64]chan message{}, exited: make(chan struct{}), writes: make(chan writeOp, writeQueue),
 	}
 	cmd.Stderr = c.stderr
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start %s: %w", s.Command, err)
 	}
 	go c.readLoop(stdout)
+	go c.writeLoop()
 	return c, nil
 }
 
@@ -138,13 +139,66 @@ func (c *stdioConn) reply(req message) {
 	} else {
 		resp.Error = &rpcError{Code: -32601, Message: "method not supported"}
 	}
-	go func() { _ = c.write(resp) }()
+	select {
+	case c.writes <- writeOp{m: resp}:
+	default: // the queue is full: a server flooding requests gets no more answers
+	}
 }
 
-func (c *stdioConn) write(m message) error {
-	c.writeMu.Lock()
-	defer c.writeMu.Unlock()
-	return writeMessage(c.stdin, m)
+// writeQueue bounds the messages waiting to be written to the server.
+const writeQueue = 32
+
+type writeOp struct {
+	m    message
+	done chan error // nil for replies nobody waits on
+}
+
+// writeLoop is the only goroutine that writes to the server.
+func (c *stdioConn) writeLoop() {
+	for {
+		select {
+		case op := <-c.writes:
+			err := writeMessage(c.stdin, op.m)
+			if op.done != nil {
+				op.done <- err
+			}
+		case <-c.exited:
+			return
+		}
+	}
+}
+
+// write queues m and waits until it is written. A server that stops reading
+// its input past ctx's deadline is stopped: nothing could reach it anymore.
+func (c *stdioConn) write(ctx context.Context, m message) error {
+	done := make(chan error, 1)
+	select {
+	case c.writes <- writeOp{m: m, done: done}:
+	case <-ctx.Done():
+		return c.stall(ctx.Err())
+	case <-c.exited:
+		return c.deadOr(ErrServerExited)
+	}
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		return c.stall(ctx.Err())
+	case <-c.exited:
+		return c.deadOr(ErrServerExited)
+	}
+}
+
+// stall marks the server as gone and kills it.
+func (c *stdioConn) stall(cause error) error {
+	c.mu.Lock()
+	if c.dead == nil {
+		c.dead = fmt.Errorf("mcp: server stopped reading its input: %w", cause)
+	}
+	err := c.dead
+	c.mu.Unlock()
+	_ = c.cmd.Process.Kill()
+	return err
 }
 
 func (c *stdioConn) roundTrip(ctx context.Context, m message) (message, error) {
@@ -158,7 +212,7 @@ func (c *stdioConn) roundTrip(ctx context.Context, m message) (message, error) {
 	}
 	c.pending[id] = ch
 	c.mu.Unlock()
-	if err := c.write(m); err != nil {
+	if err := c.write(ctx, m); err != nil {
 		c.forget(id)
 		return message{}, c.deadOr(err)
 	}
@@ -190,8 +244,8 @@ func (c *stdioConn) deadOr(err error) error {
 	return err
 }
 
-func (c *stdioConn) notify(_ context.Context, m message) error {
-	if err := c.write(m); err != nil {
+func (c *stdioConn) notify(ctx context.Context, m message) error {
+	if err := c.write(ctx, m); err != nil {
 		return c.deadOr(err)
 	}
 	return nil

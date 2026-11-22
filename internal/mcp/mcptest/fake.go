@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 // JSON keys the fake answers with.
@@ -31,6 +32,8 @@ const (
 	ModeFlood    = "flood"  // writes 6 MiB without a newline
 	ModeFail     = "fail"   // prints $FAKE_STDERR to stderr and exits 1
 	ModePages    = "pages"  // resources/list in three pages
+	ModeStall    = "stall"  // answers initialize, then stops reading its input
+	ModePings    = "pings"  // answers initialize, then sends 20000 pings and stops reading
 	modeEnv      = "TESSIVO_MCP_FAKE"
 	stderrEnv    = "FAKE_STDERR"
 	helperMarker = "-tessivo-mcp-fake"
@@ -90,6 +93,9 @@ func Serve(mode string, in io.Reader, out, errOut io.Writer) int {
 		}
 		initialized = initialized || m.Method == "initialize"
 		_ = enc.Encode(msg{JSONRPC: "2.0", ID: m.ID, Result: answer(mode, m)})
+		if initialized && (mode == ModeStall || mode == ModePings) {
+			return stop(mode, enc)
+		}
 	}
 	return 0
 }
@@ -172,4 +178,17 @@ func readResource(uri string) any {
 		contents["text"] = "# Notes\nShip in March."
 	}
 	return map[string]any{"contents": []any{contents}}
+}
+
+// stop sends pings (ModePings), then never reads its input again; it ends
+// when the client kills it.
+func stop(mode string, enc *json.Encoder) int {
+	if mode == ModePings {
+		for i := range 20000 {
+			_ = enc.Encode(msg{JSONRPC: "2.0", ID: json.RawMessage(fmt.Sprintf(`"p%d"`, i)), Method: "ping"})
+		}
+	}
+	for {
+		time.Sleep(time.Hour) // select{} would end the process as a deadlock
+	}
 }

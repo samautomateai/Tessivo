@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -50,8 +51,16 @@ func SanitizeToolName(server, tool string) string {
 
 // MCPTools turns a server's tools into agent tools named
 // mcp__<server>__<tool>; names that collide after sanitizing get _2, _3, …
-func MCPTools(server string, specs []MCPToolSpec, c MCPCaller) []Tool {
-	seen := map[string]bool{}
+// Tools are named in order of their remote names, so a server listing them in
+// another order (after a pause) gets the same names. taken holds the names
+// already given to other servers' tools (nil: none); MCPTools adds to it.
+func MCPTools(server string, specs []MCPToolSpec, c MCPCaller, taken map[string]bool) []Tool {
+	seen := taken
+	if seen == nil {
+		seen = map[string]bool{}
+	}
+	specs = slices.Clone(specs)
+	slices.SortStableFunc(specs, func(a, b MCPToolSpec) int { return strings.Compare(a.Name, b.Name) })
 	out := make([]Tool, 0, len(specs))
 	for _, s := range specs {
 		base := SanitizeToolName(server, s.Name)

@@ -66,16 +66,12 @@ func (s MCPServer) Check() error {
 		return fmt.Errorf("mcp server %q: give exactly one of command or url", s.Name)
 	}
 	if s.URL != "" {
-		u, err := url.Parse(s.URL)
-		switch {
-		case err != nil || u.Host == "" || (u.Scheme != schemeHTTP && u.Scheme != schemeHTTPS):
-			return fmt.Errorf("mcp server %q: url must be http:// or https://", s.Name)
-		case u.User != nil:
-			return fmt.Errorf("mcp server %q: url must not embed credentials; use a header", s.Name)
-		case u.Scheme == schemeHTTP && !s.AllowInsecureHTTP && !isLoopback(u.Hostname()):
-			return fmt.Errorf("mcp server %q: plain http to %s is refused; use https or set allow_insecure_http",
-				s.Name, u.Hostname())
+		if err := checkURL(s.URL, s.AllowInsecureHTTP); err != nil {
+			return fmt.Errorf("mcp server %q: %w", s.Name, err)
 		}
+	}
+	if err := checkArgs(s.Args); err != nil {
+		return fmt.Errorf("mcp server %q: %w", s.Name, err)
 	}
 	for kind, values := range map[string]map[string]string{"env": s.Env, "header": s.Headers} {
 		for k, v := range values {
@@ -142,3 +138,41 @@ const (
 	schemeHTTP  = "http"
 	schemeHTTPS = "https"
 )
+
+// checkArgs refuses credentials in a server's arguments: credential-shaped
+// text, and a value given to a flag whose name looks sensitive (--token=x or
+// --api-key x). Arguments are visible to other local users; credentials go
+// in env as ${secret:NAME}.
+func checkArgs(args []string) error {
+	const msg = "argument %d looks like a credential; pass it in env as ${secret:NAME}"
+	for i, a := range args {
+		if secrets.RedactPatterns(a) != a {
+			return fmt.Errorf(msg, i+1)
+		}
+		name, value, hasValue := strings.Cut(a, "=")
+		if !strings.HasPrefix(name, "-") || !sensitiveName.MatchString(name) {
+			continue
+		}
+		if (hasValue && value != "") || (!hasValue && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-")) {
+			return fmt.Errorf(msg, i+1)
+		}
+	}
+	return nil
+}
+
+// checkURL accepts https, or http to loopback (or anywhere when allowed), with
+// no credentials in the user part or the query.
+func checkURL(raw string, allowInsecure bool) error {
+	u, err := url.Parse(raw)
+	switch {
+	case err != nil || u.Host == "" || (u.Scheme != schemeHTTP && u.Scheme != schemeHTTPS):
+		return errors.New("url must be http:// or https://")
+	case u.User != nil:
+		return errors.New("url must not embed credentials; use a header")
+	case secrets.RedactPatterns(raw) != raw:
+		return errors.New("the url looks like it holds a credential; use a header with ${secret:NAME}")
+	case u.Scheme == schemeHTTP && !allowInsecure && !isLoopback(u.Hostname()):
+		return fmt.Errorf("plain http to %s is refused; use https or set allow_insecure_http", u.Hostname())
+	}
+	return nil
+}

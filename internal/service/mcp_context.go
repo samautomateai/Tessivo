@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/samautomateai/tessivo/internal/extract"
-	"github.com/samautomateai/tessivo/internal/mcp"
 	"github.com/samautomateai/tessivo/internal/notebook"
 )
 
@@ -17,7 +16,7 @@ func (s *Service) notebookDocs(ctx context.Context, nb *notebook.Notebook) ([]ex
 	if nb == nil {
 		return nil, nil
 	}
-	clients := map[string]*mcp.Client{}
+	clients := map[string]*mcpSession{}
 	defer func() {
 		for _, c := range clients {
 			_ = c.Close()
@@ -48,7 +47,7 @@ func (s *Service) notebookDocs(ctx context.Context, nb *notebook.Notebook) ([]ex
 	return docs, nil
 }
 
-func (s *Service) readResource(ctx context.Context, clients map[string]*mcp.Client, c notebook.ContextItem,
+func (s *Service) readResource(ctx context.Context, clients map[string]*mcpSession, c notebook.ContextItem,
 ) (extract.Document, error) {
 	fail := func(err error) (extract.Document, error) {
 		return extract.Document{}, fmt.Errorf("mcp resource %s %s: %w", c.Server, c.URI, err)
@@ -66,13 +65,13 @@ func (s *Service) readResource(ctx context.Context, clients map[string]*mcp.Clie
 	}
 	text, mime, err := client.ReadResource(ctx, c.URI)
 	if err != nil {
-		return fail(s.mcpErr(err))
+		return fail(client.err(err))
 	}
 	kind := docText
 	if strings.Contains(mime, "markdown") {
 		kind = "markdown"
 	}
-	return extract.Document{Source: "mcp:" + c.Server + "/" + c.URI, Kind: kind, Text: text}, nil
+	return extract.Document{Source: "mcp:" + c.Server + "/" + c.URI, Kind: kind, Text: client.redact(text)}, nil
 }
 
 // AddMCPContext attaches a configured server's resource to a notebook.

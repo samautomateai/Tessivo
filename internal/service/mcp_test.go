@@ -150,3 +150,17 @@ func TestMCPErrorsRedacted(t *testing.T) {
 		t.Fatalf("missing secret: %v", err)
 	}
 }
+
+func TestRemoveMCPUsedByResource409(t *testing.T) {
+	s := mcpSvc(t)
+	if _, err := s.AddMCPServer(fakeServer(t, "fake", mcptest.ModeOK)); err != nil {
+		t.Fatal(err)
+	}
+	info, _ := s.CreateNotebook("Board", "summarize")
+	if _, err := s.AddMCPContext(info.ID, "fake", "file:///notes.md", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RemoveMCPServer("fake"); !errors.Is(err, ErrConflict) || !strings.Contains(err.Error(), "Board") {
+		t.Fatalf("want a conflict naming the notebook, got %v", err)
+	}
+}

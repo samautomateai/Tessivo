@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -159,4 +160,41 @@ func TestCloseStopsServer(t *testing.T) {
 	if _, err := c.ListTools(context.Background()); err == nil {
 		t.Fatal("call after Close must fail")
 	}
+}
+
+// A server that stops reading its input must not hang a call past its
+// deadline: the call fails and the server is stopped.
+func TestStdioStalledServerTimesOut(t *testing.T) {
+	old := callTimeout
+	callTimeout = 500 * time.Millisecond
+	t.Cleanup(func() { callTimeout = old })
+	c := connect(t, fake(t, mcptest.ModeStall))
+	big := json.RawMessage(`{"text":"` + strings.Repeat("x", 3<<20) + `"}`) // more than a pipe buffer holds
+	start := time.Now()
+	_, err := c.CallTool(context.Background(), "echo", big)
+	t.Logf("call error after %v: %v", time.Since(start), err)
+	if err == nil {
+		t.Fatal("want an error")
+	}
+	if d := time.Since(start); d > 10*time.Second {
+		t.Fatalf("call took %v", d)
+	}
+	if _, err := c.ListTools(context.Background()); err == nil {
+		t.Fatal("a stalled server must be treated as gone")
+	}
+}
+
+// Pings a server sends while ignoring its input must not create a goroutine
+// each.
+func TestStdioPingFloodBounded(t *testing.T) {
+	before := runtime.NumGoroutine()
+	c := connect(t, fake(t, mcptest.ModePings))
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		time.Sleep(100 * time.Millisecond)
+		if n := runtime.NumGoroutine(); n > before+50 {
+			t.Fatalf("goroutines grew from %d to %d", before, n)
+		}
+	}
+	_ = c.Close()
 }

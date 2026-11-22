@@ -45,7 +45,9 @@ func dialHTTP(s Server) (*httpConn, error) {
 	if u.Scheme == "http" && !s.AllowInsecureHTTP && !loopback(u.Hostname()) {
 		return nil, fmt.Errorf("plain http to %s is refused: use https or set allow_insecure_http", u.Hostname())
 	}
-	return &httpConn{url: s.URL, headers: s.Headers, client: llm.NewHTTPClient(requestTimeout)}, nil
+	// Each request is bounded by its own context; the transport waits as long as
+	// the longest of them (a tool call).
+	return &httpConn{url: s.URL, headers: s.Headers, client: llm.NewHTTPClient(callTimeout)}, nil
 }
 
 func loopback(host string) bool {
