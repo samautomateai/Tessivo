@@ -21,7 +21,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `PUT /v1/notebooks/{id}/prompts/{name}` | `{text, settings?}` | `Prompt` (name: letters, digits, `.`, `_`, `-`; text 1 B–16 KiB) |
 | `DELETE /v1/notebooks/{id}/prompts/{name}` | — | `204`; `409` while a schedule runs it |
 | `GET /v1/usage` | — | `{day, tokens, dayLimit, runLimit}`: today's tokens across every model call, and `limits.max_tokens_per_day` / `max_tokens_per_run` (0: none) |
-| `POST /v1/notebooks/{id}/context` | `{path}` (absolute), or `{server, uri, label?}` for an MCP resource | `Notebook` |
+| `POST /v1/notebooks/{id}/context` | `{path}` (absolute), `{server, uri, label?}` for an MCP resource, `{url, label?}` for a web page fetched on every run (http/https, no credentials), or `{text, label?}` for pasted text (≤ 2 MiB, saved as Markdown) | `Notebook` |
 | `PATCH /v1/notebooks/{id}/context/{contextId}` | `{enabled}` | `Notebook` |
 | `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?, toolRules?}` | SSE stream |
 | `GET /v1/outputs?notebook=&workType=` | — | `{"outputs": [Output]}` (no data) |

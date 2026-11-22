@@ -248,6 +248,14 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
+  Future<Notebook> addUrlContext(String notebookId, String url, {String label = ''}) async =>
+      notebookFromJson(await _json('POST', '${_nb(notebookId)}/context', body: {'url': url, 'label': label}));
+
+  @override
+  Future<Notebook> addTextContext(String notebookId, String text, {String label = ''}) async =>
+      notebookFromJson(await _json('POST', '${_nb(notebookId)}/context', body: {'text': text, 'label': label}));
+
+  @override
   Future<Notebook> setMemory(String notebookId, List<String> memory) async {
     checkMemory(memory);
     return notebookFromJson(await _json('PUT', '${_nb(notebookId)}/memory', body: {'memory': memory}));

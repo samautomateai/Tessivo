@@ -31,6 +31,12 @@ abstract interface class CoreClient {
   Future<List<OutputSummary>> listOutputs({WorkTypeId? workType, String? notebookId});
   Future<Notebook> getNotebook(String notebookId);
   Future<Notebook> addContext(String notebookId, String path);
+
+  /// Adds a web page, fetched on every run.
+  Future<Notebook> addUrlContext(String notebookId, String url, {String label});
+
+  /// Saves pasted text as a source.
+  Future<Notebook> addTextContext(String notebookId, String text, {String label});
   Future<Notebook> setMemory(String notebookId, List<String> memory);
   Future<OutputDetail> getOutput(String notebookId, String outputId);
   Future<SettingsInfo> getSettings();

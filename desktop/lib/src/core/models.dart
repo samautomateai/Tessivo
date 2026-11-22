@@ -39,6 +39,9 @@ class ContextItem {
   /// True for a resource read from an MCP server at run time.
   bool get isMcp => kind.startsWith('MCP');
 
+  /// Read when a run starts (an MCP resource or a web page), not from disk.
+  bool get readAtRunTime => isMcp || kind == 'Web page';
+
   ContextItem copyWith({bool? enabled}) =>
       ContextItem(id: id, label: label, kind: kind, enabled: enabled ?? this.enabled, estimatedTokens: estimatedTokens);
 }

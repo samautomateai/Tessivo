@@ -273,6 +273,29 @@ class DemoCoreClient
   }
 
   @override
+  Future<Notebook> addUrlContext(String notebookId, String url, {String label = ''}) async {
+    final u = Uri.tryParse(url);
+    if (u == null || !(u.isScheme('http') || u.isScheme('https')) || u.host.isEmpty || u.userInfo.isNotEmpty) {
+      throw const CoreException(400, 'not an http or https URL without credentials');
+    }
+    return _addItem(notebookId, label.isEmpty ? '${u.host}${u.path}' : label, 'Web page', 0);
+  }
+
+  @override
+  Future<Notebook> addTextContext(String notebookId, String text, {String label = ''}) async {
+    if (text.trim().isEmpty) throw const CoreException(400, 'text must not be empty');
+    return _addItem(notebookId, label.isEmpty ? 'Pasted text' : label, 'MD', text.length ~/ 4);
+  }
+
+  Notebook _addItem(String notebookId, String label, String kind, int tokens) {
+    final nb = _find(notebookId);
+    final item = ContextItem(id: 'c${_nextId++}', label: label, kind: kind, enabled: true, estimatedTokens: tokens);
+    final updated = nb.copyWith(context: [...nb.context, item]);
+    _replace(updated);
+    return updated;
+  }
+
+  @override
   Future<Notebook> setNotebookMcp(String notebookId, List<String> servers) async {
     for (final s in servers) {
       if (!demoMcpServers.any((m) => m.name == s)) throw CoreException(400, 'mcp server "$s" is not configured');

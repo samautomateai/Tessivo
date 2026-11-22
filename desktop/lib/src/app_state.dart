@@ -191,6 +191,18 @@ class AppState extends ChangeNotifier {
     if (nb != null) _put(await core.addContext(nb.id, path));
   }
 
+  /// Adds a web page to the selected notebook; it is fetched on every run.
+  Future<void> addUrlContext(String url) async {
+    final nb = selected;
+    if (nb != null) _put(await core.addUrlContext(nb.id, url));
+  }
+
+  /// Saves pasted text as a source of the selected notebook.
+  Future<void> addTextContext(String label, String text) async {
+    final nb = selected;
+    if (nb != null) _put(await core.addTextContext(nb.id, text, label: label));
+  }
+
   /// Configured MCP servers (loaded with the notebooks; refreshed on demand).
   List<McpServer> mcpServers = const [];
 

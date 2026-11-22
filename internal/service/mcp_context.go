@@ -10,7 +10,7 @@ import (
 )
 
 // notebookDocs extracts the notebook's enabled sources: files and folders,
-// and MCP resources read now (one connection per server). A resource that
+// and MCP resources and web pages read now (one connection per server). A source that
 // cannot be read fails the call, naming the server and URI.
 func (s *Service) notebookDocs(ctx context.Context, nb *notebook.Notebook) ([]extract.Document, error) {
 	if nb == nil {
@@ -30,21 +30,29 @@ func (s *Service) notebookDocs(ctx context.Context, nb *notebook.Notebook) ([]ex
 		if !c.Enabled {
 			continue
 		}
-		if !c.IsMCP() {
-			d, err := extract.Path(nb.ContextPath(c))
-			if err != nil {
-				return nil, err
-			}
-			docs = append(docs, d...)
-			continue
-		}
-		d, err := s.readResource(ctx, clients, c)
+		d, err := s.itemDocs(ctx, clients, nb, c)
 		if err != nil {
 			return nil, err
 		}
-		docs = append(docs, d)
+		docs = append(docs, d...)
 	}
 	return docs, nil
+}
+
+// itemDocs reads one source: a web page or an MCP resource now, a file or folder from disk.
+func (s *Service) itemDocs(ctx context.Context, clients map[string]*mcpSession, nb *notebook.Notebook,
+	c notebook.ContextItem,
+) ([]extract.Document, error) {
+	switch {
+	case c.IsURL():
+		d, err := fetchPage(ctx, c)
+		return []extract.Document{d}, err
+	case c.IsMCP():
+		d, err := s.readResource(ctx, clients, c)
+		return []extract.Document{d}, err
+	default:
+		return extract.Path(nb.ContextPath(c))
+	}
 }
 
 func (s *Service) readResource(ctx context.Context, clients map[string]*mcpSession, c notebook.ContextItem,

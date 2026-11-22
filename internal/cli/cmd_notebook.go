@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"text/tabwriter"
 
@@ -52,9 +53,19 @@ func cmdContext(args []string, env Env) error {
 	}
 }
 
-func contextAdd(nb *notebook.Notebook, paths []string, env Env) error {
+func contextAdd(nb *notebook.Notebook, args []string, env Env) error {
+	fs := newFlags("context add", env)
+	text := fs.String("text", "", "add this text as a source (- reads stdin)")
+	label := fs.String("label", "", "label for --text")
+	paths, err := parse(fs, args)
+	if err != nil {
+		return err
+	}
+	if *text != "" {
+		return contextAddText(nb, *text, *label, env)
+	}
 	if len(paths) == 0 {
-		return usagef("context add: want at least one path")
+		return usagef("context add: want at least one path, URL or --text")
 	}
 	for _, p := range paths {
 		item, err := addContextItem(nb, p, env)
@@ -65,6 +76,8 @@ func contextAdd(nb *notebook.Notebook, paths []string, env Env) error {
 		switch {
 		case item.IsMCP():
 			how = "MCP resource, read at run time"
+		case item.IsURL():
+			how = "web page, fetched on every run"
 		case item.InPlace:
 			how = "referenced in place"
 		}
@@ -115,6 +128,13 @@ func cmdOutputs(args []string, env Env) error {
 // addContextItem adds a file or folder, or an MCP resource written as
 // mcp://<server>/<uri> (the server must be configured).
 func addContextItem(nb *notebook.Notebook, p string, env Env) (notebook.ContextItem, error) {
+	if strings.HasPrefix(p, "http://") || strings.HasPrefix(p, "https://") {
+		item, err := nb.AddURL(p, "")
+		if err != nil {
+			return notebook.ContextItem{}, usageError{err.Error()}
+		}
+		return item, nil
+	}
 	rest, ok := strings.CutPrefix(p, "mcp://")
 	if !ok {
 		return nb.AddContext(p)
@@ -135,4 +155,24 @@ func addContextItem(nb *notebook.Notebook, p string, env Env) (notebook.ContextI
 		return notebook.ContextItem{}, usageError{err.Error()}
 	}
 	return item, nil
+}
+
+// contextAddText saves text (or stdin for "-") as a Markdown source.
+func contextAddText(nb *notebook.Notebook, text, label string, env Env) error {
+	if text == "-" {
+		if env.Stdin == nil || env.StdinIsTTY {
+			return usagef("context add --text -: pipe the text in")
+		}
+		b, err := io.ReadAll(io.LimitReader(env.Stdin, notebook.MaxTextSource+1))
+		if err != nil {
+			return fmt.Errorf("read stdin: %w", err)
+		}
+		text = string(b)
+	}
+	item, err := nb.AddText(label, text)
+	if err != nil {
+		return usageError{err.Error()}
+	}
+	_, err = fmt.Fprintf(env.Stdout, "added %s (text) id=%s\n", item.Label, item.ID)
+	return wrapWrite(err)
 }

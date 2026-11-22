@@ -43,6 +43,7 @@ holds credentials for model providers. Every control below exists in code and is
 | Research files outside their folder | Research notebooks, sources, notes and conversations are addressed by validated IDs; a copied file source is read or deleted only when its manifest path is its own copy under `sources/`; copied files ≤ 64 MiB; ≤ 200 sources and ≤ 500 notes; MCP URIs ≤ 2,048 characters | `research`, `service` |
 | API keys set from the desktop | `PUT /v1/secrets/{ref}` hands the key to the OS keychain inside the core (same code as `tess secret set`); the value is never returned (`GET` says only whether it is set), never logged, and errors are redacted; the config keeps only the reference | `service/settings.go`, `keychain` |
 | Settings changed while work runs | Every read of the config goes through one lock and gets a copy; writers replace whole blocks, so a run keeps the settings it started with | `service` |
+| Web pages as sources | Fetched only from http(s) URLs without credentials, never with cookies or auth headers; ≤ 3 redirects, each checked the same way (no `file:` or other schemes); 20 s, ≤ 2 MiB, text-like content types only; HTML reduced to text in one pass without a parser tree (fuzzed); the text is sent as data like other sources. Pages are chosen by the user, never by model output | `webfetch`, `notebook` |
 | Vulnerable dependencies | Standard library first; `go mod verify`, govulncheck, osv-scanner (desktop `pubspec.lock`), gosec, CodeQL, Dependabot | CI, `task audit`, `task vuln` |
 
 ## Performance budgets

@@ -8,13 +8,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/samautomateai/tessivo/internal/config"
+	"github.com/samautomateai/tessivo/internal/webfetch"
 	"github.com/samautomateai/tessivo/internal/worktype"
 )
 
@@ -180,8 +183,8 @@ func (n *Notebook) SetEnabled(idOrLabel string, enabled bool) error {
 
 // ContextPath returns the absolute path of a context item.
 func (n *Notebook) ContextPath(c ContextItem) string {
-	if c.IsMCP() {
-		return "" // read from its server, never from disk
+	if c.IsMCP() || c.IsURL() {
+		return "" // read from its server or the web, never from disk
 	}
 	if c.InPlace || filepath.IsAbs(c.Path) {
 		return c.Path
@@ -258,6 +261,48 @@ func (n *Notebook) AddMCPResource(server, uri, label string) (ContextItem, error
 	item := ContextItem{
 		ID: NewID(), Label: label, Enabled: true, AddedAt: now(), Kind: KindMCPResource, Server: server, URI: uri,
 	}
+	n.Manifest.Context = append(n.Manifest.Context, item)
+	return item, n.Save()
+}
+
+// KindURL marks a web page read on every run (URI; Path is empty).
+const KindURL = "url"
+
+// MaxTextSource bounds pasted text added as a source.
+const MaxTextSource = 2 << 20
+
+// IsURL reports whether the item is a web page.
+func (c ContextItem) IsURL() bool { return c.Kind == KindURL }
+
+// AddURL attaches a web page, fetched on every run. The label defaults to
+// the host and path.
+func (n *Notebook) AddURL(raw, label string) (ContextItem, error) {
+	if err := webfetch.Check(raw); err != nil {
+		return ContextItem{}, err
+	}
+	if label == "" {
+		u, _ := url.Parse(raw)
+		label = strings.TrimSuffix(u.Host+u.Path, "/")
+	}
+	item := ContextItem{ID: NewID(), Label: label, Enabled: true, AddedAt: now(), Kind: KindURL, URI: raw}
+	n.Manifest.Context = append(n.Manifest.Context, item)
+	return item, n.Save()
+}
+
+// AddText saves pasted text as a Markdown file in the notebook and attaches it.
+func (n *Notebook) AddText(label, text string) (ContextItem, error) {
+	if strings.TrimSpace(text) == "" || len(text) > MaxTextSource {
+		return ContextItem{}, fmt.Errorf("text must be 1 to %d bytes", MaxTextSource)
+	}
+	if strings.TrimSpace(label) == "" {
+		label = "Pasted text"
+	}
+	id := NewID()
+	rel := filepath.Join(ContextDir, id+"-"+sanitize(label)+".md")
+	if err := os.WriteFile(filepath.Join(n.Dir, rel), []byte(strings.TrimRight(text, "\n")+"\n"), 0o600); err != nil {
+		return ContextItem{}, fmt.Errorf("save text: %w", err)
+	}
+	item := ContextItem{ID: id, Label: label, Path: rel, Enabled: true, AddedAt: now()}
 	n.Manifest.Context = append(n.Manifest.Context, item)
 	return item, n.Save()
 }

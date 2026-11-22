@@ -90,7 +90,9 @@ Notebook notebookFromJson(Map<String, Object?> j) => Notebook(
 ContextItem contextFromJson(Map<String, Object?> j) {
   final label = j['label'] as String? ?? '';
   final dot = label.lastIndexOf('.');
-  final kind = j['kind'] == 'mcp-resource'
+  final kind = j['kind'] == 'url'
+      ? 'Web page'
+      : j['kind'] == 'mcp-resource'
       ? 'MCP · ${j['server'] as String? ?? ''}'
       : (j['inPlace'] as bool? ?? false)
       ? 'Folder'
