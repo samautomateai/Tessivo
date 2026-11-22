@@ -42,7 +42,7 @@ func cmdTemplate(args []string, env Env) error {
 		return templateShow(lib, rest, env)
 	case "use":
 		return templateUse(lib, rest, env)
-	case "save":
+	case subSave:
 		return templateSave(lib, rest, env)
 	case "extend":
 		return templateExtend(lib, rest, env)

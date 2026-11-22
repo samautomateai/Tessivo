@@ -145,6 +145,7 @@ class AppState extends ChangeNotifier {
     if (selectedId case final id?) await _refresh(id);
     await refreshMcpServers();
     await loadOutputs();
+    await loadPrompts();
     await loadResearch();
   }
 
@@ -162,6 +163,8 @@ class AppState extends ChangeNotifier {
     _openOutput(null);
     unawaited(_refresh(id));
     unawaited(loadOutputs());
+    prompts = const [];
+    unawaited(loadPrompts());
   }
 
   /// Loads the full notebook (context stats, memory); the list view omits them.
@@ -333,17 +336,28 @@ class AppState extends ChangeNotifier {
     _put(await core.setContextEnabled(notebookId: nb.id, contextId: contextId, enabled: enabled));
   }
 
-  Future<void> run(String prompt, Map<String, String> vars) async {
+  /// The saved prompt the last run used, if any.
+  String? lastPromptName;
+
+  /// The open notebook's saved prompts.
+  List<SavedPrompt> prompts = const [];
+
+  void _changed() {
+    if (!_disposed) notifyListeners();
+  }
+
+  Future<void> run(String prompt, Map<String, String> vars, {String? promptName}) async {
     final nb = selected;
     if (nb == null || running) return;
     running = true;
+    lastPromptName = promptName;
     outcome = null;
     _stream.clear();
     toolLog.clear();
     paused = const [];
     notifyListeners();
     try {
-      await for (final e in core.startRun(notebookId: nb.id, prompt: prompt, vars: vars)) {
+      await for (final e in core.startRun(notebookId: nb.id, prompt: prompt, vars: vars, promptName: promptName)) {
         switch (e) {
           case RunStatus(:final text):
             status = text;
@@ -428,5 +442,43 @@ class AppState extends ChangeNotifier {
   Future<void> newVersion() async {
     final v = await thread?.newVersion();
     if (v != null) await loadOutputs(open: v.id);
+  }
+}
+
+/// The open notebook's saved prompts.
+extension PromptActions on AppState {
+  /// Reloads the open notebook's saved prompts; an older core without them shows none.
+  Future<void> loadPrompts() async {
+    final nb = selected;
+    if (nb == null) return;
+    try {
+      final list = await core.listPrompts(nb.id);
+      if (selected?.id == nb.id) prompts = list;
+    } on Object {
+      prompts = const [];
+    }
+    _changed();
+  }
+
+  /// Saves [text] as prompt [name]; a refusal becomes a notice.
+  Future<bool> savePromptAs(String name, String text) => _promptAction(() async {
+    final nb = selected;
+    if (nb != null) await core.savePrompt(nb.id, SavedPrompt(name: name, text: text));
+  });
+
+  Future<bool> deletePrompt(String name) => _promptAction(() async {
+    final nb = selected;
+    if (nb != null) await core.deletePrompt(nb.id, name);
+  });
+
+  Future<bool> _promptAction(Future<void> Function() action) async {
+    try {
+      await action();
+    } on CoreException catch (e) {
+      _notice(e.message);
+      return false;
+    }
+    await loadPrompts();
+    return true;
   }
 }

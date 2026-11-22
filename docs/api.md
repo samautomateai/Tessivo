@@ -17,6 +17,9 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |
 | `PATCH /v1/notebooks/{id}` | `{name?, archived?}` | `Notebook` (archived notebooks keep their schedules but do not run them) |
 | `DELETE /v1/notebooks/{id}` | — | `204`; `409` while a run is executing, paused for an approval or interrupted |
+| `GET /v1/notebooks/{id}/prompts` | — | `{"prompts": [Prompt]}` sorted by name |
+| `PUT /v1/notebooks/{id}/prompts/{name}` | `{text, settings?}` | `Prompt` (name: letters, digits, `.`, `_`, `-`; text 1 B–16 KiB) |
+| `DELETE /v1/notebooks/{id}/prompts/{name}` | — | `204`; `409` while a schedule runs it |
 | `POST /v1/notebooks/{id}/context` | `{path}` (absolute), or `{server, uri, label?}` for an MCP resource | `Notebook` |
 | `PATCH /v1/notebooks/{id}/context/{contextId}` | `{enabled}` | `Notebook` |
 | `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?, toolRules?}` | SSE stream |
@@ -76,6 +79,8 @@ anything that looks like a credential is rejected.
 `Output`: `{id, runId, workType, title, createdAt, notebookId, notebookName, version, parentId?, fromThread?,
 data?, markdown?}`. `version` is 1 for an original output and one more for each revision; `parentId` is the
 output a version revises and `fromThread` the thread reply it was made from.
+
+`Prompt`: `{name, text, settings: {model?, temperature?, max_output_tokens?, thinking_effort?}}`; a run or schedule given `promptName` uses its text and settings (layered between the notebook and the run).
 
 `Schedule`: `{id, cron, prompt, promptName, vars, overrides, missed: "skip"|"run_once", enabled,
 createdAt, notebookId, nextRun, history: [{scheduledFor, startedAt, durationMs, status, runId,

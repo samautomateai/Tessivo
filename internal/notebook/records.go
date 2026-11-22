@@ -126,10 +126,13 @@ func (n *Notebook) GetOutput(id string) (Output, string, error) {
 	return o, string(md), nil
 }
 
-// Check validates the prompt name and settings.
+// Check validates the prompt name, text and settings.
 func (p Prompt) Check() error {
 	if !safeName.MatchString(p.Name) {
 		return fmt.Errorf("prompt name %q: use letters, digits, '.', '_' or '-'", p.Name)
+	}
+	if strings.TrimSpace(p.Text) == "" || len(p.Text) > MaxPromptText {
+		return fmt.Errorf("prompt %s: text must be 1 to %d bytes", p.Name, MaxPromptText)
 	}
 	if err := p.Settings.Validate(); err != nil {
 		return fmt.Errorf("prompt %s settings: %w", p.Name, err)
@@ -153,6 +156,17 @@ func (n *Notebook) LoadPrompt(name string) (Prompt, error) {
 	var p Prompt
 	err := readJSON(filepath.Join(n.Dir, PromptsDir, name+".json"), &p)
 	return p, err
+}
+
+// DeletePrompt removes a saved prompt.
+func (n *Notebook) DeletePrompt(name string) error {
+	if !safeName.MatchString(name) {
+		return fmt.Errorf("prompt name %q is not valid", name)
+	}
+	if err := os.Remove(filepath.Join(n.Dir, PromptsDir, name+".json")); err != nil {
+		return fmt.Errorf("delete prompt %s: %w", name, err)
+	}
+	return nil
 }
 
 // ListPrompts returns saved prompt names, sorted.

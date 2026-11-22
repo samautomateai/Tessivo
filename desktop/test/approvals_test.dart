@@ -42,8 +42,13 @@ class RecordingCore extends DemoCoreClient {
   }
 
   @override
-  Stream<RunEvent> startRun({required String notebookId, required String prompt, required Map<String, String> vars}) {
-    if (!pauseRuns) return super.startRun(notebookId: notebookId, prompt: prompt, vars: vars);
+  Stream<RunEvent> startRun({
+    required String notebookId,
+    required String prompt,
+    required Map<String, String> vars,
+    String? promptName,
+  }) {
+    if (!pauseRuns) return super.startRun(notebookId: notebookId, prompt: prompt, vars: vars, promptName: promptName);
     return Stream.fromIterable(const [
       RunToolCall(tool: 'read_file', args: '{"path":"a.go"}'),
       RunToolResult(tool: 'read_file', result: 'package a'),

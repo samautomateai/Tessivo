@@ -36,6 +36,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Extractors: DOCX (paragraphs, tables), XLSX (all sheets, computed stats), PPTX (slides + notes); zip-bomb, entry, size and XML-token limits; fuzzed | SRC-1 | ☑ |
 | OS keychain secrets, built in-house: `tess secret set/delete/check`; env then keychain lookup | SET-1 | ☑ |
 | Rename, archive (schedules paused) and delete notebooks; delete refused while a run is active, paused or interrupted (`tess notebook`, `PATCH|DELETE /v1/notebooks/{id}`, desktop notebook menu and Archived group) | NB-1 | ☑ |
+| Saved prompts per notebook with their own model settings: list, save, delete (refused while a schedule runs one), run by name (`tess prompt`, `/v1/notebooks/{id}/prompts`, desktop Prompts menu in the run bar) | PR-1, PR-2 | ☑ |
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |
 | Agent mode phase 1 (ADR 0005): our own loop with LLM tool calling, rooted read-only code tools, allow/ask/block rules, durable pause and resume across restarts, runs as jobs, `tess run` approve, deny, resume, cancel and pending, approval endpoints and events, desktop approvals | WT/E11 | ☑ |
 | Agent mode phase 2: commands from a per-notebook allow-list (no shell) | WT/E11 | ☐ |
@@ -77,7 +78,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 
 ## CLI reference (current)
 
-`tess new`, `tess notebook rename|archive|unarchive|delete --yes`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
+`tess new`, `tess notebook rename|archive|unarchive|delete --yes`, `tess prompt list|show|save|rm`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
 `--prompt-name`, `--var`, `--model`, `--thinking`, `--mode agent`, `--tool name=rule`, `--json`, `--out`, `--no-save`),
 `tess run pending|approve|deny|resume|cancel` (agent approvals; `--notebook DIR`, `--remember run|notebook`), `tess outputs`,
 `tess output ask|suggest|suggestions|apply|dismiss|refine <notebook> <output-id>` (output threads; `refine --from ID`),

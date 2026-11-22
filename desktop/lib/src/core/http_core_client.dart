@@ -180,15 +180,30 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
+  Future<List<SavedPrompt>> listPrompts(String notebookId) async =>
+      jsonList((await _json('GET', '${_nb(notebookId)}/prompts'))['prompts']).map(SavedPrompt.fromJson).toList();
+
+  @override
+  Future<SavedPrompt> savePrompt(String notebookId, SavedPrompt prompt) async => SavedPrompt.fromJson(
+    await _json('PUT', '${_nb(notebookId)}/prompts/${Uri.encodeComponent(prompt.name)}', body: prompt.toBody()),
+  );
+
+  @override
+  Future<void> deletePrompt(String notebookId, String name) async {
+    await _json('DELETE', '${_nb(notebookId)}/prompts/${Uri.encodeComponent(name)}');
+  }
+
+  @override
   Stream<RunEvent> startRun({
     required String notebookId,
     required String prompt,
     required Map<String, String> vars,
+    String? promptName,
   }) async* {
     final resp = await _send(
       'POST',
       '/v1/notebooks/${Uri.encodeComponent(notebookId)}/runs',
-      body: {'prompt': prompt, 'vars': vars},
+      body: {'prompt': prompt, 'vars': vars, 'promptName': ?promptName},
     );
     if (resp.statusCode >= 400) {
       final text = await _readLimited(resp);
