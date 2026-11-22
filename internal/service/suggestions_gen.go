@@ -125,7 +125,7 @@ func parseSuggestReply(content string) ([]llm.ToolCall, error) {
 		if item.Kind == notebook.SuggestPrompt {
 			name = toolSuggestPrompt
 		}
-		args, err := json.Marshal(map[string]string{"text": item.Text, "reason": item.Reason})
+		args, err := json.Marshal(map[string]string{docText: item.Text, "reason": item.Reason})
 		if err != nil {
 			return nil, errors.Join(llm.ErrInvalidOutput, err)
 		}

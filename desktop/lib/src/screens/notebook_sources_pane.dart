@@ -5,6 +5,7 @@ import '../core/models.dart';
 import '../widgets/memory_card.dart';
 import '../widgets/text_prompt_dialog.dart';
 import '../widgets/work_type_badge.dart';
+import 'notebook_mcp_card.dart';
 
 /// Left pane of a notebook: its name, sources and pinned memory.
 class NotebookSourcesPane extends StatelessWidget {
@@ -29,6 +30,8 @@ class NotebookSourcesPane extends StatelessWidget {
           ContextCard(notebook: notebook, onToggle: state.toggleContext, onAdd: state.addContext),
           const SizedBox(height: 16),
           MemoryCard(notebook: notebook, onChanged: state.setMemory),
+          const SizedBox(height: 16),
+          NotebookMcpCard(state: state, notebook: notebook),
         ],
       ),
     );
@@ -107,7 +110,9 @@ class ContextCard extends StatelessWidget {
                 value: c.enabled,
                 onChanged: (v) => onToggle(c.id, v ?? false),
                 title: Text(c.label),
-                subtitle: Text('${c.kind} · ${c.estimatedTokens ~/ 1000}k tok'),
+                subtitle: Text(
+                  c.isMcp ? '${c.kind} · read at run time' : '${c.kind} · ${c.estimatedTokens ~/ 1000}k tok',
+                ),
                 controlAffinity: ListTileControlAffinity.leading,
               ),
           ],

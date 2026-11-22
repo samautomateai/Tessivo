@@ -141,7 +141,7 @@ func (s *Service) SendThread(ctx context.Context, notebookID, outputID string, i
 		return ThreadReply{}, chatErr(err)
 	}
 	defer release()
-	sess, user, req, alias, err := s.prepareThread(st, ref, in)
+	sess, user, req, alias, err := s.prepareThread(ctx, st, ref, in)
 	if err != nil {
 		return ThreadReply{}, err
 	}
@@ -158,7 +158,7 @@ func (s *Service) SendThread(ctx context.Context, notebookID, outputID string, i
 }
 
 // prepareThread stores the user's message and builds the first request.
-func (s *Service) prepareThread(st *chat.Store, ref outputRef, in ChatSend,
+func (s *Service) prepareThread(ctx context.Context, st *chat.Store, ref outputRef, in ChatSend,
 ) (chat.Session, chat.Message, llm.Request, config.Alias, error) {
 	fail := func(err error) (chat.Session, chat.Message, llm.Request, config.Alias, error) {
 		return chat.Session{}, chat.Message{}, llm.Request{}, config.Alias{}, err
@@ -175,11 +175,11 @@ func (s *Service) prepareThread(st *chat.Store, ref outputRef, in ChatSend,
 	if err != nil {
 		return fail(&InvalidError{err.Error()})
 	}
-	atts, extra, err := s.resolveAttachments(in.Attachments)
+	atts, extra, err := s.resolveAttachments(ctx, in.Attachments)
 	if err != nil {
 		return fail(err)
 	}
-	docs, err := threadDocs(ref)
+	docs, err := s.threadDocs(ctx, ref)
 	if err != nil {
 		return fail(err)
 	}
@@ -194,7 +194,7 @@ func (s *Service) prepareThread(st *chat.Store, ref outputRef, in ChatSend,
 	if err != nil {
 		return fail(chatErr(err))
 	}
-	docs = append(append(docs, extra...), s.sessionDocs(sess, user.ID)...)
+	docs = append(append(docs, extra...), s.sessionDocs(ctx, sess, user.ID)...)
 	req := llm.Request{
 		Model: settings.Model, MaxTokens: settings.MaxOutputTokens, Temperature: settings.Temperature,
 		ReasoningEffort: settings.ThinkingEffort, Tools: suggestionTools,
@@ -216,16 +216,16 @@ func (s *Service) threadSettings(nb *notebook.Notebook, sess chat.Session) confi
 
 // threadDocs are the output, the prompt that produced it and the notebook's
 // enabled context, in that order (the budget trims larger sources first).
-func threadDocs(ref outputRef) ([]extract.Document, error) {
+func (s *Service) threadDocs(ctx context.Context, ref outputRef) ([]extract.Document, error) {
 	text := ref.md
 	if text == "" {
 		text = string(ref.out.Data)
 	}
 	docs := []extract.Document{
 		{Source: "output", Kind: "markdown", Text: text},
-		{Source: "prompt", Kind: "text", Text: ref.run.Prompt},
+		{Source: "prompt", Kind: docText, Text: ref.run.Prompt},
 	}
-	nbDocs, err := notebookDocs(ref.nb)
+	nbDocs, err := s.notebookDocs(ctx, ref.nb)
 	if err != nil {
 		return nil, err
 	}

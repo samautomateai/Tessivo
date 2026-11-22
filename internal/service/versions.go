@@ -69,7 +69,7 @@ func (s *Service) NewVersion(ctx context.Context, notebookID, outputID, fromMess
 	if err != nil {
 		return RunOutcome{}, err
 	}
-	req, spec, err := s.versionSpec(ref, sess, msgID)
+	req, spec, err := s.versionSpec(ctx, ref, sess, msgID)
 	if err != nil {
 		return RunOutcome{}, err
 	}
@@ -104,7 +104,8 @@ func revisionPoint(sess chat.Session, id string) (string, error) {
 
 // versionSpec builds the revision run: the prompt the output's run would use
 // today, the run's vars, forced to the pipeline.
-func (s *Service) versionSpec(ref outputRef, sess chat.Session, msgID string) (RunRequest, executor.Spec, error) {
+func (s *Service) versionSpec(ctx context.Context, ref outputRef, sess chat.Session, msgID string,
+) (RunRequest, executor.Spec, error) {
 	prompt := ref.run.Prompt
 	tg, err := s.currentTarget(ref)
 	if err == nil && tg.Current != "" {
@@ -115,7 +116,7 @@ func (s *Service) versionSpec(ref outputRef, sess chat.Session, msgID string) (R
 		PromptName: tg.PromptName, ScheduleID: ref.run.ScheduleID,
 	}
 	// A saved prompt brings its own settings layer, as in a fresh run of it.
-	spec, err := s.buildSpec(RunRequest{
+	spec, err := s.buildSpec(ctx, RunRequest{
 		Notebook: ref.nb, Prompt: prompt, PromptName: tg.PromptName, Vars: ref.run.Vars,
 	})
 	if err != nil {

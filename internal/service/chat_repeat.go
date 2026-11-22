@@ -99,7 +99,7 @@ func (s *Service) contextPaths(a chat.Attachment, labels map[string]string) ([]s
 		}
 		var out []string
 		for _, c := range nb.Manifest.Context {
-			if c.Enabled {
+			if c.Enabled && !c.IsMCP() { // MCP resources are not files to copy
 				p := nb.ContextPath(c)
 				labels[p] = c.Label
 				out = append(out, p)

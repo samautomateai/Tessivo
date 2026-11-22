@@ -22,3 +22,5 @@ app.*.map.json
 *.ipr
 *.iws
 .idea/
+# Widget Preview related
+.widget_preview/

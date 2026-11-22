@@ -36,6 +36,9 @@ class ContextItem {
   final bool enabled;
   final int estimatedTokens;
 
+  /// True for a resource read from an MCP server at run time.
+  bool get isMcp => kind.startsWith('MCP');
+
   ContextItem copyWith({bool? enabled}) =>
       ContextItem(id: id, label: label, kind: kind, enabled: enabled ?? this.enabled, estimatedTokens: estimatedTokens);
 }
@@ -48,6 +51,7 @@ class Notebook {
     required this.context,
     this.schedule,
     this.memory = const [],
+    this.mcpServers = const [],
   });
 
   final String id;
@@ -56,18 +60,22 @@ class Notebook {
   final List<ContextItem> context;
   final String? schedule;
 
+  /// MCP servers whose tools this notebook's agent runs may use.
+  final List<String> mcpServers;
+
   /// Short facts the notebook keeps across runs (≤ 50 items, ≤ 1000 chars each).
   final List<String> memory;
 
   int get enabledTokens => context.where((c) => c.enabled).fold(0, (sum, c) => sum + c.estimatedTokens);
 
-  Notebook copyWith({List<ContextItem>? context, List<String>? memory}) => Notebook(
+  Notebook copyWith({List<ContextItem>? context, List<String>? memory, List<String>? mcpServers}) => Notebook(
     id: id,
     name: name,
     workType: workType,
     context: context ?? this.context,
     schedule: schedule,
     memory: memory ?? this.memory,
+    mcpServers: mcpServers ?? this.mcpServers,
   );
 }
 

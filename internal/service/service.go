@@ -51,6 +51,7 @@ type Service struct {
 	Actor         string // cli, desktop, scheduler
 	Templates     template.Library
 	ChatDir       string // chat sessions and memory; default: "chat" next to Workspace
+	ConfigPath    string // the config file MCP server changes are written to; "" keeps them in memory
 
 	// NotebookDirs are notebook folders outside Workspace to search for agent
 	// runs (the CLI passes --notebook).
@@ -60,6 +61,7 @@ type Service struct {
 	// Now is the clock; nil means time.Now.
 	Now func() time.Time
 
+	cfgMu    sync.RWMutex // guards Config.MCP, which the API can change
 	jobsOnce sync.Once
 	jobs     *jobTable
 }
@@ -98,7 +100,7 @@ type RunOutcome struct {
 // Run executes a work type against the configured model, audits it and, if
 // requested, saves the run record and output in the notebook.
 func (s *Service) Run(ctx context.Context, req RunRequest, onEvent func(executor.Event)) (RunOutcome, error) {
-	spec, err := s.buildSpec(req)
+	spec, err := s.buildSpec(ctx, req)
 	if err != nil {
 		return RunOutcome{}, err
 	}
@@ -160,7 +162,7 @@ func (s *Service) now() time.Time {
 	return time.Now()
 }
 
-func (s *Service) buildSpec(req RunRequest) (executor.Spec, error) {
+func (s *Service) buildSpec(ctx context.Context, req RunRequest) (executor.Spec, error) {
 	wtID, prompt := req.WorkType, req.Prompt
 	layers := []config.Layer{{Name: layerApp, Settings: s.Config.Defaults}}
 	if nb := req.Notebook; nb != nil {
@@ -189,7 +191,7 @@ func (s *Service) buildSpec(req RunRequest) (executor.Spec, error) {
 		return executor.Spec{}, &InvalidError{err.Error()}
 	}
 	layers = append(layers, config.Layer{Name: "run", Settings: req.Overrides})
-	docs, err := notebookDocs(req.Notebook)
+	docs, err := s.notebookDocs(ctx, req.Notebook)
 	if err != nil {
 		return executor.Spec{}, err
 	}
@@ -204,24 +206,6 @@ func (s *Service) buildSpec(req RunRequest) (executor.Spec, error) {
 		return executor.Spec{}, invalidf("no model set; pass a model or set defaults.model in the config")
 	}
 	return spec, nil
-}
-
-func notebookDocs(nb *notebook.Notebook) ([]extract.Document, error) {
-	if nb == nil {
-		return nil, nil
-	}
-	var docs []extract.Document
-	for _, c := range nb.Manifest.Context {
-		if !c.Enabled {
-			continue
-		}
-		d, err := extract.Path(nb.ContextPath(c))
-		if err != nil {
-			return nil, err
-		}
-		docs = append(docs, d...)
-	}
-	return docs, nil
 }
 
 // RequiredOrder is the work type's schema property order, for rendering.

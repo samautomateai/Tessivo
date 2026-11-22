@@ -23,16 +23,17 @@ var idPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 
 // NotebookInfo is a notebook as listed to clients.
 type NotebookInfo struct {
-	ID       string             `json:"id"`
-	Name     string             `json:"name"`
-	WorkType string             `json:"workType"`
-	Context  []ContextInfo      `json:"context"`
-	Settings config.RunSettings `json:"settings"`
-	Created  string             `json:"createdAt"`
-	Outputs  int                `json:"outputs"`
-	Memory   []string           `json:"memory"`
-	Template string             `json:"template,omitempty"`
-	nb       *notebook.Notebook
+	ID         string             `json:"id"`
+	Name       string             `json:"name"`
+	WorkType   string             `json:"workType"`
+	Context    []ContextInfo      `json:"context"`
+	Settings   config.RunSettings `json:"settings"`
+	Created    string             `json:"createdAt"`
+	Outputs    int                `json:"outputs"`
+	Memory     []string           `json:"memory"`
+	Template   string             `json:"template,omitempty"`
+	MCPServers []string           `json:"mcpServers"` // servers agent runs may use
+	nb         *notebook.Notebook
 }
 
 // ContextInfo adds extraction stats to a context item.
@@ -146,10 +147,11 @@ func describe(id string, nb *notebook.Notebook, stats bool) NotebookInfo {
 		ID: id, Name: nb.Manifest.Name, WorkType: nb.Manifest.WorkType, Settings: nb.Manifest.Settings,
 		Created: nb.Manifest.CreatedAt, Context: []ContextInfo{}, nb: nb,
 		Memory: append([]string{}, nb.Manifest.Memory...), Template: nb.Manifest.Template,
+		MCPServers: append([]string{}, nb.Manifest.Agent.MCPServers...),
 	}
 	for _, c := range nb.Manifest.Context {
 		ci := ContextInfo{ContextItem: c}
-		if !stats {
+		if !stats || c.IsMCP() { // MCP resources are read at run time
 			info.Context = append(info.Context, ci)
 			continue
 		}

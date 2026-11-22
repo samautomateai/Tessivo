@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/core_client.dart';
 import '../core/models.dart';
 import '../theme.dart';
+import 'mcp_settings.dart';
 
 /// Settings as the core sees them: providers, aliases with fallback chains,
 /// run defaults and token limits, plus each provider's live model list.
@@ -52,6 +53,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text('Providers', style: text.titleMedium),
             const SizedBox(height: 8),
             for (final p in s.providers) _providerCard(text, p),
+            const SizedBox(height: 24),
+            McpServersSection(core: widget.core),
           ],
         );
       },

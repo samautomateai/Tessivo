@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
+	"unicode/utf8"
 
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/worktype"
@@ -44,7 +45,21 @@ type ContextItem struct {
 	InPlace bool   `json:"inPlace"` // code bases and folders are referenced, not copied
 	Enabled bool   `json:"enabled"`
 	AddedAt string `json:"addedAt"`
+	// Kind is "" for a file or folder, or KindMCPResource for a resource read from
+	// an MCP server on every run (Server and URI; Path is empty).
+	Kind   string `json:"kind,omitempty"`
+	Server string `json:"server,omitempty"`
+	URI    string `json:"uri,omitempty"`
 }
+
+// KindMCPResource marks a context item read from an MCP server.
+const KindMCPResource = "mcp-resource"
+
+// MaxResourceURI bounds an MCP resource URI.
+const MaxResourceURI = 2048
+
+// IsMCP reports whether the item is an MCP resource.
+func (c ContextItem) IsMCP() bool { return c.Kind == KindMCPResource }
 
 // Manifest is the notebook.json document.
 type Manifest struct {
@@ -62,6 +77,8 @@ type Manifest struct {
 // AgentSettings are the notebook's agent-mode settings.
 type AgentSettings struct {
 	Tools map[string]string `json:"tools,omitempty"` // tool name or "prefix*" → allow, ask or block
+	// MCPServers names the configured MCP servers whose tools agent runs may use.
+	MCPServers []string `json:"mcpServers,omitempty"`
 }
 
 // Notebook is an opened notebook folder.
@@ -162,6 +179,9 @@ func (n *Notebook) SetEnabled(idOrLabel string, enabled bool) error {
 
 // ContextPath returns the absolute path of a context item.
 func (n *Notebook) ContextPath(c ContextItem) string {
+	if c.IsMCP() {
+		return "" // read from its server, never from disk
+	}
 	if c.InPlace || filepath.IsAbs(c.Path) {
 		return c.Path
 	}
@@ -223,4 +243,20 @@ func writeJSON(path string, v any) error {
 		return errors.Join(fmt.Errorf("replace %s: %w", filepath.Base(path), err), os.Remove(tmp))
 	}
 	return nil
+}
+
+// AddMCPResource attaches a resource of an MCP server; it is read on every run.
+// The label defaults to the URI.
+func (n *Notebook) AddMCPResource(server, uri, label string) (ContextItem, error) {
+	if server == "" || uri == "" || len(uri) > MaxResourceURI || !utf8.ValidString(uri) {
+		return ContextItem{}, fmt.Errorf("mcp resource: want a server and a URI of at most %d bytes", MaxResourceURI)
+	}
+	if label == "" {
+		label = uri
+	}
+	item := ContextItem{
+		ID: NewID(), Label: label, Enabled: true, AddedAt: now(), Kind: KindMCPResource, Server: server, URI: uri,
+	}
+	n.Manifest.Context = append(n.Manifest.Context, item)
+	return item, n.Save()
 }

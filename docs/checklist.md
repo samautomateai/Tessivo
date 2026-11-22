@@ -37,7 +37,9 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |
 | Agent mode phase 1 (ADR 0005): our own loop with LLM tool calling, rooted read-only code tools, allow/ask/block rules, durable pause and resume across restarts, runs as jobs, `tess run` approve, deny, resume, cancel and pending, approval endpoints and events, desktop approvals | WT/E11 | ☑ |
 | Agent mode phase 2: commands from a per-notebook allow-list (no shell) | WT/E11 | ☐ |
-| MCP client: stdio and Streamable HTTP servers in settings, notebook attachment (phases 3–4) | MCP-1, MCP-2, MCP-3 | ☐ |
+| MCP client: stdio and Streamable HTTP servers in settings (`tess mcp`, `/v1/mcp/servers`, desktop Settings), test lists tools, resources and prompts | MCP-1 | ☑ |
+| MCP servers attached to notebooks; their tools in agent runs as `mcp__<server>__<tool>` (ask by default) | MCP-2 | ☑ |
+| MCP resources as notebook sources, read on every run | MCP-3 | ☑ |
 | Code changes via ACP delegation to bundled nca in a worktree or snapshot; change sets and apply (phase 5) | WT/E11 | ☐ |
 
 ## M2: scheduling

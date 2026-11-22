@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/samautomateai/tessivo/internal/extract"
@@ -56,12 +57,15 @@ func contextAdd(nb *notebook.Notebook, paths []string, env Env) error {
 		return usagef("context add: want at least one path")
 	}
 	for _, p := range paths {
-		item, err := nb.AddContext(p)
+		item, err := addContextItem(nb, p, env)
 		if err != nil {
 			return err
 		}
 		how := "copied"
-		if item.InPlace {
+		switch {
+		case item.IsMCP():
+			how = "MCP resource, read at run time"
+		case item.InPlace:
 			how = "referenced in place"
 		}
 		if _, err := fmt.Fprintf(env.Stdout, "added %s (%s) id=%s\n", item.Label, how, item.ID); err != nil {
@@ -106,4 +110,29 @@ func cmdOutputs(args []string, env Env) error {
 		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", o.ID, o.CreatedAt, o.WorkType, o.Title)
 	}
 	return wrapWrite(tw.Flush())
+}
+
+// addContextItem adds a file or folder, or an MCP resource written as
+// mcp://<server>/<uri> (the server must be configured).
+func addContextItem(nb *notebook.Notebook, p string, env Env) (notebook.ContextItem, error) {
+	rest, ok := strings.CutPrefix(p, "mcp://")
+	if !ok {
+		return nb.AddContext(p)
+	}
+	server, uri, _ := strings.Cut(rest, "/")
+	if server == "" || uri == "" {
+		return notebook.ContextItem{}, usagef("context add: want mcp://<server>/<uri>")
+	}
+	f, err := loadConfig(env)
+	if err != nil {
+		return notebook.ContextItem{}, err
+	}
+	if _, ok := f.MCP.Find(server); !ok {
+		return notebook.ContextItem{}, usagef("context add: mcp server %q is not configured (tess mcp add)", server)
+	}
+	item, err := nb.AddMCPResource(server, uri, "")
+	if err != nil {
+		return notebook.ContextItem{}, usageError{err.Error()}
+	}
+	return item, nil
 }

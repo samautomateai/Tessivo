@@ -78,6 +78,7 @@ type File struct {
 	Defaults     RunSettings `json:"defaults"`
 	Limits       Limits      `json:"limits"`
 	Agent        AgentConfig `json:"agent,omitzero"`
+	MCP          MCPConfig   `json:"mcp,omitzero"`
 }
 
 // Default returns a starter config pointing at a local LiteLLM proxy.
@@ -183,19 +184,19 @@ func (f File) Validate() error {
 	if err := f.Defaults.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("defaults: %w", err))
 	}
-	errs = append(errs, f.Agent.Validate())
+	errs = append(errs, f.Agent.Validate(), f.MCP.Check())
 	return errors.Join(errs...)
 }
 
 func validateBaseURL(p Provider) error {
 	u, err := url.Parse(p.BaseURL)
-	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+	if err != nil || u.Host == "" || (u.Scheme != schemeHTTP && u.Scheme != schemeHTTPS) {
 		return fmt.Errorf("provider %q: base_url must be an http:// or https:// URL", p.Name)
 	}
 	if u.User != nil {
 		return fmt.Errorf("provider %q: base_url must not embed credentials; use api_key_ref", p.Name)
 	}
-	if u.Scheme == "http" && !p.AllowInsecureHTTP && !isLoopback(u.Hostname()) {
+	if u.Scheme == schemeHTTP && !p.AllowInsecureHTTP && !isLoopback(u.Hostname()) {
 		return fmt.Errorf("provider %q: plain http to %s would send the API key unencrypted; "+
 			"use https or set allow_insecure_http", p.Name, u.Hostname())
 	}

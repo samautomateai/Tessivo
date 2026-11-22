@@ -155,11 +155,12 @@ func fileExists(p string) bool {
 func (s *Service) drive(ctx context.Context, nb *notebook.Notebook, st *storedRun, rec *runAudit,
 	spec executor.Spec, model executor.Model, detached bool, onEvent func(executor.Event), start bool,
 ) (RunOutcome, error) {
-	a, err := s.buildAgent(nb, st, model)
+	a, closeTools, err := s.buildAgent(ctx, nb, st, model)
 	if err != nil {
 		_ = rec.log.Close()
 		return RunOutcome{}, err
 	}
+	defer closeTools() // MCP servers stop when the run ends or pauses; resume reconnects
 	ctx, emit, done := s.jobTable().track(ctx, st.Check.RunID, detached, onEvent)
 	defer done()
 	var res executor.Result
@@ -187,10 +188,13 @@ func (s *Service) interrupt(nb *notebook.Notebook, st *storedRun, rec *runAudit,
 	return RunOutcome{RunID: st.Check.RunID, Spec: spec}, errors.Join(runErr, err)
 }
 
-func (s *Service) buildAgent(nb *notebook.Notebook, st *storedRun, model executor.Model) (*agent.Agent, error) {
+// buildAgent assembles the agent: code tools over the run's folders and the
+// tools of the notebook's MCP servers. closeTools stops those servers.
+func (s *Service) buildAgent(ctx context.Context, nb *notebook.Notebook, st *storedRun, model executor.Model,
+) (a *agent.Agent, closeTools func(), err error) {
 	pol := agent.Policy{Run: st.ToolRules, Notebook: nb.Manifest.Agent.Tools, App: s.Config.Agent.Tools}
 	if err := pol.Check(); err != nil {
-		return nil, &InvalidError{err.Error()}
+		return nil, nil, &InvalidError{err.Error()}
 	}
 	var tools []agenttools.Tool
 	var existing []string // a folder removed while the run was paused is skipped, not fatal
@@ -202,10 +206,15 @@ func (s *Service) buildAgent(nb *notebook.Notebook, st *storedRun, model executo
 	if len(existing) > 0 {
 		roots, err := agenttools.NewRoots(existing...)
 		if err != nil {
-			return nil, fmt.Errorf("agent folders: %w", err)
+			return nil, nil, fmt.Errorf("agent folders: %w", err)
 		}
 		tools = agenttools.CodeTools(roots)
 	}
+	remote, closeTools, err := s.mcpTools(ctx, nb)
+	if err != nil {
+		return nil, nil, err
+	}
+	tools = append(tools, remote...)
 	lim := s.Config.Agent.WithDefaults()
 	return &agent.Agent{
 		Model: model, Tools: agenttools.NewRegistry(tools...), Policy: pol, Now: s.now,
@@ -214,7 +223,7 @@ func (s *Service) buildAgent(nb *notebook.Notebook, st *storedRun, model executo
 		},
 		Save:   func(*agent.Checkpoint) error { return nb.SaveCheckpoint(st.Check.RunID, st) },
 		Redact: s.redactor(),
-	}, nil
+	}, closeTools, nil
 }
 
 // redactor removes the configured provider keys and credential-shaped text.
