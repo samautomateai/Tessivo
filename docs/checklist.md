@@ -42,6 +42,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Desktop settings: edit run defaults and token limits, add providers, set API keys (to the OS keychain through the core; never shown), edit alias fallback chains; a setup banner until a provider, a default model and its key are set (`PUT /v1/settings`, `/v1/secrets/{ref}`) | SET-1, SET-3, SET-4 | ☑ |
 | Web pages (fetched on every run) and pasted text (saved as Markdown) as notebook sources (`tess context add <nb> https://…` or `--text`, the context API, desktop Sources menu) | SRC-2 | ☑ |
 | Export an output as Markdown or Word (.docx, built with the standard library; fuzzed) (`tess output export`, `…/outputs/{id}/export`, desktop Export menu). PDF export is not built yet | REP-2 | ◐ (PDF ☐) |
+| Folder format versions: `formatVersion` in `notebook.json` and `research.json`, step-by-step upgrades (`internal/format`), newer folders refused instead of overwritten | NFR Reliability | ☑ |
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |
 | Agent mode phase 1 (ADR 0005): our own loop with LLM tool calling, rooted read-only code tools, allow/ask/block rules, durable pause and resume across restarts, runs as jobs, `tess run` approve, deny, resume, cancel and pending, approval endpoints and events, desktop approvals | WT/E11 | ☑ |
 | Agent mode phase 2: commands from a per-notebook allow-list (no shell) | WT/E11 | ☐ |

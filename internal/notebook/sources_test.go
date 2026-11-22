@@ -50,3 +50,23 @@ func TestURLItemsHaveNoPathOnDisk(t *testing.T) {
 		t.Fatalf("a web page resolved to %q (the notebook folder would become an agent root)", p)
 	}
 }
+
+func TestFormatVersion(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "nb")
+	nb, _ := Create(dir, "", "analyze")
+	b, _ := os.ReadFile(filepath.Join(dir, ManifestFile))
+	if !strings.Contains(string(b), `"formatVersion": 1`) {
+		t.Fatalf("new notebooks record their format: %s", b)
+	}
+	legacy := strings.Replace(string(b), `"formatVersion": 1,`, "", 1)
+	_ = os.WriteFile(filepath.Join(dir, ManifestFile), []byte(legacy), 0o600)
+	if got, err := Open(dir); err != nil || got.Manifest.FormatVersion != FormatVersion {
+		t.Fatalf("a notebook from before versions must open: %v", err)
+	}
+	newer := strings.Replace(string(b), `"formatVersion": 1`, `"formatVersion": 99`, 1)
+	_ = os.WriteFile(filepath.Join(dir, ManifestFile), []byte(newer), 0o600)
+	if _, err := Open(dir); err == nil || !strings.Contains(err.Error(), "newer version of Tessivo") {
+		t.Fatalf("a newer notebook must be refused: %v", err)
+	}
+	_ = nb
+}

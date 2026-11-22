@@ -53,7 +53,7 @@ attachment refs, model, outcome), never the text itself.
 
 ```
 <notebook>/
-  notebook.json      manifest: id, name, work type, settings overrides, context items
+  notebook.json      manifest: formatVersion, id, name, work type, settings overrides, context items
   prompts/           one JSON file per prompt
   context/           copied files (code bases and folders are referenced in place)
   runs/<run-id>.json run record: inputs, effective settings, model used, tokens, timing, result
@@ -72,7 +72,7 @@ listing and their runs never see them.
 
 ```
 <research>/
-  research.json        manifest: id, name, description, settings, sources (kind, path or server+URI, level)
+  research.json        manifest: formatVersion, id, name, description, settings, sources (kind, path or server+URI, level)
   sources/             copied files (folders are referenced in place)
   summaries/<sid>.json summary text, fingerprint of what was read, model, status (ready or failed) and error
   notes/<nid>.json     note: title, text, origin (human or ai), include in context
@@ -90,6 +90,8 @@ every read cannot loop), and a source that cannot be read shows as `unreadable` 
 totals use each source's cached size and never re-read it. A source too large for 16 condensing calls is summarized
 from evenly spaced samples, and its summary says so. A file source whose manifest path is not its own copy under
 `sources/` is treated as unreadable and is never read or deleted.
+
+Both manifests record `formatVersion` (1 today; `internal/format`). A folder without one is from before versions were recorded and opens as 1; an older one is upgraded step by step when opened and saved with the current version; one from a newer Tessivo is refused ("update Tessivo") instead of being read and overwritten. A refused notebook is left out of lists.
 
 SQLite (FTS, retrieval) arrives with the desktop MVP; the folder stays the source of truth so
 notebooks remain portable and diff-able.

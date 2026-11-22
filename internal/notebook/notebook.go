@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/samautomateai/tessivo/internal/config"
+	"github.com/samautomateai/tessivo/internal/format"
 	"github.com/samautomateai/tessivo/internal/webfetch"
 	"github.com/samautomateai/tessivo/internal/worktype"
 )
@@ -66,16 +67,17 @@ func (c ContextItem) IsMCP() bool { return c.Kind == KindMCPResource }
 
 // Manifest is the notebook.json document.
 type Manifest struct {
-	ID        string             `json:"id"`
-	Name      string             `json:"name"`
-	WorkType  string             `json:"workType"`
-	CreatedAt string             `json:"createdAt"`
-	Settings  config.RunSettings `json:"settings"`
-	Context   []ContextItem      `json:"context"`
-	Memory    []string           `json:"memory,omitempty"`   // pinned facts included in every run
-	Template  string             `json:"template,omitempty"` // "id@version" this notebook came from
-	Agent     AgentSettings      `json:"agent,omitzero"`
-	Archived  bool               `json:"archived,omitempty"` // listed apart; schedules do not run
+	FormatVersion int                `json:"formatVersion"` // the folder format; see FormatVersion
+	ID            string             `json:"id"`
+	Name          string             `json:"name"`
+	WorkType      string             `json:"workType"`
+	CreatedAt     string             `json:"createdAt"`
+	Settings      config.RunSettings `json:"settings"`
+	Context       []ContextItem      `json:"context"`
+	Memory        []string           `json:"memory,omitempty"`   // pinned facts included in every run
+	Template      string             `json:"template,omitempty"` // "id@version" this notebook came from
+	Agent         AgentSettings      `json:"agent,omitzero"`
+	Archived      bool               `json:"archived,omitempty"` // listed apart; schedules do not run
 }
 
 // AgentSettings are the notebook's agent-mode settings.
@@ -131,6 +133,9 @@ func Open(dir string) (*Notebook, error) {
 	if err := readJSON(filepath.Join(dir, ManifestFile), &m); err != nil {
 		return nil, fmt.Errorf("open notebook %s: %w", dir, err)
 	}
+	if err := format.Upgrade("notebook "+dir, &m.FormatVersion, FormatVersion, upgrades, &m); err != nil {
+		return nil, err
+	}
 	if _, err := worktype.Get(m.WorkType); err != nil {
 		return nil, fmt.Errorf("open notebook %s: %w", dir, err)
 	}
@@ -142,6 +147,7 @@ func (n *Notebook) Save() error {
 	if err := n.Manifest.Settings.Validate(); err != nil {
 		return fmt.Errorf("notebook settings: %w", err)
 	}
+	n.Manifest.FormatVersion = FormatVersion
 	return writeJSON(filepath.Join(n.Dir, ManifestFile), n.Manifest)
 }
 
@@ -306,3 +312,10 @@ func (n *Notebook) AddText(label, text string) (ContextItem, error) {
 	n.Manifest.Context = append(n.Manifest.Context, item)
 	return item, n.Save()
 }
+
+// FormatVersion is the notebook folder format this Tessivo writes. Raise it
+// with an upgrade step in upgrades when the format changes incompatibly.
+const FormatVersion = 1
+
+// upgrades[i] turns a format i+1 manifest into format i+2.
+var upgrades []func(*Manifest) error

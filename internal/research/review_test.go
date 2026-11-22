@@ -63,3 +63,23 @@ func TestCitationsInsideCodeAreNotCitations(t *testing.T) {
 		t.Fatalf("relabel touched code: %q", got)
 	}
 }
+
+func TestResearchFormatVersion(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "nb")
+	if _, err := Create(dir, "nb", "Nb", ""); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, ManifestFile)
+	b, _ := os.ReadFile(path)
+	if !strings.Contains(string(b), `"formatVersion": 1`) {
+		t.Fatalf("new research notebooks record their format: %s", b)
+	}
+	_ = os.WriteFile(path, []byte(strings.Replace(string(b), `"formatVersion": 1,`, "", 1)), 0o600)
+	if nb, err := Open(dir); err != nil || nb.Manifest.FormatVersion != FormatVersion {
+		t.Fatalf("legacy: %v", err)
+	}
+	_ = os.WriteFile(path, []byte(strings.Replace(string(b), `"formatVersion": 1`, `"formatVersion": 7`, 1)), 0o600)
+	if _, err := Open(dir); err == nil || !strings.Contains(err.Error(), "newer version") {
+		t.Fatalf("newer: %v", err)
+	}
+}

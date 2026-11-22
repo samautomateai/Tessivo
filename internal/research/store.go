@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/samautomateai/tessivo/internal/config"
+	"github.com/samautomateai/tessivo/internal/format"
 )
 
 // Context levels: what a conversation sends of a source.
@@ -81,12 +82,13 @@ type Source struct {
 
 // Manifest is research.json.
 type Manifest struct {
-	ID          string             `json:"id"`
-	Name        string             `json:"name"`
-	Description string             `json:"description,omitempty"`
-	CreatedAt   string             `json:"createdAt"`
-	Settings    config.RunSettings `json:"settings"`
-	Sources     []Source           `json:"sources"`
+	FormatVersion int                `json:"formatVersion"` // the folder format; see FormatVersion
+	ID            string             `json:"id"`
+	Name          string             `json:"name"`
+	Description   string             `json:"description,omitempty"`
+	CreatedAt     string             `json:"createdAt"`
+	Settings      config.RunSettings `json:"settings"`
+	Sources       []Source           `json:"sources"`
 }
 
 // Notebook is an opened research notebook folder.
@@ -120,6 +122,10 @@ func Open(dir string) (*Notebook, error) {
 	var m Manifest
 	if err := readJSON(filepath.Join(dir, ManifestFile), 1<<20, &m); err != nil {
 		return nil, fmt.Errorf("open research notebook: %w", err)
+	}
+	name := "research notebook " + filepath.Base(dir)
+	if err := format.Upgrade(name, &m.FormatVersion, FormatVersion, upgrades, &m); err != nil {
+		return nil, err
 	}
 	for i := range m.Sources {
 		switch m.Sources[i].Level {
@@ -161,4 +167,14 @@ func List(root string) ([]*Notebook, error) {
 }
 
 // Save writes the manifest.
-func (n *Notebook) Save() error { return writeJSON(filepath.Join(n.Dir, ManifestFile), n.Manifest) }
+func (n *Notebook) Save() error {
+	n.Manifest.FormatVersion = FormatVersion
+	return writeJSON(filepath.Join(n.Dir, ManifestFile), n.Manifest)
+}
+
+// FormatVersion is the research folder format this Tessivo writes; raise it
+// with an upgrade step in upgrades when the format changes incompatibly.
+const FormatVersion = 1
+
+// upgrades[i] turns a format i+1 manifest into format i+2.
+var upgrades []func(*Manifest) error
