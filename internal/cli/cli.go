@@ -61,6 +61,8 @@ Usage:
   tess notebook rename|archive|unarchive <notebook> [name]   tess notebook delete --yes <notebook>
   tess prompt list|show|rm <notebook> [name]   tess prompt save <notebook> <name> [--model M] [text|stdin]
   tess usage                                today's token use and limits
+  tess config get|set <key> [value]          e.g. tess config set limits.max_tokens_per_day 50000
+  tess config export [file]   tess config import <file> [--force]
   tess context add <notebook> <path>...      attach files (copied) or folders (referenced)
   tess context list <notebook>
   tess context enable|disable <notebook> <id-or-label>
@@ -137,6 +139,7 @@ const (
 	subList   = "list"
 	subShow   = "show"
 	subSave   = "save"
+	subSet    = "set"
 	subRemove = "remove"
 	subDelete = "delete"
 )

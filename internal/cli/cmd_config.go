@@ -37,7 +37,7 @@ func loadConfig(env Env) (config.File, error) {
 
 func cmdConfig(args []string, env Env) error {
 	if len(args) == 0 {
-		return usagef("config: want init, show or path")
+		return usagef("config: want init, show, path, get, set, export or import")
 	}
 	p, err := configPath(env)
 	if err != nil {
@@ -69,6 +69,8 @@ func cmdConfig(args []string, env Env) error {
 		b, _ := json.MarshalIndent(f, "", "  ")
 		_, err = fmt.Fprintln(env.Stdout, string(b))
 		return wrapWrite(err)
+	case "get", subSet, "export", "import":
+		return configKeys(args, p, env)
 	default:
 		return usagef("config: unknown subcommand %q", args[0])
 	}
