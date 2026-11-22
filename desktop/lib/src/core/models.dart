@@ -356,6 +356,7 @@ class AliasInfo {
 /// Read-only view of the core's settings.
 class SettingsInfo {
   const SettingsInfo({
+    this.raw = const {},
     this.providers = const [],
     this.aliases = const [],
     this.defaultModel,
@@ -371,6 +372,9 @@ class SettingsInfo {
   final int? maxOutputTokens;
   final int? maxTokensPerRun;
   final int? maxTokensPerDay;
+
+  /// The settings JSON as the core sent it (edited through SettingsDraft).
+  final Map<String, Object?> raw;
 }
 
 /// A notebook's saved prompt with its own model settings (docs/api.md, prompts).

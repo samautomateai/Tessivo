@@ -263,6 +263,24 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   Future<SettingsInfo> getSettings() async => settingsFromJson(await _json('GET', '/v1/settings'));
 
   @override
+  Future<SettingsInfo> updateSettings(Map<String, Object?> body) async =>
+      settingsFromJson(await _json('PUT', '/v1/settings', body: body));
+
+  @override
+  Future<bool> secretSet(String ref) async =>
+      (await _json('GET', '/v1/secrets/${Uri.encodeComponent(ref)}'))['set'] == true;
+
+  @override
+  Future<void> setSecret(String ref, String value) async {
+    await _json('PUT', '/v1/secrets/${Uri.encodeComponent(ref)}', body: {'value': value});
+  }
+
+  @override
+  Future<void> deleteSecret(String ref) async {
+    await _json('DELETE', '/v1/secrets/${Uri.encodeComponent(ref)}');
+  }
+
+  @override
   Future<Map<String, List<String>>> listModels({String? provider}) async {
     final query = provider == null ? null : {'provider': provider};
     return modelsFromJson(await _json('GET', '/v1/models', query: query));

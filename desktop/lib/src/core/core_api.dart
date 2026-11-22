@@ -34,6 +34,14 @@ abstract interface class CoreClient {
   Future<Notebook> setMemory(String notebookId, List<String> memory);
   Future<OutputDetail> getOutput(String notebookId, String outputId);
   Future<SettingsInfo> getSettings();
+
+  /// Saves providers, aliases, defaults and limits (a SettingsDraft body).
+  Future<SettingsInfo> updateSettings(Map<String, Object?> body);
+
+  /// Whether an API key is available; its value never leaves the core.
+  Future<bool> secretSet(String ref);
+  Future<void> setSecret(String ref, String value);
+  Future<void> deleteSecret(String ref);
   Future<Map<String, List<String>>> listModels({String? provider});
   Future<List<ScheduleInfo>> listSchedules(String notebookId);
   Future<ScheduleInfo> addSchedule(String notebookId, {required String cron, String prompt, String missed});

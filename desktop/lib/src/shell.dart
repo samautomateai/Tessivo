@@ -38,6 +38,7 @@ class AppShell extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (state.setupMessage != null) _SetupBanner(state: state),
                     if (state.notices.isNotEmpty) _NoticeBanner(state: state),
                     Expanded(child: _content()),
                   ],
@@ -57,7 +58,7 @@ class AppShell extends StatelessWidget {
     Section.templates => TemplatesScreen(state: state),
     Section.schedules => SchedulesScreen(state: state),
     Section.library => LibraryScreen(core: state.core),
-    Section.settings => SettingsScreen(core: state.core),
+    Section.settings => SettingsScreen(core: state.core, onChanged: () => unawaited(state.checkSetup())),
   };
 }
 
@@ -269,6 +270,29 @@ class _NavItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// First-run banner: what to set up before runs can work.
+class _SetupBanner extends StatelessWidget {
+  const _SetupBanner({required this.state});
+
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialBanner(
+      key: const Key('setup-banner'),
+      content: Text(state.setupMessage ?? ''),
+      leading: const Icon(Icons.settings_suggest_outlined),
+      actions: [
+        TextButton(
+          key: const Key('setup-open'),
+          onPressed: () => state.go(Section.settings),
+          child: const Text('Open settings'),
+        ),
+      ],
     );
   }
 }

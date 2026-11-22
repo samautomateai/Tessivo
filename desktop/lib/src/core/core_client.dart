@@ -6,6 +6,7 @@ import 'demo_chat.dart';
 import 'demo_mcp.dart';
 import 'demo_prompts.dart';
 import 'demo_research.dart';
+import 'demo_settings.dart';
 import 'demo_templates.dart';
 import 'demo_threads.dart';
 import 'errors.dart';
@@ -51,7 +52,9 @@ const builtInWorkTypes = <WorkType>[
 ];
 
 /// In-memory core with sample data, used when no core can be reached.
-class DemoCoreClient with DemoChat, DemoThreads, DemoMcp, DemoResearch, DemoPrompts implements CoreClient {
+class DemoCoreClient
+    with DemoChat, DemoThreads, DemoMcp, DemoResearch, DemoPrompts, DemoSettings
+    implements CoreClient {
   DemoCoreClient({Duration tick = const Duration(milliseconds: 40)}) : _tick = tick;
 
   final Duration _tick;
@@ -308,22 +311,6 @@ class DemoCoreClient with DemoChat, DemoThreads, DemoMcp, DemoResearch, DemoProm
     );
     return OutputDetail(id: o.id, title: o.title, markdown: '# ${o.title}\n\nSample output from ${o.notebookName}.');
   }
-
-  @override
-  Future<SettingsInfo> getSettings() async => const SettingsInfo(
-    providers: [ProviderInfo(name: 'litellm', baseUrl: 'http://localhost:4000/v1', keyRef: 'TESSIVO_LITELLM_KEY')],
-    aliases: [
-      AliasInfo(
-        name: 'smart',
-        chain: ['litellm/primary-model', 'litellm/fallback-model'],
-        fallbackOn: ['timeout', 'rate_limit', 'server_error'],
-      ),
-    ],
-    defaultModel: 'smart',
-    thinkingEffort: 'medium',
-    maxOutputTokens: 8000,
-    maxTokensPerDay: 2000000,
-  );
 
   @override
   Future<Map<String, List<String>>> listModels({String? provider}) async {

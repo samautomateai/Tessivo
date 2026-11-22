@@ -146,6 +146,7 @@ SettingsInfo settingsFromJson(Map<String, Object?> j) {
   final defaults = jsonObject(j['defaults']);
   final limits = jsonObject(j['limits']);
   return SettingsInfo(
+    raw: j,
     providers: jsonList(j['providers'])
         .map(
           (p) => ProviderInfo(

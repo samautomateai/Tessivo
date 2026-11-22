@@ -99,8 +99,10 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Fallback chain for "smart"'), findsOneWidget);
-    expect(find.text('Model: smart · Thinking: medium'), findsOneWidget);
-    expect(find.text('Key from TESSIVO_LITELLM_KEY'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byKey(const Key('default-model'))).controller!.text, 'smart');
+    expect(find.text('Thinking: medium'), findsOneWidget);
+    expect(find.text('Stored in your OS keychain as TESSIVO_LITELLM_KEY'), findsOneWidget);
+    expect(find.text('Key set'), findsOneWidget);
     await tester.tap(find.byKey(const Key('load-models-litellm')));
     await tester.pumpAndSettle();
     expect(find.text('primary-model'), findsOneWidget);

@@ -8,6 +8,8 @@ import 'core/models.dart';
 import 'research_state.dart';
 import 'thread_state.dart';
 
+part 'app_state_extras.dart';
+
 enum Section { chat, notebooks, research, templates, schedules, library, settings }
 
 /// App-wide state on a plain [ChangeNotifier] (no state-management package).
@@ -147,6 +149,7 @@ class AppState extends ChangeNotifier {
     await loadOutputs();
     await loadPrompts();
     await loadResearch();
+    await checkSetup();
   }
 
   void go(Section s) {
@@ -342,6 +345,9 @@ class AppState extends ChangeNotifier {
   /// The open notebook's saved prompts.
   List<SavedPrompt> prompts = const [];
 
+  /// What the user must set up before runs can work (shown as a banner), or null.
+  String? setupMessage;
+
   void _changed() {
     if (!_disposed) notifyListeners();
   }
@@ -442,43 +448,5 @@ class AppState extends ChangeNotifier {
   Future<void> newVersion() async {
     final v = await thread?.newVersion();
     if (v != null) await loadOutputs(open: v.id);
-  }
-}
-
-/// The open notebook's saved prompts.
-extension PromptActions on AppState {
-  /// Reloads the open notebook's saved prompts; an older core without them shows none.
-  Future<void> loadPrompts() async {
-    final nb = selected;
-    if (nb == null) return;
-    try {
-      final list = await core.listPrompts(nb.id);
-      if (selected?.id == nb.id) prompts = list;
-    } on Object {
-      prompts = const [];
-    }
-    _changed();
-  }
-
-  /// Saves [text] as prompt [name]; a refusal becomes a notice.
-  Future<bool> savePromptAs(String name, String text) => _promptAction(() async {
-    final nb = selected;
-    if (nb != null) await core.savePrompt(nb.id, SavedPrompt(name: name, text: text));
-  });
-
-  Future<bool> deletePrompt(String name) => _promptAction(() async {
-    final nb = selected;
-    if (nb != null) await core.deletePrompt(nb.id, name);
-  });
-
-  Future<bool> _promptAction(Future<void> Function() action) async {
-    try {
-      await action();
-    } on CoreException catch (e) {
-      _notice(e.message);
-      return false;
-    }
-    await loadPrompts();
-    return true;
   }
 }
