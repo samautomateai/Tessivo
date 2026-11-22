@@ -328,3 +328,18 @@ func TestSkipWhilePending(t *testing.T) {
 		t.Fatalf("history: %+v", hist)
 	}
 }
+
+func TestArchivedNotebooksDoNotRun(t *testing.T) {
+	h := newHarness(t)
+	h.addSchedule(t, "0 8 * * 1", notebook.MissedSkip, h.now.Add(-time.Hour))
+	archived := true
+	if _, err := h.svc.UpdateNotebook(h.nbID, service.NotebookUpdate{Archived: &archived}); err != nil {
+		t.Fatal(err)
+	}
+	h.set(time.Date(2026, 11, 23, 8, 0, 10, 0, time.UTC))
+	h.sched.Tick(context.Background())
+	h.sched.Wait()
+	if h.model.count() != 0 || len(h.kinds()) != 0 {
+		t.Fatalf("an archived notebook ran: %d runs, events %v", h.model.count(), h.kinds())
+	}
+}

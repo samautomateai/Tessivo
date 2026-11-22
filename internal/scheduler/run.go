@@ -64,6 +64,7 @@ func (s *Scheduler) execute(ctx context.Context, nb *notebook.Notebook, sch note
 	out, err := s.Svc.Run(ctx, service.RunRequest{
 		Notebook: nb, Prompt: sch.Prompt, PromptName: sch.PromptName, Vars: sch.Vars,
 		Overrides: sch.Overrides, Save: true, Actor: "scheduler", ScheduleID: sch.ID,
+		MaxTokens: sch.MaxTokens,
 	}, nil)
 	entry := notebook.HistoryEntry{
 		ScheduledFor: base.ScheduledFor, StartedAt: start.UTC().Format(time.RFC3339),

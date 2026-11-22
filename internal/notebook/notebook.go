@@ -8,13 +8,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/samautomateai/tessivo/internal/config"
+	"github.com/samautomateai/tessivo/internal/format"
+	"github.com/samautomateai/tessivo/internal/webfetch"
 	"github.com/samautomateai/tessivo/internal/worktype"
 )
 
@@ -63,15 +67,17 @@ func (c ContextItem) IsMCP() bool { return c.Kind == KindMCPResource }
 
 // Manifest is the notebook.json document.
 type Manifest struct {
-	ID        string             `json:"id"`
-	Name      string             `json:"name"`
-	WorkType  string             `json:"workType"`
-	CreatedAt string             `json:"createdAt"`
-	Settings  config.RunSettings `json:"settings"`
-	Context   []ContextItem      `json:"context"`
-	Memory    []string           `json:"memory,omitempty"`   // pinned facts included in every run
-	Template  string             `json:"template,omitempty"` // "id@version" this notebook came from
-	Agent     AgentSettings      `json:"agent,omitzero"`
+	FormatVersion int                `json:"formatVersion"` // the folder format; see FormatVersion
+	ID            string             `json:"id"`
+	Name          string             `json:"name"`
+	WorkType      string             `json:"workType"`
+	CreatedAt     string             `json:"createdAt"`
+	Settings      config.RunSettings `json:"settings"`
+	Context       []ContextItem      `json:"context"`
+	Memory        []string           `json:"memory,omitempty"`   // pinned facts included in every run
+	Template      string             `json:"template,omitempty"` // "id@version" this notebook came from
+	Agent         AgentSettings      `json:"agent,omitzero"`
+	Archived      bool               `json:"archived,omitempty"` // listed apart; schedules do not run
 }
 
 // AgentSettings are the notebook's agent-mode settings.
@@ -127,6 +133,9 @@ func Open(dir string) (*Notebook, error) {
 	if err := readJSON(filepath.Join(dir, ManifestFile), &m); err != nil {
 		return nil, fmt.Errorf("open notebook %s: %w", dir, err)
 	}
+	if err := format.Upgrade("notebook "+dir, &m.FormatVersion, FormatVersion, upgrades, &m); err != nil {
+		return nil, err
+	}
 	if _, err := worktype.Get(m.WorkType); err != nil {
 		return nil, fmt.Errorf("open notebook %s: %w", dir, err)
 	}
@@ -138,6 +147,7 @@ func (n *Notebook) Save() error {
 	if err := n.Manifest.Settings.Validate(); err != nil {
 		return fmt.Errorf("notebook settings: %w", err)
 	}
+	n.Manifest.FormatVersion = FormatVersion
 	return writeJSON(filepath.Join(n.Dir, ManifestFile), n.Manifest)
 }
 
@@ -179,8 +189,8 @@ func (n *Notebook) SetEnabled(idOrLabel string, enabled bool) error {
 
 // ContextPath returns the absolute path of a context item.
 func (n *Notebook) ContextPath(c ContextItem) string {
-	if c.IsMCP() {
-		return "" // read from its server, never from disk
+	if c.IsMCP() || c.IsURL() {
+		return "" // read from its server or the web, never from disk
 	}
 	if c.InPlace || filepath.IsAbs(c.Path) {
 		return c.Path
@@ -260,3 +270,52 @@ func (n *Notebook) AddMCPResource(server, uri, label string) (ContextItem, error
 	n.Manifest.Context = append(n.Manifest.Context, item)
 	return item, n.Save()
 }
+
+// KindURL marks a web page read on every run (URI; Path is empty).
+const KindURL = "url"
+
+// MaxTextSource bounds pasted text added as a source.
+const MaxTextSource = 2 << 20
+
+// IsURL reports whether the item is a web page.
+func (c ContextItem) IsURL() bool { return c.Kind == KindURL }
+
+// AddURL attaches a web page, fetched on every run. The label defaults to
+// the host and path.
+func (n *Notebook) AddURL(raw, label string) (ContextItem, error) {
+	if err := webfetch.Check(raw); err != nil {
+		return ContextItem{}, err
+	}
+	if label == "" {
+		u, _ := url.Parse(raw)
+		label = strings.TrimSuffix(u.Host+u.Path, "/")
+	}
+	item := ContextItem{ID: NewID(), Label: label, Enabled: true, AddedAt: now(), Kind: KindURL, URI: raw}
+	n.Manifest.Context = append(n.Manifest.Context, item)
+	return item, n.Save()
+}
+
+// AddText saves pasted text as a Markdown file in the notebook and attaches it.
+func (n *Notebook) AddText(label, text string) (ContextItem, error) {
+	if strings.TrimSpace(text) == "" || len(text) > MaxTextSource {
+		return ContextItem{}, fmt.Errorf("text must be 1 to %d bytes", MaxTextSource)
+	}
+	if strings.TrimSpace(label) == "" {
+		label = "Pasted text"
+	}
+	id := NewID()
+	rel := filepath.Join(ContextDir, id+"-"+sanitize(label)+".md")
+	if err := os.WriteFile(filepath.Join(n.Dir, rel), []byte(strings.TrimRight(text, "\n")+"\n"), 0o600); err != nil {
+		return ContextItem{}, fmt.Errorf("save text: %w", err)
+	}
+	item := ContextItem{ID: id, Label: label, Path: rel, Enabled: true, AddedAt: now()}
+	n.Manifest.Context = append(n.Manifest.Context, item)
+	return item, n.Save()
+}
+
+// FormatVersion is the notebook folder format this Tessivo writes. Raise it
+// with an upgrade step in upgrades when the format changes incompatibly.
+const FormatVersion = 1
+
+// upgrades[i] turns a format i+1 manifest into format i+2.
+var upgrades []func(*Manifest) error

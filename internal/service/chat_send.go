@@ -68,7 +68,7 @@ func (s *Service) SendChat(ctx context.Context, id string, in ChatSend, onDelta 
 	if settings.Model == "" {
 		return ChatReply{}, invalidf("no model set; choose one for this chat or set defaults.model in the config")
 	}
-	alias, err := s.Config.ResolveModel(settings.Model)
+	alias, err := s.cfg().ResolveModel(settings.Model)
 	if err != nil {
 		return ChatReply{}, &InvalidError{err.Error()}
 	}
@@ -135,7 +135,11 @@ func (s *Service) aliasModel(alias config.Alias) (executor.Model, error) {
 	if factory == nil {
 		factory = DefaultModelFactory
 	}
-	return factory(s.Config, alias, s.Secrets)
+	m, err := factory(s.cfg(), alias, s.Secrets)
+	if err != nil {
+		return nil, err
+	}
+	return metered{inner: m, s: s}, nil
 }
 
 // streamText streams one model call, forwarding deltas until the reply

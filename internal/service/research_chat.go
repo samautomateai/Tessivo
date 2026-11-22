@@ -150,7 +150,7 @@ func (s *Service) SendResearch(ctx context.Context, id, chatID, text string, onD
 	if settings.Model == "" {
 		return ResearchReply{}, invalidf("no model set; set one for this notebook or defaults.model in the config")
 	}
-	alias, err := s.Config.ResolveModel(settings.Model)
+	alias, err := s.cfg().ResolveModel(settings.Model)
 	if err != nil {
 		return ResearchReply{}, &InvalidError{err.Error()}
 	}
@@ -182,7 +182,7 @@ func (s *Service) SendResearch(ctx context.Context, id, chatID, text string, onD
 // researchChatSettings resolves app, notebook and conversation settings.
 func (s *Service) researchChatSettings(nb *research.Notebook, sess chat.Session) config.RunSettings {
 	return config.Resolve(
-		config.Layer{Name: layerApp, Settings: s.Config.Defaults},
+		config.Layer{Name: layerApp, Settings: s.cfg().Defaults},
 		config.Layer{Name: "research", Settings: nb.Manifest.Settings},
 		config.Layer{Name: "conversation", Settings: config.RunSettings{
 			Model: sess.Model, ThinkingEffort: sess.ThinkingEffort,

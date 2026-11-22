@@ -84,12 +84,15 @@ Notebook notebookFromJson(Map<String, Object?> j) => Notebook(
   context: jsonList(j['context']).map(contextFromJson).toList(),
   memory: _strings(j['memory']),
   mcpServers: _strings(j['mcpServers']),
+  archived: j['archived'] as bool? ?? false,
 );
 
 ContextItem contextFromJson(Map<String, Object?> j) {
   final label = j['label'] as String? ?? '';
   final dot = label.lastIndexOf('.');
-  final kind = j['kind'] == 'mcp-resource'
+  final kind = j['kind'] == 'url'
+      ? 'Web page'
+      : j['kind'] == 'mcp-resource'
       ? 'MCP · ${j['server'] as String? ?? ''}'
       : (j['inPlace'] as bool? ?? false)
       ? 'Folder'
@@ -145,6 +148,7 @@ SettingsInfo settingsFromJson(Map<String, Object?> j) {
   final defaults = jsonObject(j['defaults']);
   final limits = jsonObject(j['limits']);
   return SettingsInfo(
+    raw: j,
     providers: jsonList(j['providers'])
         .map(
           (p) => ProviderInfo(

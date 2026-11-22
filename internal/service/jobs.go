@@ -158,7 +158,7 @@ func (s *Service) expired(requestedAt string) bool {
 	if err != nil {
 		return false
 	}
-	days := s.Config.Agent.WithDefaults().ApprovalExpiryDays
+	days := s.cfg().Agent.WithDefaults().ApprovalExpiryDays
 	return s.now().After(t.Add(time.Duration(days) * 24 * time.Hour))
 }
 

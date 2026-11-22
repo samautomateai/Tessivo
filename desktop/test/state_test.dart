@@ -9,6 +9,7 @@ class _FailingCore extends DemoCoreClient {
     required String notebookId,
     required String prompt,
     required Map<String, String> vars,
+    String? promptName,
   }) async* {
     yield const RunStatus('starting');
     throw StateError('model unavailable');

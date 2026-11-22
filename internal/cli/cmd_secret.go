@@ -24,7 +24,7 @@ func cmdSecret(ctx context.Context, args []string, env Env) error {
 		return usageError{err.Error()}
 	}
 	switch sub {
-	case "set":
+	case subSet:
 		v, err := readSecret(ctx, env, "Value for "+ref+": ")
 		if err != nil {
 			return err

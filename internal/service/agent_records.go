@@ -64,7 +64,7 @@ func (s *Service) auditTools(rec *runAudit, st *storedRun) error {
 
 // pendingOf lists the run's unanswered approvals.
 func (s *Service) pendingOf(nb *notebook.Notebook, st *storedRun) []PendingApproval {
-	days := s.Config.Agent.WithDefaults().ApprovalExpiryDays
+	days := s.cfg().Agent.WithDefaults().ApprovalExpiryDays
 	var out []PendingApproval
 	for _, p := range st.Check.Pending {
 		if p.ApprovalID == "" || p.Answer != "" {

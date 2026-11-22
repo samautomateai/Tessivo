@@ -154,6 +154,15 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
+  Future<Notebook> updateNotebook(String notebookId, {String? name, bool? archived}) async =>
+      notebookFromJson(await _json('PATCH', _nb(notebookId), body: {'name': ?name, 'archived': ?archived}));
+
+  @override
+  Future<void> deleteNotebook(String notebookId) async {
+    await _json('DELETE', _nb(notebookId));
+  }
+
+  @override
   Future<Notebook> setContextEnabled({
     required String notebookId,
     required String contextId,
@@ -171,15 +180,30 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
+  Future<List<SavedPrompt>> listPrompts(String notebookId) async =>
+      jsonList((await _json('GET', '${_nb(notebookId)}/prompts'))['prompts']).map(SavedPrompt.fromJson).toList();
+
+  @override
+  Future<SavedPrompt> savePrompt(String notebookId, SavedPrompt prompt) async => SavedPrompt.fromJson(
+    await _json('PUT', '${_nb(notebookId)}/prompts/${Uri.encodeComponent(prompt.name)}', body: prompt.toBody()),
+  );
+
+  @override
+  Future<void> deletePrompt(String notebookId, String name) async {
+    await _json('DELETE', '${_nb(notebookId)}/prompts/${Uri.encodeComponent(name)}');
+  }
+
+  @override
   Stream<RunEvent> startRun({
     required String notebookId,
     required String prompt,
     required Map<String, String> vars,
+    String? promptName,
   }) async* {
     final resp = await _send(
       'POST',
       '/v1/notebooks/${Uri.encodeComponent(notebookId)}/runs',
-      body: {'prompt': prompt, 'vars': vars},
+      body: {'prompt': prompt, 'vars': vars, 'promptName': ?promptName},
     );
     if (resp.statusCode >= 400) {
       final text = await _readLimited(resp);
@@ -224,6 +248,14 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
+  Future<Notebook> addUrlContext(String notebookId, String url, {String label = ''}) async =>
+      notebookFromJson(await _json('POST', '${_nb(notebookId)}/context', body: {'url': url, 'label': label}));
+
+  @override
+  Future<Notebook> addTextContext(String notebookId, String text, {String label = ''}) async =>
+      notebookFromJson(await _json('POST', '${_nb(notebookId)}/context', body: {'text': text, 'label': label}));
+
+  @override
   Future<Notebook> setMemory(String notebookId, List<String> memory) async {
     checkMemory(memory);
     return notebookFromJson(await _json('PUT', '${_nb(notebookId)}/memory', body: {'memory': memory}));
@@ -236,7 +268,51 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
+  Future<Uint8List> exportOutput(String notebookId, String outputId, String format) =>
+      _bytes('${_nb(notebookId)}/outputs/${Uri.encodeComponent(outputId)}/export', query: {'format': format});
+
+  @override
+  Future<Uint8List> diagnostics() => _bytes('/v1/diagnostics');
+
+  /// A file the core sends (an export, diagnostics), bounded like JSON replies.
+  Future<Uint8List> _bytes(String path, {Map<String, String>? query}) async {
+    final resp = await _send('GET', path, query: query);
+    final builder = BytesBuilder(copy: false);
+    await for (final chunk in resp) {
+      builder.add(chunk);
+      if (builder.length > maxResponseBytes) throw const CoreException(502, 'file too large');
+    }
+    final bytes = builder.takeBytes();
+    if (resp.statusCode >= 400) {
+      final decoded = bytes.isEmpty ? null : jsonDecode(utf8.decode(bytes, allowMalformed: true));
+      throw CoreException(
+        resp.statusCode,
+        (decoded is Map<String, Object?> ? decoded['error'] as String? : null) ?? 'download failed',
+      );
+    }
+    return bytes;
+  }
+
+  @override
   Future<SettingsInfo> getSettings() async => settingsFromJson(await _json('GET', '/v1/settings'));
+
+  @override
+  Future<SettingsInfo> updateSettings(Map<String, Object?> body) async =>
+      settingsFromJson(await _json('PUT', '/v1/settings', body: body));
+
+  @override
+  Future<bool> secretSet(String ref) async =>
+      (await _json('GET', '/v1/secrets/${Uri.encodeComponent(ref)}'))['set'] == true;
+
+  @override
+  Future<void> setSecret(String ref, String value) async {
+    await _json('PUT', '/v1/secrets/${Uri.encodeComponent(ref)}', body: {'value': value});
+  }
+
+  @override
+  Future<void> deleteSecret(String ref) async {
+    await _json('DELETE', '/v1/secrets/${Uri.encodeComponent(ref)}');
+  }
 
   @override
   Future<Map<String, List<String>>> listModels({String? provider}) async {

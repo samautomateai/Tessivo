@@ -16,10 +16,11 @@ import (
 
 func TestSourceChangedDuringSummary(t *testing.T) {
 	s, m := researchSvc(t)
-	m.gate = make(chan struct{})
+	m.gate, m.entered = make(chan struct{}), make(chan struct{}, 1)
 	nb, _ := s.CreateResearch("Board", "")
 	path := writeSource(t, "a.md", "before")
 	info, _ := s.AddResearchSource(context.Background(), nb.ID, path, "", "", false)
+	<-m.entered // the source was read and fingerprinted; the model call is waiting
 	// The copy inside the notebook is what is read; change it while the model works.
 	rnb, _ := research.Open(filepath.Join(filepath.Dir(s.Workspace), "research", nb.ID))
 	src, _, _ := rnb.Find(info.Sources[0].ID)

@@ -1,8 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
+import '../core/core_client.dart';
 import '../core/models.dart';
 import '../widgets/memory_card.dart';
+import '../widgets/paste_text_dialog.dart';
 import '../widgets/text_prompt_dialog.dart';
 import '../widgets/work_type_badge.dart';
 import 'notebook_mcp_card.dart';
@@ -27,7 +29,13 @@ class NotebookSourcesPane extends StatelessWidget {
         children: [
           NotebookHeader(notebook: notebook),
           const SizedBox(height: 16),
-          ContextCard(notebook: notebook, onToggle: state.toggleContext, onAdd: state.addContext),
+          ContextCard(
+            notebook: notebook,
+            onToggle: state.toggleContext,
+            onAdd: state.addContext,
+            onAddUrl: state.addUrlContext,
+            onAddText: state.addTextContext,
+          ),
           const SizedBox(height: 16),
           MemoryCard(notebook: notebook, onChanged: state.setMemory),
           const SizedBox(height: 16),
@@ -59,11 +67,35 @@ class NotebookHeader extends StatelessWidget {
 
 /// The notebook's sources, with toggles and Add.
 class ContextCard extends StatelessWidget {
-  const ContextCard({super.key, required this.notebook, required this.onToggle, required this.onAdd});
+  const ContextCard({
+    super.key,
+    required this.notebook,
+    required this.onToggle,
+    required this.onAdd,
+    this.onAddUrl,
+    this.onAddText,
+  });
 
   final Notebook notebook;
   final Future<void> Function(String id, bool enabled) onToggle;
   final Future<void> Function(String path) onAdd;
+  final Future<void> Function(String url)? onAddUrl;
+  final Future<void> Function(String label, String text)? onAddText;
+
+  Future<void> _addMore(BuildContext context, String what) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (what == 'url') {
+        final url = await askText(context, title: 'Add a web page', label: 'URL (http or https)', maxLength: 2048);
+        if (url != null && url.trim().isNotEmpty) await onAddUrl?.call(url.trim());
+      } else {
+        final got = await showDialog<(String, String)>(context: context, builder: (_) => const PasteTextDialog());
+        if (got != null && got.$2.trim().isNotEmpty) await onAddText?.call(got.$1, got.$2);
+      }
+    } on CoreException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
 
   Future<void> _add(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -91,13 +123,24 @@ class ContextCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('Sources', style: Theme.of(context).textTheme.titleSmall),
-                const Spacer(),
+                Expanded(child: Text('Sources', style: Theme.of(context).textTheme.titleSmall)),
                 TextButton.icon(
                   key: const Key('context-add'),
                   onPressed: () => _add(context),
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Add'),
+                ),
+                PopupMenuButton<String>(
+                  key: const Key('context-add-more'),
+                  tooltip: 'More sources',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  icon: const Icon(Icons.expand_more, size: 18),
+                  onSelected: (v) => _addMore(context, v),
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(key: Key('context-add-url'), value: 'url', child: Text('Web page…')),
+                    PopupMenuItem(key: Key('context-add-text'), value: 'text', child: Text('Paste text…')),
+                  ],
                 ),
               ],
             ),
@@ -111,7 +154,7 @@ class ContextCard extends StatelessWidget {
                 onChanged: (v) => onToggle(c.id, v ?? false),
                 title: Text(c.label),
                 subtitle: Text(
-                  c.isMcp ? '${c.kind} · read at run time' : '${c.kind} · ${c.estimatedTokens ~/ 1000}k tok',
+                  c.readAtRunTime ? '${c.kind} · read at run time' : '${c.kind} · ${c.estimatedTokens ~/ 1000}k tok',
                 ),
                 controlAffinity: ListTileControlAffinity.leading,
               ),

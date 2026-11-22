@@ -47,7 +47,7 @@ func (s *Service) GenerateSuggestions(ctx context.Context, notebookID, outputID 
 	if settings.Model == "" {
 		return nil, invalidf("no model set; choose one for this thread or set defaults.model in the config")
 	}
-	alias, err := s.Config.ResolveModel(settings.Model)
+	alias, err := s.cfg().ResolveModel(settings.Model)
 	if err != nil {
 		return nil, &InvalidError{err.Error()}
 	}

@@ -41,10 +41,14 @@ type Schedule struct {
 	Missed     string             `json:"missed"`
 	Enabled    bool               `json:"enabled"`
 	CreatedAt  string             `json:"createdAt"`
+	MaxTokens  int                `json:"maxTokens,omitempty"` // token limit per run of this schedule; 0: the app's
 }
 
 // Validate checks the expression, policy and settings.
 func (s Schedule) Validate() error {
+	if s.MaxTokens < 0 {
+		return errors.New("maxTokens must not be negative")
+	}
 	if _, err := cron.Parse(s.Cron, time.Local); err != nil {
 		return err
 	}

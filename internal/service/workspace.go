@@ -33,6 +33,7 @@ type NotebookInfo struct {
 	Memory     []string           `json:"memory"`
 	Template   string             `json:"template,omitempty"`
 	MCPServers []string           `json:"mcpServers"` // servers agent runs may use
+	Archived   bool               `json:"archived"`
 	nb         *notebook.Notebook
 }
 
@@ -148,10 +149,11 @@ func describe(id string, nb *notebook.Notebook, stats bool) NotebookInfo {
 		Created: nb.Manifest.CreatedAt, Context: []ContextInfo{}, nb: nb,
 		Memory: append([]string{}, nb.Manifest.Memory...), Template: nb.Manifest.Template,
 		MCPServers: append([]string{}, nb.Manifest.Agent.MCPServers...),
+		Archived:   nb.Manifest.Archived,
 	}
 	for _, c := range nb.Manifest.Context {
 		ci := ContextInfo{ContextItem: c}
-		if !stats || c.IsMCP() { // MCP resources are read at run time
+		if !stats || c.IsMCP() || c.IsURL() { // MCP resources and web pages are read at run time
 			info.Context = append(info.Context, ci)
 			continue
 		}
@@ -256,12 +258,12 @@ func (s *Service) GetOutput(notebookID, outputID string) (OutputInfo, error) {
 }
 
 // Settings returns the config. It holds only key references, never values.
-func (s *Service) Settings() config.File { return s.Config }
+func (s *Service) Settings() config.File { return s.cfg() }
 
 // Models lists a provider's models (or all providers').
 func (s *Service) Models(ctx context.Context, provider string) (map[string][]string, error) {
 	out := map[string][]string{}
-	for _, p := range s.Config.Providers {
+	for _, p := range s.cfg().Providers {
 		if provider != "" && p.Name != provider {
 			continue
 		}
@@ -286,4 +288,48 @@ func (s *Service) Models(ctx context.Context, provider string) (map[string][]str
 		out[p.Name] = ids
 	}
 	return out, nil
+}
+
+// NotebookUpdate changes a notebook's name or archived state; nil fields stay.
+type NotebookUpdate struct {
+	Name     *string `json:"name,omitempty"`
+	Archived *bool   `json:"archived,omitempty"`
+}
+
+// UpdateNotebook renames, archives or restores a workspace notebook.
+func (s *Service) UpdateNotebook(id string, in NotebookUpdate) (NotebookInfo, error) {
+	nb, err := s.OpenNotebook(id)
+	if err != nil {
+		return NotebookInfo{}, err
+	}
+	if in.Name != nil {
+		clean, err := notebook.CheckName(*in.Name)
+		if err != nil {
+			return NotebookInfo{}, &InvalidError{err.Error()}
+		}
+		nb.Manifest.Name = clean
+	}
+	if in.Archived != nil {
+		nb.Manifest.Archived = *in.Archived
+	}
+	if err := nb.Save(); err != nil {
+		return NotebookInfo{}, err
+	}
+	return describe(id, nb, false), nil
+}
+
+// DeleteNotebook removes a workspace notebook and everything in it. A
+// notebook with a run in progress, paused or interrupted is a conflict.
+func (s *Service) DeleteNotebook(id string) error {
+	nb, err := s.OpenNotebook(id)
+	if err != nil {
+		return err
+	}
+	if err := notebook.Remove(nb.Dir); err != nil {
+		if errors.Is(err, notebook.ErrBusy) {
+			return fmt.Errorf("%w: %w", ErrConflict, err)
+		}
+		return err
+	}
+	return nil
 }

@@ -8,6 +8,8 @@ import 'core/models.dart';
 import 'research_state.dart';
 import 'thread_state.dart';
 
+part 'app_state_extras.dart';
+
 enum Section { chat, notebooks, research, templates, schedules, library, settings }
 
 /// App-wide state on a plain [ChangeNotifier] (no state-management package).
@@ -145,7 +147,9 @@ class AppState extends ChangeNotifier {
     if (selectedId case final id?) await _refresh(id);
     await refreshMcpServers();
     await loadOutputs();
+    await loadPrompts();
     await loadResearch();
+    await checkSetup();
   }
 
   void go(Section s) {
@@ -162,6 +166,8 @@ class AppState extends ChangeNotifier {
     _openOutput(null);
     unawaited(_refresh(id));
     unawaited(loadOutputs());
+    prompts = const [];
+    unawaited(loadPrompts());
   }
 
   /// Loads the full notebook (context stats, memory); the list view omits them.
@@ -183,6 +189,18 @@ class AppState extends ChangeNotifier {
   Future<void> addContext(String path) async {
     final nb = selected;
     if (nb != null) _put(await core.addContext(nb.id, path));
+  }
+
+  /// Adds a web page to the selected notebook; it is fetched on every run.
+  Future<void> addUrlContext(String url) async {
+    final nb = selected;
+    if (nb != null) _put(await core.addUrlContext(nb.id, url));
+  }
+
+  /// Saves pasted text as a source of the selected notebook.
+  Future<void> addTextContext(String label, String text) async {
+    final nb = selected;
+    if (nb != null) _put(await core.addTextContext(nb.id, text, label: label));
   }
 
   /// Configured MCP servers (loaded with the notebooks; refreshed on demand).
@@ -263,6 +281,54 @@ class AppState extends ChangeNotifier {
     if (e.kind == 'research.summary.failed') _notice(e.message);
   }
 
+  /// Whether the sidebar lists archived notebooks.
+  bool showArchived = false;
+
+  void toggleArchived() {
+    showArchived = !showArchived;
+    notifyListeners();
+  }
+
+  /// Renames a notebook; a refusal becomes a notice.
+  Future<void> renameNotebook(String id, String name) => _manage(id, () => core.updateNotebook(id, name: name));
+
+  /// Archives or restores a notebook; a refusal becomes a notice.
+  Future<void> setArchived(String id, bool archived) => _manage(id, () => core.updateNotebook(id, archived: archived));
+
+  Future<void> _manage(String id, Future<Notebook> Function() action) async {
+    try {
+      final u = await action();
+      final old = notebooks.where((n) => n.id == id).firstOrNull;
+      _put(old == null ? u : old.copyWith(name: u.name, archived: u.archived));
+    } on CoreException catch (e) {
+      _notice(e.message);
+    }
+  }
+
+  /// Deletes a notebook (the core refuses while a run is active or paused)
+  /// and opens the next one.
+  Future<void> deleteNotebook(String id) async {
+    try {
+      await core.deleteNotebook(id);
+    } on CoreException catch (e) {
+      _notice(e.message);
+      return;
+    }
+    notebooks = await core.listNotebooks();
+    if (selectedId != id) {
+      notifyListeners();
+      return;
+    }
+    final next = notebooks.where((n) => !n.archived).firstOrNull;
+    if (next != null) {
+      select(next.id);
+      return;
+    }
+    selectedId = null;
+    outputs = const [];
+    _openOutput(null);
+  }
+
   /// Chat view state, created on first use.
   late final ChatState chat = ChatState(core);
 
@@ -285,17 +351,31 @@ class AppState extends ChangeNotifier {
     _put(await core.setContextEnabled(notebookId: nb.id, contextId: contextId, enabled: enabled));
   }
 
-  Future<void> run(String prompt, Map<String, String> vars) async {
+  /// The saved prompt the last run used, if any.
+  String? lastPromptName;
+
+  /// The open notebook's saved prompts.
+  List<SavedPrompt> prompts = const [];
+
+  /// What the user must set up before runs can work (shown as a banner), or null.
+  String? setupMessage;
+
+  void _changed() {
+    if (!_disposed) notifyListeners();
+  }
+
+  Future<void> run(String prompt, Map<String, String> vars, {String? promptName}) async {
     final nb = selected;
     if (nb == null || running) return;
     running = true;
+    lastPromptName = promptName;
     outcome = null;
     _stream.clear();
     toolLog.clear();
     paused = const [];
     notifyListeners();
     try {
-      await for (final e in core.startRun(notebookId: nb.id, prompt: prompt, vars: vars)) {
+      await for (final e in core.startRun(notebookId: nb.id, prompt: prompt, vars: vars, promptName: promptName)) {
         switch (e) {
           case RunStatus(:final text):
             status = text;

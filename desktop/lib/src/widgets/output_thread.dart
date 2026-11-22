@@ -7,6 +7,7 @@ import '../core/core_client.dart';
 import '../theme.dart';
 import '../thread_state.dart';
 import 'chat_widgets.dart';
+import 'export_menu.dart';
 import 'markdown_view.dart';
 
 /// The open output, its conversation, the suggestions it produced and the
@@ -96,6 +97,12 @@ class _Header extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
               overflow: TextOverflow.ellipsis,
             ),
+          ),
+          ExportMenu(
+            core: state.core,
+            notebookId: thread.notebookId,
+            outputId: thread.outputId,
+            title: thread.detail?.title ?? 'output',
           ),
           if (thread.busy) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
           TextButton.icon(

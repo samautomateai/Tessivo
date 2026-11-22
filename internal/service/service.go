@@ -58,14 +58,19 @@ type Service struct {
 	NotebookDirs []string
 	// OnRunEvent receives agent run events (approval needed, finished, ...).
 	OnRunEvent func(RunEvent)
+	// LogPath is the core log (tess serve), included in diagnostics; "" when there is none.
+	LogPath string
+	// SecretStore stores API keys set from the desktop (the OS keychain); nil: none.
+	SecretStore SecretStore
 	// Now is the clock; nil means time.Now.
 	Now func() time.Time
 
-	cfgMu     sync.RWMutex // guards Config.MCP, which the API can change
+	cfgMu     sync.RWMutex // guards Config, which the API can change; read it through cfg()
 	sumOnce   sync.Once    // starts the research summary runner on first use
 	sum       *summaryRunner
 	checkOnce sync.Once // creates checks on first use
 	checks    *checkTable
+	usageMu   sync.Mutex // serializes usage.json updates in this process
 	jobsOnce  sync.Once
 	jobs      *jobTable
 }
@@ -89,6 +94,7 @@ type RunRequest struct {
 	ToolRules  map[string]string // agent mode: rules for this run only (most specific layer)
 	ScheduleID string            // the schedule that started the run, if any
 	Detached   bool              // agent mode: the run outlives ctx; stop it with Cancel
+	MaxTokens  int               // this run's token limit (a schedule's maxTokens); 0: limits.max_tokens_per_run
 }
 
 // RunOutcome is a finished run.
@@ -112,6 +118,7 @@ func (s *Service) Run(ctx context.Context, req RunRequest, onEvent func(executor
 	if err != nil {
 		return RunOutcome{}, err
 	}
+	model = s.capRun(model, req)
 	if spec.Settings.Mode == config.ModeAgent {
 		return s.runAgent(ctx, req, spec, model, onEvent)
 	}
@@ -148,15 +155,11 @@ func (s *Service) runPipeline(ctx context.Context, req RunRequest, spec executor
 }
 
 func (s *Service) modelFor(spec executor.Spec) (executor.Model, error) {
-	alias, err := s.Config.ResolveModel(spec.Settings.Model)
+	alias, err := s.cfg().ResolveModel(spec.Settings.Model)
 	if err != nil {
 		return nil, &InvalidError{err.Error()}
 	}
-	factory := s.NewModel
-	if factory == nil {
-		factory = DefaultModelFactory
-	}
-	return factory(s.Config, alias, s.Secrets)
+	return s.aliasModel(alias)
 }
 
 func (s *Service) now() time.Time {
@@ -168,7 +171,7 @@ func (s *Service) now() time.Time {
 
 func (s *Service) buildSpec(ctx context.Context, req RunRequest) (executor.Spec, error) {
 	wtID, prompt := req.WorkType, req.Prompt
-	layers := []config.Layer{{Name: layerApp, Settings: s.Config.Defaults}}
+	layers := []config.Layer{{Name: layerApp, Settings: s.cfg().Defaults}}
 	if nb := req.Notebook; nb != nil {
 		wtID = nb.Manifest.WorkType
 		layers = append(layers, config.Layer{Name: layerNotebook, Settings: nb.Manifest.Settings})
@@ -228,4 +231,12 @@ func (req RunRequest) decorate(r *notebook.Run) {
 	if r.ScheduleID == "" {
 		r.ScheduleID = req.ScheduleID
 	}
+}
+
+// cfg is the current config. Writers replace whole blocks (new slices and
+// maps), never edit them in place, so a copy is safe to read without the lock.
+func (s *Service) cfg() config.File {
+	s.cfgMu.RLock()
+	defer s.cfgMu.RUnlock()
+	return s.Config
 }

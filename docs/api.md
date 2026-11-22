@@ -6,7 +6,7 @@ writes its address and token to `endpoint.json` (0600) in the config dir's `run/
 Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bodies are JSON
 (`Content-Type: application/json`, ≤ 1 MiB, unknown fields rejected). Errors are
 `{"error": "..."}` with 400 (invalid), 401, 403 (browser request), 404, 421 (bad host),
-422 (output failed validation), 429 (too many runs) or 500.
+422 (output failed validation), 429 (too many runs, or a token limit reached) or 500.
 
 | Method and path | Body | Response |
 | --- | --- | --- |
@@ -15,12 +15,24 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks` | — | `{"notebooks": [Notebook]}` (no context stats) |
 | `POST /v1/notebooks` | `{name, workType}` or `{templateId, name?}` | `201 Notebook` |
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |
-| `POST /v1/notebooks/{id}/context` | `{path}` (absolute), or `{server, uri, label?}` for an MCP resource | `Notebook` |
+| `PATCH /v1/notebooks/{id}` | `{name?, archived?}` | `Notebook` (archived notebooks keep their schedules but do not run them) |
+| `DELETE /v1/notebooks/{id}` | — | `204`; `409` while a run is executing, paused for an approval or interrupted |
+| `GET /v1/notebooks/{id}/prompts` | — | `{"prompts": [Prompt]}` sorted by name |
+| `PUT /v1/notebooks/{id}/prompts/{name}` | `{text, settings?}` | `Prompt` (name: letters, digits, `.`, `_`, `-`; text 1 B–16 KiB) |
+| `DELETE /v1/notebooks/{id}/prompts/{name}` | — | `204`; `409` while a schedule runs it |
+| `GET /v1/usage` | — | `{day, tokens, dayLimit, runLimit}`: today's tokens across every model call, and `limits.max_tokens_per_day` / `max_tokens_per_run` (0: none) |
+| `POST /v1/notebooks/{id}/context` | `{path}` (absolute), `{server, uri, label?}` for an MCP resource, `{url, label?}` for a web page fetched on every run (http/https, no credentials), or `{text, label?}` for pasted text (≤ 2 MiB, saved as Markdown) | `Notebook` |
 | `PATCH /v1/notebooks/{id}/context/{contextId}` | `{enabled}` | `Notebook` |
 | `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?, toolRules?}` | SSE stream |
 | `GET /v1/outputs?notebook=&workType=` | — | `{"outputs": [Output]}` (no data) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}` | — | `Output` with `data` and `markdown` |
+| `GET /v1/notebooks/{id}/outputs/{outputId}/export?format=md|docx` | — | the file (`Content-Disposition: attachment`): Markdown, or a Word document made with the standard library |
 | `GET /v1/settings` | — | config (key references only) |
+| `PUT /v1/settings` | `{providers, aliases, defaults, limits}` | the config after the change; validated, saved to the config file and applied at once (MCP servers have their own routes) |
+| `GET /v1/secrets/{ref}` | — | `{set: bool}`: whether an API key is available (keychain or environment); its value never leaves the core |
+| `PUT /v1/secrets/{ref}` | `{value}` | `204`; stores the key in the OS keychain (one line, ≤ 8 KiB); `503` when the core has no keychain |
+| `DELETE /v1/secrets/{ref}` | — | `204` |
+| `GET /v1/diagnostics` | — | a zip for bug reports: `about.txt` (version, OS), `checks.txt` (setup and counts, whether each key is set), `config.json` (key references only), `core.log` (its last 2 MiB); everything redacted, no keys, notebook names or content |
 | `GET /v1/models?provider=` | — | `{"models": {"provider": ["model", …]}}` |
 | `GET /v1/notebooks/{id}/schedules` | — | `{"schedules": [Schedule]}` |
 | `POST /v1/notebooks/{id}/schedules` | `{cron, prompt?, promptName?, vars?, missed?, enabled?}` | `201 Schedule` |
@@ -75,7 +87,9 @@ anything that looks like a credential is rejected.
 data?, markdown?}`. `version` is 1 for an original output and one more for each revision; `parentId` is the
 output a version revises and `fromThread` the thread reply it was made from.
 
-`Schedule`: `{id, cron, prompt, promptName, vars, overrides, missed: "skip"|"run_once", enabled,
+`Prompt`: `{name, text, settings: {model?, temperature?, max_output_tokens?, thinking_effort?}}`; a run or schedule given `promptName` uses its text and settings (layered between the notebook and the run).
+
+`Schedule`: `{id, cron, prompt, promptName, vars, overrides, maxTokens?, missed: "skip"|"run_once", enabled,
 createdAt, notebookId, nextRun, history: [{scheduledFor, startedAt, durationMs, status, runId,
 outputId, error}]}` (status `ok`, `failed`, `skipped` or `waiting_approval`). Cron: five fields, names, ranges, steps, lists, `@daily`-style macros and an
 optional `CRON_TZ=Area/City` prefix; otherwise the core's local time zone.

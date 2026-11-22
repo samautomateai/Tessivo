@@ -39,6 +39,9 @@ class ContextItem {
   /// True for a resource read from an MCP server at run time.
   bool get isMcp => kind.startsWith('MCP');
 
+  /// Read when a run starts (an MCP resource or a web page), not from disk.
+  bool get readAtRunTime => isMcp || kind == 'Web page';
+
   ContextItem copyWith({bool? enabled}) =>
       ContextItem(id: id, label: label, kind: kind, enabled: enabled ?? this.enabled, estimatedTokens: estimatedTokens);
 }
@@ -52,6 +55,7 @@ class Notebook {
     this.schedule,
     this.memory = const [],
     this.mcpServers = const [],
+    this.archived = false,
   });
 
   final String id;
@@ -66,16 +70,26 @@ class Notebook {
   /// Short facts the notebook keeps across runs (≤ 50 items, ≤ 1000 chars each).
   final List<String> memory;
 
+  /// Archived notebooks are listed apart and their schedules do not run.
+  final bool archived;
+
   int get enabledTokens => context.where((c) => c.enabled).fold(0, (sum, c) => sum + c.estimatedTokens);
 
-  Notebook copyWith({List<ContextItem>? context, List<String>? memory, List<String>? mcpServers}) => Notebook(
+  Notebook copyWith({
+    List<ContextItem>? context,
+    List<String>? memory,
+    List<String>? mcpServers,
+    String? name,
+    bool? archived,
+  }) => Notebook(
     id: id,
-    name: name,
+    name: name ?? this.name,
     workType: workType,
     context: context ?? this.context,
     schedule: schedule,
     memory: memory ?? this.memory,
     mcpServers: mcpServers ?? this.mcpServers,
+    archived: archived ?? this.archived,
   );
 }
 
@@ -246,6 +260,7 @@ class CoreEvent {
     'run.finished' => '$notebookName: agent run finished',
     'run.failed' => '$notebookName: agent run failed${error == null ? '' : ' ($error)'}',
     'run.cancelled' => '$notebookName: agent run cancelled',
+    'usage.warning' || 'usage.limit' => 'Token usage: ${error ?? 'limit reached'}',
     'research.summary.failed' => '$notebookName: a summary failed${error == null ? '' : ' ($error)'}',
     _ => '$notebookName: scheduled run started',
   };
@@ -344,6 +359,7 @@ class AliasInfo {
 /// Read-only view of the core's settings.
 class SettingsInfo {
   const SettingsInfo({
+    this.raw = const {},
     this.providers = const [],
     this.aliases = const [],
     this.defaultModel,
@@ -359,4 +375,41 @@ class SettingsInfo {
   final int? maxOutputTokens;
   final int? maxTokensPerRun;
   final int? maxTokensPerDay;
+
+  /// The settings JSON as the core sent it (edited through SettingsDraft).
+  final Map<String, Object?> raw;
+}
+
+/// A notebook's saved prompt with its own model settings (docs/api.md, prompts).
+class SavedPrompt {
+  const SavedPrompt({required this.name, required this.text, this.model = '', this.temperature, this.maxOutputTokens});
+
+  factory SavedPrompt.fromJson(Map<String, Object?> j) {
+    final s = j['settings'] is Map<String, Object?>
+        ? j['settings']! as Map<String, Object?>
+        : const <String, Object?>{};
+    return SavedPrompt(
+      name: j['name'] as String? ?? '',
+      text: j['text'] as String? ?? '',
+      model: s['model'] as String? ?? '',
+      temperature: (s['temperature'] as num?)?.toDouble(),
+      maxOutputTokens: (s['max_output_tokens'] as num?)?.toInt(),
+    );
+  }
+
+  final String name;
+  final String text;
+  final String model;
+  final double? temperature;
+  final int? maxOutputTokens;
+
+  /// The PUT body: the text and only the settings that are set.
+  Map<String, Object?> toBody() {
+    final settings = <String, Object?>{
+      if (model.isNotEmpty) 'model': model,
+      'temperature': ?temperature,
+      'max_output_tokens': ?maxOutputTokens,
+    };
+    return {'text': text, if (settings.isNotEmpty) 'settings': settings};
+  }
 }

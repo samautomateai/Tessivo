@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"os"
@@ -19,10 +20,11 @@ import (
 )
 
 type fakeModel struct {
-	reply string
-	err   error
-	reqs  []llm.Request
-	calls []llm.ToolCall // returned once, to the first request that offers tools
+	reply  string
+	err    error
+	reqs   []llm.Request
+	calls  []llm.ToolCall // returned once, to the first request that offers tools
+	tokens int            // tokens reported per call; 0 means 5
 }
 
 func (f *fakeModel) ChatStream(_ context.Context, req llm.Request, _ func(string)) (llm.Result, error) {
@@ -36,7 +38,7 @@ func (f *fakeModel) ChatStream(_ context.Context, req llm.Request, _ func(string
 		return llm.Result{Response: llm.Response{ToolCalls: calls}, Target: "litellm/m"}, nil
 	}
 	return llm.Result{
-		Response: llm.Response{Content: f.reply, Usage: llm.Usage{TotalTokens: 5}},
+		Response: llm.Response{Content: f.reply, Usage: llm.Usage{TotalTokens: cmp.Or(f.tokens, 5)}},
 		Target:   "litellm/m", Attempts: []llm.Attempt{{Target: "litellm/m"}, {Target: "x", Err: errors.New("e")}},
 	}, nil
 }

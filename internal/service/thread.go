@@ -171,7 +171,7 @@ func (s *Service) prepareThread(ctx context.Context, st *chat.Store, ref outputR
 	if settings.Model == "" {
 		return fail(invalidf("no model set; choose one for this thread or set defaults.model in the config"))
 	}
-	alias, err := s.Config.ResolveModel(settings.Model)
+	alias, err := s.cfg().ResolveModel(settings.Model)
 	if err != nil {
 		return fail(&InvalidError{err.Error()})
 	}
@@ -206,7 +206,7 @@ func (s *Service) prepareThread(ctx context.Context, st *chat.Store, ref outputR
 // threadSettings resolves app, notebook and thread settings.
 func (s *Service) threadSettings(nb *notebook.Notebook, sess chat.Session) config.RunSettings {
 	return config.Resolve(
-		config.Layer{Name: layerApp, Settings: s.Config.Defaults},
+		config.Layer{Name: layerApp, Settings: s.cfg().Defaults},
 		config.Layer{Name: layerNotebook, Settings: nb.Manifest.Settings},
 		config.Layer{Name: "thread", Settings: config.RunSettings{
 			Model: sess.Model, ThinkingEffort: sess.ThinkingEffort,

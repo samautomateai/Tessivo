@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import 'app_state.dart';
+import 'core/models.dart';
 import 'screens/chat_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/new_notebook_dialog.dart';
@@ -37,6 +38,7 @@ class AppShell extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (state.setupMessage != null) _SetupBanner(state: state),
                     if (state.notices.isNotEmpty) _NoticeBanner(state: state),
                     Expanded(child: _content()),
                   ],
@@ -56,7 +58,7 @@ class AppShell extends StatelessWidget {
     Section.templates => TemplatesScreen(state: state),
     Section.schedules => SchedulesScreen(state: state),
     Section.library => LibraryScreen(core: state.core),
-    Section.settings => SettingsScreen(core: state.core),
+    Section.settings => SettingsScreen(core: state.core, onChanged: () => unawaited(state.checkSetup())),
   };
 }
 
@@ -91,13 +93,19 @@ class _Sidebar extends StatelessWidget {
             child: ListView(
               children: [
                 for (final nb in state.notebooks)
-                  _NavItem(
-                    label: nb.name,
-                    dot: colorsFor(nb.workType).dot,
-                    trailing: nb.schedule,
-                    selected: state.section == Section.notebooks && nb.id == state.selectedId,
-                    onTap: () => state.select(nb.id),
+                  if (!nb.archived) _notebookItem(nb),
+                if (state.notebooks.any((n) => n.archived))
+                  KeyedSubtree(
+                    key: const Key('archived-toggle'),
+                    child: _NavItem(
+                      label: '${state.showArchived ? '▾' : '▸'} Archived (${_archivedCount()})',
+                      selected: false,
+                      onTap: state.toggleArchived,
+                    ),
                   ),
+                if (state.showArchived)
+                  for (final nb in state.notebooks)
+                    if (nb.archived) _notebookItem(nb),
                 const SizedBox(height: 8),
                 const _Caption('RESEARCH'),
                 for (final r in state.research)
@@ -148,6 +156,21 @@ class _Sidebar extends StatelessWidget {
       ),
     );
   }
+}
+
+extension on _Sidebar {
+  int _archivedCount() => state.notebooks.where((n) => n.archived).length;
+
+  Widget _notebookItem(Notebook nb) => KeyedSubtree(
+    key: Key('nav-${nb.id}'),
+    child: _NavItem(
+      label: nb.name,
+      dot: colorsFor(nb.workType).dot,
+      trailing: nb.schedule,
+      selected: state.section == Section.notebooks && nb.id == state.selectedId,
+      onTap: () => state.select(nb.id),
+    ),
+  );
 }
 
 /// In-app notification for the newest core event (schedule finished or failed).
@@ -247,6 +270,29 @@ class _NavItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// First-run banner: what to set up before runs can work.
+class _SetupBanner extends StatelessWidget {
+  const _SetupBanner({required this.state});
+
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialBanner(
+      key: const Key('setup-banner'),
+      content: Text(state.setupMessage ?? ''),
+      leading: const Icon(Icons.settings_suggest_outlined),
+      actions: [
+        TextButton(
+          key: const Key('setup-open'),
+          onPressed: () => state.go(Section.settings),
+          child: const Text('Open settings'),
+        ),
+      ],
     );
   }
 }

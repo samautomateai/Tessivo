@@ -96,6 +96,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/runs/{rid}/events", s.runEvents)
 	s.threadRoutes(mux)
 	s.mcpRoutes(mux)
+	s.notebookManageRoutes(mux)
+	s.promptRoutes(mux)
+	s.settingsRoutes(mux)
 	s.researchRoutes(mux)
 	return s.secure(mux)
 }
@@ -171,6 +174,8 @@ func (s *Server) addContext(w http.ResponseWriter, r *http.Request) {
 		Server string `json:"server"`
 		URI    string `json:"uri"`
 		Label  string `json:"label"`
+		URL    string `json:"url"`
+		Text   string `json:"text"`
 	}
 	if err := decode(w, r, &body); err != nil {
 		s.fail(w, r, err)
@@ -186,6 +191,10 @@ func (s *Server) addContext(w http.ResponseWriter, r *http.Request) {
 		return
 	case body.Server != "":
 		info, err = s.svc.AddMCPContext(r.PathValue("id"), body.Server, body.URI, body.Label)
+	case body.URL != "":
+		info, err = s.svc.AddURLContext(r.PathValue("id"), body.URL, body.Label)
+	case body.Text != "":
+		info, err = s.svc.AddTextContext(r.PathValue("id"), body.Label, body.Text)
 	default:
 		info, err = s.svc.AddContext(r.PathValue("id"), body.Path)
 	}

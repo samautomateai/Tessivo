@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
@@ -15,7 +16,8 @@ const outputHelp = `tess output ask <notebook> <output-id> <question>      ask a
 tess output suggest <notebook> <output-id>               ask for improvements from the thread
 tess output suggestions <notebook> <output-id>           list suggestions
 tess output apply|dismiss <notebook> <output-id> <suggestion-id>
-tess output refine <notebook> <output-id> [--from MESSAGE_ID]   save a revised version`
+tess output refine <notebook> <output-id> [--from MESSAGE_ID]   save a revised version
+tess output export <notebook> <output-id> [--format md|docx] [--out FILE]   save as Markdown or Word`
 
 // outputCommands maps each subcommand to its handler and the positional
 // arguments it needs after the notebook and output (-1: one or more).
@@ -25,12 +27,15 @@ var outputCommands = map[string]struct {
 }{
 	"ask": {outputAsk, -1}, "suggest": {outputSuggest, 0}, "suggestions": {outputSuggestions, 0},
 	"apply": {outputApply, 1}, "dismiss": {outputDismiss, 1}, "refine": {outputRefine, 0},
+	subExport: {outputExport, 0},
 }
 
 type outputArgs struct {
 	nb, out string   // notebook folder (absolute) and output ID
 	rest    []string // the remaining positional arguments
 	from    string   // refine --from
+	format  string   // export --format
+	file    string   // export --out
 }
 
 func cmdOutput(ctx context.Context, args []string, env Env) error {
@@ -44,10 +49,12 @@ func cmdOutput(ctx context.Context, args []string, env Env) error {
 	fs := newFlags("output "+args[0], env)
 	fs.Usage = func() { _, _ = fmt.Fprintln(env.Stderr, outputHelp) }
 	from := fs.String("from", "", "refine: revise from this thread reply (default: the latest)")
-	if err := fs.Parse(args[1:]); err != nil {
-		return usageError{err.Error()}
+	format := fs.String("format", service.FormatMarkdown, "export: md or docx")
+	out := fs.String("out", "", "export: file to write (default: the output's title in this folder)")
+	pos, err := parse(fs, args[1:])
+	if err != nil {
+		return err
 	}
-	pos := fs.Args()
 	if len(pos) < 2 || (c.args >= 0 && len(pos) != 2+c.args) || (c.args < 0 && len(pos) < 3) {
 		return usagef("output %s: wrong arguments\n%s", args[0], outputHelp)
 	}
@@ -67,7 +74,8 @@ func cmdOutput(ctx context.Context, args []string, env Env) error {
 		return err
 	}
 	svc.NotebookDirs = []string{dir}
-	return cliErr(c.run(ctx, svc, outputArgs{nb: dir, out: pos[1], rest: pos[2:], from: *from}, env))
+	a := outputArgs{nb: dir, out: pos[1], rest: pos[2:], from: *from, format: *format, file: *out}
+	return cliErr(c.run(ctx, svc, a, env))
 }
 
 func outputAsk(ctx context.Context, svc *service.Service, a outputArgs, env Env) error {
@@ -187,4 +195,29 @@ func oneLine(s string, n int) string {
 		return string(r[:n-1]) + "…"
 	}
 	return s
+}
+
+// outputExport writes an output as Markdown or Word.
+func outputExport(_ context.Context, _ *service.Service, a outputArgs, env Env) error {
+	nb, err := notebook.Open(a.nb)
+	if err != nil {
+		return err
+	}
+	o, md, err := nb.GetOutput(a.out)
+	if err != nil {
+		return err
+	}
+	f, err := service.RenderExport(o.Title, md, a.format)
+	if err != nil {
+		return err
+	}
+	path := a.file
+	if path == "" {
+		path = f.Name
+	}
+	if err := os.WriteFile(path, f.Data, 0o600); err != nil {
+		return fmt.Errorf("export: %w", err)
+	}
+	_, err = fmt.Fprintf(env.Stdout, "wrote %s\n", path)
+	return wrapWrite(err)
 }

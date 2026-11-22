@@ -4,7 +4,9 @@ import '../app_state.dart';
 import '../core/models.dart';
 import '../theme.dart';
 import '../widgets/approvals_sheet.dart';
+import '../widgets/notebook_menu.dart';
 import '../widgets/output_thread.dart';
+import '../widgets/prompt_menu.dart';
 import 'notebook_outputs_pane.dart';
 import 'notebook_sources_pane.dart';
 
@@ -28,6 +30,25 @@ enum _SidePane { none, sources, outputs }
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
   final _prompt = TextEditingController(text: 'Assess the risk of merging this change.');
   _SidePane _shown = _SidePane.none;
+
+  /// The saved prompt in the box, until its text is edited.
+  String? _promptName;
+
+  @override
+  void initState() {
+    super.initState();
+    _prompt.addListener(_detach);
+  }
+
+  void _detach() {
+    final p = widget.state.prompts.where((p) => p.name == _promptName).firstOrNull;
+    if (_promptName != null && p?.text != _prompt.text) setState(() => _promptName = null);
+  }
+
+  void _use(SavedPrompt p) {
+    _prompt.text = p.text;
+    setState(() => _promptName = p.name);
+  }
 
   @override
   void dispose() {
@@ -85,6 +106,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   onPressed: () => _toggle(_SidePane.outputs),
                   icon: const Icon(Icons.history),
                 ),
+              NotebookMenu(state: state, notebook: nb),
             ],
           ),
         ),
@@ -123,12 +145,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Chip(label: Text('Model: smart')),
-              const Chip(label: Text('Thinking: medium')),
+              PromptMenu(state: widget.state, text: () => _prompt.text, onUse: _use),
+              if (_promptName != null) Chip(label: Text('Prompt: $_promptName')),
               Text('≈ ${nb.enabledTokens ~/ 1000}k tokens', style: const TextStyle(color: Tokens.textMuted)),
               FilledButton(
                 key: const Key('run'),
-                onPressed: widget.state.running ? null : () => widget.state.run(_prompt.text, const {}),
+                onPressed: widget.state.running
+                    ? null
+                    : () => widget.state.run(_prompt.text, const {}, promptName: _promptName),
                 style: FilledButton.styleFrom(backgroundColor: Tokens.accent),
                 child: Text(widget.state.running ? 'Running…' : 'Run'),
               ),

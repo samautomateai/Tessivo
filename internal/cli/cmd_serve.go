@@ -3,10 +3,13 @@ package cli
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 
+	"github.com/samautomateai/tessivo/internal/config"
+	"github.com/samautomateai/tessivo/internal/logfile"
 	"github.com/samautomateai/tessivo/internal/notify"
 	"github.com/samautomateai/tessivo/internal/scheduler"
 	"github.com/samautomateai/tessivo/internal/server"
@@ -46,21 +49,16 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 		ctx, cancel = exitWithParent(ctx)
 		defer cancel()
 	}
-	if *addr == "" {
-		*addr = filepath.Join(dir, "tessivo.sock")
-		if *network == "tcp" {
-			*addr = "127.0.0.1:0"
-		}
-	}
+	*addr = defaultAddr(dir, *network, *addr)
 	f, err := loadConfig(env)
 	if err != nil {
 		return err
 	}
-	svc, err := newService(f, env)
+	svc, logw, err := serveService(f, env)
 	if err != nil {
 		return err
 	}
-	svc.Actor = "desktop"
+	defer func() { _ = logw.Close() }()
 	token, err := server.NewToken()
 	if err != nil {
 		return err
@@ -79,6 +77,7 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 	defer func() { _ = os.Remove(*epPath) }()
 	_, _ = fmt.Fprintf(env.Stderr, "tessivo core listening on %s %s (endpoint: %s)\n", *network, ep.Address, *epPath)
 	api := server.New(svc, token, Version)
+	api.SetLogger(slog.New(slog.NewTextHandler(logw, nil)))
 	api.Background = ctx // resumed runs stop (interrupted) when the core stops
 	schedDone := startBackground(ctx, svc, api, !*noSched, *notes, env)
 	err = server.Serve(ctx, ln, api.Handler())
@@ -143,6 +142,7 @@ func noteSender(ctx context.Context, enabled bool, env Env) func(notify.Note) {
 func wireRunEvents(svc *service.Service, api *server.Server, send func(notify.Note)) {
 	svc.OnRunEvent = func(e service.RunEvent) {
 		api.Events.Publish(e)
+		api.Logger().Info("event", "kind", e.Kind, "run", e.RunID) // no names or content
 		if note, ok := runNote(e); ok {
 			send(note)
 		}
@@ -161,4 +161,45 @@ func startBackground(ctx context.Context, svc *service.Service, api *server.Serv
 		_, _ = fmt.Fprintf(env.Stderr, "tessivo: recovering agent runs: %v\n", err)
 	}
 	return startScheduler(ctx, svc, api, sched, send)
+}
+
+// serveService is the service behind the local API: the desktop is its
+// actor, API keys set from the desktop go to the OS keychain, and the core
+// logs to <config dir>/logs/core.log (the caller closes the log).
+func serveService(f config.File, env Env) (*service.Service, *logfile.Writer, error) {
+	svc, err := newService(f, env)
+	if err != nil {
+		return nil, nil, err
+	}
+	svc.Actor = "desktop"
+	svc.SecretStore = env.Keychain
+	svc.LogPath = logPath(svc.ConfigPath)
+	logw, err := logfile.Open(svc.LogPath, logMaxBytes, logKeep)
+	if err != nil {
+		return nil, nil, err
+	}
+	return svc, logw, nil
+}
+
+// Core log size: 5 MiB per file, 3 old files kept.
+const (
+	logMaxBytes = 5 << 20
+	logKeep     = 3
+)
+
+// logPath is the core log next to the config file.
+func logPath(configPath string) string {
+	return filepath.Join(filepath.Dir(configPath), "logs", "core.log")
+}
+
+// defaultAddr is the listen address when none is given.
+func defaultAddr(dir, network, addr string) string {
+	switch {
+	case addr != "":
+		return addr
+	case network == "tcp":
+		return "127.0.0.1:0"
+	default:
+		return filepath.Join(dir, "tessivo.sock")
+	}
 }
