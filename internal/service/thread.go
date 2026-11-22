@@ -242,7 +242,7 @@ func (s *Service) threadReply(ctx context.Context, ref outputRef, alias config.A
 	reply := chat.Message{ID: chat.NewMessageID(), Role: chat.RoleAssistant, CreatedAt: nowRFC3339()}
 	model, err := s.aliasModel(alias)
 	if err != nil {
-		reply.Stopped, reply.Error = true, "model setup failed"
+		reply.Stopped, reply.Error = true, errModelSetup
 		return reply, nil, err
 	}
 	res, text, err := streamText(ctx, model, req, 0, onDelta)

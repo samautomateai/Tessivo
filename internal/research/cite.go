@@ -1,6 +1,8 @@
 package research
 
 import (
+	"errors"
+	"io/fs"
 	"path"
 	"regexp"
 	"slices"
@@ -94,3 +96,17 @@ func Relabel(text string, cites []Citation) string {
 		return "[" + label + "]"
 	})
 }
+
+// LoadCitations reads a conversation's citations (message ID → citations);
+// a missing file is an empty map.
+func LoadCitations(path string) (map[string][]Citation, error) {
+	out := map[string][]Citation{}
+	err := readJSON(path, 8<<20, &out)
+	if errors.Is(err, fs.ErrNotExist) {
+		return map[string][]Citation{}, nil
+	}
+	return out, err
+}
+
+// SaveCitations writes a conversation's citations atomically (0600).
+func SaveCitations(path string, all map[string][]Citation) error { return writeJSON(path, all) }
