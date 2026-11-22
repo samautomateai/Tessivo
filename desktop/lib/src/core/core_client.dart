@@ -338,6 +338,9 @@ class DemoCoreClient
   }
 
   @override
+  Future<Uint8List> diagnostics() async => Uint8List.fromList(utf8.encode('PK demo diagnostics'));
+
+  @override
   Future<Uint8List> exportOutput(String notebookId, String outputId, String format) async {
     if (format != 'md' && format != 'docx') throw CoreException(400, 'format "$format": want md or docx');
     final o = await getOutput(notebookId, outputId);

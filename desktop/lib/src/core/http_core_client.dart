@@ -268,20 +268,26 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
-  Future<Uint8List> exportOutput(String notebookId, String outputId, String format) async {
-    final path = '${_nb(notebookId)}/outputs/${Uri.encodeComponent(outputId)}/export';
-    final resp = await _send('GET', path, query: {'format': format});
+  Future<Uint8List> exportOutput(String notebookId, String outputId, String format) =>
+      _bytes('${_nb(notebookId)}/outputs/${Uri.encodeComponent(outputId)}/export', query: {'format': format});
+
+  @override
+  Future<Uint8List> diagnostics() => _bytes('/v1/diagnostics');
+
+  /// A file the core sends (an export, diagnostics), bounded like JSON replies.
+  Future<Uint8List> _bytes(String path, {Map<String, String>? query}) async {
+    final resp = await _send('GET', path, query: query);
     final builder = BytesBuilder(copy: false);
     await for (final chunk in resp) {
       builder.add(chunk);
-      if (builder.length > maxResponseBytes) throw const CoreException(502, 'export too large');
+      if (builder.length > maxResponseBytes) throw const CoreException(502, 'file too large');
     }
     final bytes = builder.takeBytes();
     if (resp.statusCode >= 400) {
       final decoded = bytes.isEmpty ? null : jsonDecode(utf8.decode(bytes, allowMalformed: true));
       throw CoreException(
         resp.statusCode,
-        (decoded is Map<String, Object?> ? decoded['error'] as String? : null) ?? 'export failed',
+        (decoded is Map<String, Object?> ? decoded['error'] as String? : null) ?? 'download failed',
       );
     }
     return bytes;

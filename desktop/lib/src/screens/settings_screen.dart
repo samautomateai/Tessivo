@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 
@@ -6,8 +7,10 @@ import '../core/core_client.dart';
 import '../core/models.dart';
 import '../core/settings_draft.dart';
 import '../theme.dart';
+import '../widgets/export_menu.dart';
 import '../widgets/settings_defaults.dart';
 import '../widgets/settings_providers.dart';
+import '../widgets/text_prompt_dialog.dart';
 import 'mcp_settings.dart';
 
 /// Settings: providers and their API keys, aliases with fallback chains, run
@@ -47,6 +50,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (got == null || got.$1.isEmpty || got.$2.isEmpty) return;
     final err = await _save(SettingsDraft.fromJson(s.raw)..addProvider(got.$1, got.$2, keyRefFor(got.$1)));
     if (err != null && mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+  }
+
+  Future<void> _saveDiagnostics() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final path = await askText(
+      context,
+      title: 'Save diagnostics',
+      label: 'File path',
+      initial: downloadsPath('tessivo-diagnostics.zip'),
+      maxLength: 4096,
+    );
+    if (path == null || path.trim().isEmpty) return;
+    try {
+      File(path.trim()).writeAsBytesSync(await widget.core.diagnostics(), flush: true);
+      messenger.showSnackBar(SnackBar(content: Text('Saved ${path.trim()}')));
+    } on Object catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e is CoreException ? e.message : 'Could not save: $e')));
+    }
   }
 
   @override
@@ -93,6 +114,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             const SizedBox(height: 24),
             McpServersSection(core: widget.core),
+            const SizedBox(height: 24),
+            Text('Troubleshooting', style: text.titleMedium),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  key: const Key('save-diagnostics'),
+                  onPressed: () => unawaited(_saveDiagnostics()),
+                  icon: const Icon(Icons.bug_report_outlined, size: 18),
+                  label: const Text('Save diagnostics…'),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'A zip to attach to a bug report: versions, settings (key names only), whether keys are set, '
+                    'counts and the end of the core log. No keys, notebook names or content.',
+                    style: TextStyle(color: Tokens.textMuted),
+                  ),
+                ),
+              ],
+            ),
           ],
         );
       },

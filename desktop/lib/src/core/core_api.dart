@@ -44,6 +44,9 @@ abstract interface class CoreClient {
 
   /// An output as a file: format md or docx.
   Future<Uint8List> exportOutput(String notebookId, String outputId, String format);
+
+  /// A zip for bug reports (no keys, notebook names or content).
+  Future<Uint8List> diagnostics();
   Future<SettingsInfo> getSettings();
 
   /// Saves providers, aliases, defaults and limits (a SettingsDraft body).

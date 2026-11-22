@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"log/slog"
 	"net/http"
 
 	"github.com/samautomateai/tessivo/internal/service"
@@ -11,6 +13,7 @@ func (s *Server) settingsRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/secrets/{ref}", s.secretStatus)
 	mux.HandleFunc("PUT /v1/secrets/{ref}", s.setSecret)
 	mux.HandleFunc("DELETE /v1/secrets/{ref}", s.deleteSecret)
+	mux.HandleFunc("GET /v1/diagnostics", s.diagnostics)
 }
 
 func (s *Server) updateSettings(w http.ResponseWriter, r *http.Request) {
@@ -58,4 +61,24 @@ func (s *Server) deleteSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// SetLogger sends the server's log (start, stop, failures, events) to l.
+func (s *Server) SetLogger(l *slog.Logger) {
+	s.log = l
+	s.log.Info("core started", "version", s.version)
+}
+
+// Logger is the server's log.
+func (s *Server) Logger() *slog.Logger { return s.log }
+
+func (s *Server) diagnostics(w http.ResponseWriter, r *http.Request) {
+	var buf bytes.Buffer
+	if err := s.svc.Diagnostics(&buf, s.version, s.svc.LogPath); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", `attachment; filename="tessivo-diagnostics.zip"`)
+	_, _ = w.Write(buf.Bytes())
 }

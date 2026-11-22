@@ -58,6 +58,8 @@ type Service struct {
 	NotebookDirs []string
 	// OnRunEvent receives agent run events (approval needed, finished, ...).
 	OnRunEvent func(RunEvent)
+	// LogPath is the core log (tess serve), included in diagnostics; "" when there is none.
+	LogPath string
 	// SecretStore stores API keys set from the desktop (the OS keychain); nil: none.
 	SecretStore SecretStore
 	// Now is the clock; nil means time.Now.

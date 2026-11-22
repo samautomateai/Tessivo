@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -48,9 +49,21 @@ func TestServeWritesEndpointAndShutsDown(t *testing.T) {
 		t.Fatalf("request: %v %v", err, resp)
 	}
 	_ = resp.Body.Close()
+	req, _ = http.NewRequest("GET", "http://"+e.Address+"/v1/diagnostics", nil)
+	req.Header.Set("Authorization", "Bearer "+e.Token)
+	if resp, err = http.DefaultClient.Do(req); err != nil || resp.StatusCode != 200 ||
+		resp.Header.Get("Content-Type") != "application/zip" {
+		cancel()
+		t.Fatalf("diagnostics: %v %v", err, resp)
+	}
+	_ = resp.Body.Close()
 	cancel()
 	if code := <-done; code != ExitOK {
 		t.Fatalf("serve exit %d: %s", code, h.errOut)
+	}
+	log, err := os.ReadFile(filepath.Join(filepath.Dir(h.env.ConfigPath), "logs", "core.log"))
+	if err != nil || !strings.Contains(string(log), "core started") || strings.Contains(string(log), e.Token) {
+		t.Fatalf("core log: %v %q", err, log)
 	}
 	if _, err := os.Stat(ep); !os.IsNotExist(err) {
 		t.Fatal("endpoint file should be removed on shutdown")

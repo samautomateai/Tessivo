@@ -61,6 +61,7 @@ Usage:
   tess notebook rename|archive|unarchive <notebook> [name]   tess notebook delete --yes <notebook>
   tess prompt list|show|rm <notebook> [name]   tess prompt save <notebook> <name> [--model M] [text|stdin]
   tess usage                                today's token use and limits
+  tess diagnostics [--out FILE]             a zip for bug reports (no keys, names or content)
   tess config get|set <key> [value]          e.g. tess config set limits.max_tokens_per_day 50000
   tess config export [file]   tess config import <file> [--force]
   tess context add <notebook> <path>...      attach files (copied) or folders (referenced)
@@ -153,8 +154,9 @@ func noCtx(f func([]string, Env) error) handler {
 
 var commands = map[string]handler{
 	"new": noCtx(cmdNew), "notebook": noCtx(cmdNotebook), "prompt": noCtx(cmdPrompt), "usage": noCtx(cmdUsage),
-	"context": noCtx(cmdContext),
-	"run":     cmdRun, "outputs": noCtx(cmdOutputs), "models": cmdModels, "config": noCtx(cmdConfig),
+	"diagnostics": noCtx(cmdDiagnostics),
+	"context":     noCtx(cmdContext),
+	"run":         cmdRun, "outputs": noCtx(cmdOutputs), "models": cmdModels, "config": noCtx(cmdConfig),
 	"audit": noCtx(cmdAudit), "serve": cmdServe,
 	"secret": cmdSecret, "schedule": noCtx(cmdSchedule), "template": noCtx(cmdTemplate),
 	"memory": noCtx(cmdMemory), "chat": cmdChat, "notify": cmdNotify, "output": cmdOutput, "mcp": cmdMCP,

@@ -23,13 +23,8 @@ class ExportMenu extends StatelessWidget {
 
   /// The Downloads folder (or home) plus a file name made from the title.
   String _suggested(String ext) {
-    final env = Platform.environment;
-    final home = env['USERPROFILE'] ?? env['HOME'] ?? Directory.systemTemp.path;
-    final sep = Platform.pathSeparator;
-    final downloads = Directory('$home${sep}Downloads');
-    final dir = downloads.existsSync() ? downloads.path : home;
     final name = title.replaceAll(RegExp(r'[^\p{L}\p{N} ._-]+', unicode: true), ' ').trim();
-    return '$dir$sep${name.isEmpty ? 'output' : name}.$ext';
+    return downloadsPath('${name.isEmpty ? 'output' : name}.$ext');
   }
 
   Future<void> _export(BuildContext context, String format) async {
@@ -64,4 +59,13 @@ class ExportMenu extends StatelessWidget {
       ],
     );
   }
+}
+
+/// [fileName] in the user's Downloads folder (or home when there is none).
+String downloadsPath(String fileName) {
+  final env = Platform.environment;
+  final home = env['USERPROFILE'] ?? env['HOME'] ?? Directory.systemTemp.path;
+  final sep = Platform.pathSeparator;
+  final downloads = Directory('$home${sep}Downloads');
+  return '${downloads.existsSync() ? downloads.path : home}$sep$fileName';
 }
