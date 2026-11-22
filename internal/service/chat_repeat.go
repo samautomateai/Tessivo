@@ -281,7 +281,7 @@ func (s *Service) SaveChatReply(ctx context.Context, chatID, messageID, workType
 	}
 	model := sess.Model
 	if model == "" {
-		model = s.Config.Defaults.Model
+		model = s.cfg().Defaults.Model
 	}
 	req := RunRequest{Notebook: nb, Prompt: structurePrompt, Extra: extra, Save: true}
 	req.Overrides.Model = model

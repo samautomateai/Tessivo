@@ -98,6 +98,7 @@ func (s *Server) Handler() http.Handler {
 	s.mcpRoutes(mux)
 	s.notebookManageRoutes(mux)
 	s.promptRoutes(mux)
+	s.settingsRoutes(mux)
 	s.researchRoutes(mux)
 	return s.secure(mux)
 }

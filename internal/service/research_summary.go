@@ -212,7 +212,7 @@ func (s *Service) emitSummary(nb *research.Notebook, sourceID, kind, msg string)
 // researchSettings resolves app defaults and the notebook's settings.
 func (s *Service) researchSettings(nb *research.Notebook) config.RunSettings {
 	return config.Resolve(
-		config.Layer{Name: layerApp, Settings: s.Config.Defaults},
+		config.Layer{Name: layerApp, Settings: s.cfg().Defaults},
 		config.Layer{Name: "research", Settings: nb.Manifest.Settings},
 	).RunSettings
 }
@@ -226,7 +226,7 @@ func (s *Service) summaryText(ctx context.Context, nb *research.Notebook, read s
 	if settings.Model == "" {
 		return "", "", invalidf("no model set; set one for this notebook or defaults.model in the config")
 	}
-	alias, err := s.Config.ResolveModel(settings.Model)
+	alias, err := s.cfg().ResolveModel(settings.Model)
 	if err != nil {
 		return "", "", &InvalidError{err.Error()}
 	}

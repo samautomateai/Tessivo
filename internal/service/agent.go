@@ -193,7 +193,7 @@ func (s *Service) interrupt(nb *notebook.Notebook, st *storedRun, rec *runAudit,
 // tools of the notebook's MCP servers. closeTools stops those servers.
 func (s *Service) buildAgent(ctx context.Context, nb *notebook.Notebook, st *storedRun, model executor.Model,
 ) (a *agent.Agent, closeTools func(), err error) {
-	pol := agent.Policy{Run: st.ToolRules, Notebook: nb.Manifest.Agent.Tools, App: s.Config.Agent.Tools}
+	pol := agent.Policy{Run: st.ToolRules, Notebook: nb.Manifest.Agent.Tools, App: s.cfg().Agent.Tools}
 	if err := pol.Check(); err != nil {
 		return nil, nil, &InvalidError{err.Error()}
 	}
@@ -216,7 +216,7 @@ func (s *Service) buildAgent(ctx context.Context, nb *notebook.Notebook, st *sto
 		return nil, nil, err
 	}
 	tools = append(tools, remote...)
-	lim := s.Config.Agent.WithDefaults()
+	lim := s.cfg().Agent.WithDefaults()
 	return &agent.Agent{
 		Model: model, Tools: agenttools.NewRegistry(tools...), Policy: pol, Now: s.now,
 		Limits: agent.Limits{
@@ -230,7 +230,7 @@ func (s *Service) buildAgent(ctx context.Context, nb *notebook.Notebook, st *sto
 // redactor removes the configured provider keys and credential-shaped text.
 func (s *Service) redactor() func(string) string {
 	var known []string
-	for _, p := range s.Config.Providers {
+	for _, p := range s.cfg().Providers {
 		if p.APIKeyRef == "" || s.Secrets == nil {
 			continue
 		}

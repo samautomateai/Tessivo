@@ -258,12 +258,12 @@ func (s *Service) GetOutput(notebookID, outputID string) (OutputInfo, error) {
 }
 
 // Settings returns the config. It holds only key references, never values.
-func (s *Service) Settings() config.File { return s.Config }
+func (s *Service) Settings() config.File { return s.cfg() }
 
 // Models lists a provider's models (or all providers').
 func (s *Service) Models(ctx context.Context, provider string) (map[string][]string, error) {
 	out := map[string][]string{}
-	for _, p := range s.Config.Providers {
+	for _, p := range s.cfg().Providers {
 		if provider != "" && p.Name != provider {
 			continue
 		}

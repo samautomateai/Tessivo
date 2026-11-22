@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/notify"
 	"github.com/samautomateai/tessivo/internal/scheduler"
 	"github.com/samautomateai/tessivo/internal/server"
@@ -56,11 +57,10 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 	if err != nil {
 		return err
 	}
-	svc, err := newService(f, env)
+	svc, err := serveService(f, env)
 	if err != nil {
 		return err
 	}
-	svc.Actor = "desktop"
 	token, err := server.NewToken()
 	if err != nil {
 		return err
@@ -161,4 +161,16 @@ func startBackground(ctx context.Context, svc *service.Service, api *server.Serv
 		_, _ = fmt.Fprintf(env.Stderr, "tessivo: recovering agent runs: %v\n", err)
 	}
 	return startScheduler(ctx, svc, api, sched, send)
+}
+
+// serveService is the service behind the local API: the desktop is its
+// actor, and API keys set from the desktop go to the OS keychain.
+func serveService(f config.File, env Env) (*service.Service, error) {
+	svc, err := newService(f, env)
+	if err != nil {
+		return nil, err
+	}
+	svc.Actor = "desktop"
+	svc.SecretStore = env.Keychain
+	return svc, nil
 }

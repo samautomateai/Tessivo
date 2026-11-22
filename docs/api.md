@@ -27,6 +27,10 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/outputs?notebook=&workType=` | — | `{"outputs": [Output]}` (no data) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}` | — | `Output` with `data` and `markdown` |
 | `GET /v1/settings` | — | config (key references only) |
+| `PUT /v1/settings` | `{providers, aliases, defaults, limits}` | the config after the change; validated, saved to the config file and applied at once (MCP servers have their own routes) |
+| `GET /v1/secrets/{ref}` | — | `{set: bool}`: whether an API key is available (keychain or environment); its value never leaves the core |
+| `PUT /v1/secrets/{ref}` | `{value}` | `204`; stores the key in the OS keychain (one line, ≤ 8 KiB); `503` when the core has no keychain |
+| `DELETE /v1/secrets/{ref}` | — | `204` |
 | `GET /v1/models?provider=` | — | `{"models": {"provider": ["model", …]}}` |
 | `GET /v1/notebooks/{id}/schedules` | — | `{"schedules": [Schedule]}` |
 | `POST /v1/notebooks/{id}/schedules` | `{cron, prompt?, promptName?, vars?, missed?, enabled?}` | `201 Schedule` |

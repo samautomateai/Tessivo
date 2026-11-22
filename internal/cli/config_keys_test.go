@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/samautomateai/tessivo/internal/config"
 )
 
 func TestConfigGetSetExportImport(t *testing.T) {
@@ -47,5 +49,26 @@ func TestConfigGetSetExportImport(t *testing.T) {
 		if code := h.run(args...); code != ExitUsage {
 			t.Errorf("%v: exit %d", args, code)
 		}
+	}
+}
+
+func TestServiceSavesToTheDefaultConfigPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("APPDATA", filepath.Join(home, "AppData"))
+	h := newHarness(t)
+	h.env.ConfigPath = "" // the default location, as the desktop app starts the core
+	want, err := configPath(h.env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc, err := newService(config.Default(), h.env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if svc.ConfigPath != want {
+		t.Fatalf("settings and MCP servers would only change in memory: ConfigPath %q, want %q", svc.ConfigPath, want)
 	}
 }

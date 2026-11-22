@@ -125,6 +125,8 @@ func classify(err error) (int, string) {
 		return http.StatusUnprocessableEntity, msg
 	case errors.Is(err, service.ErrTokenLimit):
 		return http.StatusTooManyRequests, msg
+	case errors.Is(err, service.ErrNoSecretStore):
+		return http.StatusServiceUnavailable, msg
 	default:
 		return http.StatusInternalServerError, msg
 	}

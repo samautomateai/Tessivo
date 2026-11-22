@@ -101,7 +101,7 @@ func (s *Service) Usage() (Usage, error) {
 	day := s.today()
 	return Usage{
 		Day: day, Tokens: l.Days[day],
-		DayLimit: s.Config.Limits.MaxTokensPerDay, RunLimit: s.Config.Limits.MaxTokensPerRun,
+		DayLimit: s.cfg().Limits.MaxTokensPerDay, RunLimit: s.cfg().Limits.MaxTokensPerRun,
 	}, err
 }
 
@@ -113,7 +113,7 @@ type metered struct {
 }
 
 func (m metered) ChatStream(ctx context.Context, req llm.Request, onDelta func(string)) (llm.Result, error) {
-	if lim := m.s.Config.Limits.MaxTokensPerDay; lim > 0 {
+	if lim := m.s.cfg().Limits.MaxTokensPerDay; lim > 0 {
 		if l, err := m.s.readUsage(); err == nil && l.Days[m.s.today()] >= lim {
 			return llm.Result{}, fmt.Errorf("%w: %d of %d tokens used today (limits.max_tokens_per_day)",
 				ErrTokenLimit, l.Days[m.s.today()], lim)
@@ -129,7 +129,7 @@ func (m metered) ChatStream(ctx context.Context, req llm.Request, onDelta func(s
 }
 
 func (s *Service) usageEvents(before, after int) {
-	lim := s.Config.Limits.MaxTokensPerDay
+	lim := s.cfg().Limits.MaxTokensPerDay
 	if lim <= 0 || s.OnRunEvent == nil {
 		return
 	}
@@ -167,7 +167,7 @@ func (r *runCapped) ChatStream(ctx context.Context, req llm.Request, onDelta fun
 
 // capRun applies the run's token limit: the schedule's own, else limits.max_tokens_per_run.
 func (s *Service) capRun(m executor.Model, req RunRequest) executor.Model {
-	limit, name := s.Config.Limits.MaxTokensPerRun, "limits.max_tokens_per_run"
+	limit, name := s.cfg().Limits.MaxTokensPerRun, "limits.max_tokens_per_run"
 	if req.MaxTokens > 0 {
 		limit, name = req.MaxTokens, "the schedule's maxTokens"
 	}

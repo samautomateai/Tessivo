@@ -67,7 +67,7 @@ func chatErr(err error) error {
 // checkChatSettings validates a model name and thinking effort ("" means default).
 func (s *Service) checkChatSettings(model, effort string) error {
 	if model != "" {
-		if _, err := s.Config.ResolveModel(model); err != nil {
+		if _, err := s.cfg().ResolveModel(model); err != nil {
 			return &InvalidError{err.Error()}
 		}
 	}
@@ -189,7 +189,7 @@ func (s *Service) SetChatMemory(facts []string) ([]string, error) {
 // app defaults.
 func (s *Service) chatModelSettings(sess chat.Session) config.RunSettings {
 	return config.Resolve(
-		config.Layer{Name: layerApp, Settings: s.Config.Defaults},
+		config.Layer{Name: layerApp, Settings: s.cfg().Defaults},
 		config.Layer{Name: "chat", Settings: config.RunSettings{
 			Model: sess.Model, ThinkingEffort: sess.ThinkingEffort,
 		}},
