@@ -122,7 +122,7 @@ func (s *Service) streamReply(ctx context.Context, alias config.Alias, req llm.R
 	reply := chat.Message{ID: chat.NewMessageID(), Role: chat.RoleAssistant, CreatedAt: nowRFC3339()}
 	model, err := s.aliasModel(alias)
 	if err != nil {
-		reply.Stopped, reply.Error = true, "model setup failed"
+		reply.Stopped, reply.Error = true, errModelSetup
 		return reply, err
 	}
 	res, text, err := streamText(ctx, model, req, 0, onDelta)
@@ -289,3 +289,6 @@ func (s *Service) sessionDocs(ctx context.Context, sess chat.Session, skipID str
 	}
 	return docs
 }
+
+// errModelSetup is stored on a reply when the model client could not be built.
+const errModelSetup = "model setup failed"

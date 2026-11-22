@@ -12,6 +12,7 @@ import (
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/mcp"
 	"github.com/samautomateai/tessivo/internal/notebook"
+	"github.com/samautomateai/tessivo/internal/research"
 	"github.com/samautomateai/tessivo/internal/secrets"
 )
 
@@ -121,6 +122,16 @@ func (s *Service) notebooksUsingMCP(name string) []string {
 		})
 		if usesSource || slices.Contains(n.nb.Manifest.Agent.MCPServers, name) {
 			users = append(users, n.Name)
+		}
+	}
+	if root, err := s.researchRoot(); err == nil {
+		if rnbs, err := research.List(root); err == nil {
+			for _, r := range rnbs {
+				uses := func(src research.Source) bool { return src.Server == name }
+				if slices.ContainsFunc(r.Manifest.Sources, uses) {
+					users = append(users, r.Manifest.Name)
+				}
+			}
 		}
 	}
 	return users

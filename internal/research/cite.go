@@ -1,0 +1,149 @@
+package research
+
+import (
+	"errors"
+	"io/fs"
+	"path"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
+)
+
+// Citation is one valid [n] or [n:path] in an answer, resolved to the item it
+// names. Path is set only for a file listed in that folder source.
+type Citation struct {
+	N     int    `json:"n"`
+	Kind  string `json:"kind"`
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Level string `json:"level,omitempty"`
+	Path  string `json:"path,omitempty"`
+}
+
+var citeRE = regexp.MustCompile(`\[(\d{1,6})(?::([^\]\n]{1,512}))?\]`)
+
+// ParseCitations resolves the [n] and [n:path] markers in text against the
+// items the question was given. Unknown numbers are ignored; a path that is
+// absolute, climbs out, or is not one of the folder's files is dropped (the
+// citation keeps its source). Duplicates collapse.
+func ParseCitations(text string, items []Item) []Citation {
+	var out []Citation
+	for _, m := range markers(text) {
+		c, ok := resolve(m[1], m[2], items)
+		if ok && !slices.Contains(out, c) {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+func resolve(num, rawPath string, items []Item) (Citation, bool) {
+	n, err := strconv.Atoi(num)
+	if err != nil || n < 1 || n > len(items) {
+		return Citation{}, false
+	}
+	it := items[n-1]
+	c := Citation{N: n, Kind: it.Kind, ID: it.ID, Label: it.Label, Level: it.Level}
+	if p := cleanPath(rawPath); p != "" {
+		for _, f := range it.Files {
+			if path.Clean(strings.ReplaceAll(f.Path, `\`, "/")) == p {
+				c.Path = p
+				break
+			}
+		}
+	}
+	return c, true
+}
+
+// cleanPath returns a relative, slash-separated path, or "" when the path is
+// empty, absolute or climbs out of its folder.
+func cleanPath(p string) string {
+	p = strings.TrimSpace(strings.ReplaceAll(p, `\`, "/"))
+	if p == "" || strings.HasPrefix(p, "/") || strings.Contains(p, ":") {
+		return ""
+	}
+	for _, part := range strings.Split(p, "/") {
+		if part == ".." {
+			return ""
+		}
+	}
+	return path.Clean(p)
+}
+
+// Relabel replaces each marker that cites resolve with the item's label, so
+// a later question (with new numbers) never sees stale ones: [2:a.go]
+// becomes [payments-service: a.go]. Markers not in cites stay as they are.
+func Relabel(text string, cites []Citation) string {
+	labels := map[int]string{}
+	paths := map[int][]string{}
+	for _, c := range cites {
+		labels[c.N] = c.Label
+		if c.Path != "" {
+			paths[c.N] = append(paths[c.N], c.Path)
+		}
+	}
+	var sb strings.Builder
+	last := 0
+	for _, m := range markerIndexes(text) {
+		n, _ := strconv.Atoi(text[m[2]:m[3]])
+		label, ok := labels[n]
+		if !ok {
+			continue
+		}
+		sb.WriteString(text[last:m[0]])
+		last = m[1]
+		if m[4] >= 0 {
+			if p := cleanPath(text[m[4]:m[5]]); p != "" && slices.Contains(paths[n], p) {
+				sb.WriteString("[" + label + ": " + p + "]")
+				continue
+			}
+		}
+		sb.WriteString("[" + label + "]")
+	}
+	sb.WriteString(text[last:])
+	return sb.String()
+}
+
+// codeRE finds fenced code blocks (an unclosed fence runs to the end) and inline code spans.
+var codeRE = regexp.MustCompile("(?s)```.*?(?:```|$)|`[^`\n]+`")
+
+// markerIndexes returns citeRE's submatch indexes for markers outside code:
+// `items[1]` in an answer about code is not a citation.
+func markerIndexes(text string) [][]int {
+	code := codeRE.FindAllStringIndex(text, -1)
+	var out [][]int
+	for _, m := range citeRE.FindAllStringSubmatchIndex(text, -1) {
+		if !slices.ContainsFunc(code, func(c []int) bool { return m[0] >= c[0] && m[0] < c[1] }) {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// markers is markerIndexes as [whole, number, path] strings.
+func markers(text string) [][3]string {
+	idx := markerIndexes(text)
+	out := make([][3]string, len(idx))
+	for i, m := range idx {
+		out[i] = [3]string{text[m[0]:m[1]], text[m[2]:m[3]], ""}
+		if m[4] >= 0 {
+			out[i][2] = text[m[4]:m[5]]
+		}
+	}
+	return out
+}
+
+// LoadCitations reads a conversation's citations (message ID → citations);
+// a missing file is an empty map.
+func LoadCitations(path string) (map[string][]Citation, error) {
+	out := map[string][]Citation{}
+	err := readJSON(path, 8<<20, &out)
+	if errors.Is(err, fs.ErrNotExist) {
+		return map[string][]Citation{}, nil
+	}
+	return out, err
+}
+
+// SaveCitations writes a conversation's citations atomically (0600).
+func SaveCitations(path string, all map[string][]Citation) error { return writeJSON(path, all) }

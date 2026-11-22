@@ -5,9 +5,10 @@ import 'package:material_ui/material_ui.dart';
 import 'chat_state.dart';
 import 'core/core_client.dart';
 import 'core/models.dart';
+import 'research_state.dart';
 import 'thread_state.dart';
 
-enum Section { chat, notebooks, templates, schedules, library, settings }
+enum Section { chat, notebooks, research, templates, schedules, library, settings }
 
 /// App-wide state on a plain [ChangeNotifier] (no state-management package).
 class AppState extends ChangeNotifier {
@@ -82,6 +83,7 @@ class AppState extends ChangeNotifier {
     _events = core.events().listen(
       (e) {
         _retry = const Duration(seconds: 2);
+        if (e.isResearchEvent) return _researchEvent(e);
         if (e.isRunEvent || e.kind == 'schedule.paused') unawaited(refreshApprovals());
         if (e.kind == 'schedule.started' || e.kind == 'run.resumed') return; // only outcomes are worth a notice
         notices.add(e.message);
@@ -122,6 +124,7 @@ class AppState extends ChangeNotifier {
     _disposed = true;
     stopEvents();
     thread?.dispose();
+    researchState?.dispose();
     chat.dispose();
     super.dispose();
   }
@@ -142,6 +145,7 @@ class AppState extends ChangeNotifier {
     if (selectedId case final id?) await _refresh(id);
     await refreshMcpServers();
     await loadOutputs();
+    await loadResearch();
   }
 
   void go(Section s) {
@@ -215,6 +219,48 @@ class AppState extends ChangeNotifier {
     final nb = await core.createNotebook(name: name, workType: type);
     notebooks = await core.listNotebooks();
     select(nb.id);
+  }
+
+  /// Research notebooks (sidebar RESEARCH group) and the one open.
+  List<ResearchNotebook> research = const [];
+  ResearchState? researchState;
+
+  /// Reloads the research notebooks; an older core without them shows none.
+  Future<void> loadResearch() async {
+    try {
+      research = await core.listResearch();
+    } on Object {
+      research = const [];
+    }
+    if (!_disposed) notifyListeners();
+  }
+
+  /// Opens a research notebook.
+  void selectResearch(String id) {
+    researchState?.dispose();
+    final r = researchState = ResearchState(core, id, onError: _notice, onChanged: _putResearch);
+    section = Section.research;
+    notifyListeners();
+    unawaited(r.load());
+  }
+
+  void _putResearch(ResearchNotebook nb) {
+    research = [for (final r in research) r.id == nb.id ? nb : r];
+    if (!_disposed) notifyListeners();
+  }
+
+  /// Creates a research notebook and opens it.
+  Future<void> createResearch(String name, {String description = ''}) async {
+    final nb = await core.createResearch(name, description: description);
+    await loadResearch();
+    selectResearch(nb.id);
+  }
+
+  /// A summary started, is ready or failed: the open notebook reloads, and only a failure is a notice.
+  void _researchEvent(CoreEvent e) {
+    final open = researchState;
+    if (open != null && open.notebookId == e.notebookId) unawaited(open.reload());
+    if (e.kind == 'research.summary.failed') _notice(e.message);
   }
 
   /// Chat view state, created on first use.

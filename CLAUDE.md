@@ -65,6 +65,8 @@ our own agent loop for agent mode (ADR 0005), MCP for tools. Spec: see `docs/REA
 - `tools/` — repo tooling in Go (dev setup, length, text, coverage gates, fuzz runner, release archives).
 - `internal/testutil` — OS-independent test helpers (imported only from tests).
 - `internal/executor/agent` — agent mode loop, rules, checkpoints; `internal/agenttools` — its rooted tools and MCP tool adapter.
+- `internal/research` — research notebooks (sources, levels, summaries, notes, prompt builder, citations); service
+  logic in `internal/service/research*.go`.
 - `internal/mcp` — MCP client (stdio, Streamable HTTP; ported from Zero, MIT); `internal/mcp/mcptest` — fake server for tests.
 - `docs/api.md` — local JSON API contract between the desktop UI and the core (ADR 0004).
 - `desktop/` — Flutter app.

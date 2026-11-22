@@ -156,6 +156,7 @@ func startBackground(ctx context.Context, svc *service.Service, api *server.Serv
 	api.Events = server.NewBroker()
 	send := noteSender(ctx, notes, env)
 	wireRunEvents(svc, api, send)
+	svc.StartSummaries(ctx) // research summaries run while the core runs
 	if err := svc.Recover(); err != nil {
 		_, _ = fmt.Fprintf(env.Stderr, "tessivo: recovering agent runs: %v\n", err)
 	}

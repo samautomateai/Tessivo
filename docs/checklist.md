@@ -40,6 +40,9 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | MCP client: stdio and Streamable HTTP servers in settings (`tess mcp`, `/v1/mcp/servers`, desktop Settings), test lists tools, resources and prompts | MCP-1 | ☑ |
 | MCP servers attached to notebooks; their tools in agent runs as `mcp__<server>__<tool>` (ask by default) | MCP-2 | ☑ |
 | MCP resources as notebook sources, read on every run | MCP-3 | ☑ |
+| Research notebooks, separate from job notebooks: files, folders and MCP resources as sources (`tess research`, `/v1/research`, desktop RESEARCH group and Job/Research choice) | RES-1 | ☑ |
+| Per-source summaries in the background (≤ 2 at a time, fingerprinted, events) and context levels full, summary or off, with a context bar | RES-2 | ☑ |
+| Cited conversations (`[n]` / `[n:path]` resolved to sources and notes, References that open the source) and notes, human or saved from answers, in or out of the context | RES-3 | ☑ |
 | Code changes via ACP delegation to bundled nca in a worktree or snapshot; change sets and apply (phase 5) | WT/E11 | ☐ |
 
 ## M2: scheduling
@@ -76,6 +79,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 `--prompt-name`, `--var`, `--model`, `--thinking`, `--mode agent`, `--tool name=rule`, `--json`, `--out`, `--no-save`),
 `tess run pending|approve|deny|resume|cancel` (agent approvals; `--notebook DIR`, `--remember run|notebook`), `tess outputs`,
 `tess output ask|suggest|suggestions|apply|dismiss|refine <notebook> <output-id>` (output threads; `refine --from ID`),
-`tess schedule add|list|remove|enable|disable|next`, `tess template`, `tess memory`, `tess serve`, `tess secret`, `tess audit`,
+`tess schedule add|list|remove|enable|disable|next`,
+`tess research new|list|show|delete|source add|list|level|remove|refresh|ask|note add|list|rm`, `tess template`, `tess memory`, `tess serve`, `tess secret`, `tess audit`,
 `tess models`, `tess worktypes`, `tess config init|show|path`, `tess version`.
 Exit codes: 0 ok, 1 error, 2 usage, 3 output failed schema validation, 4 agent run waiting for approval.

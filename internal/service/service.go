@@ -61,9 +61,13 @@ type Service struct {
 	// Now is the clock; nil means time.Now.
 	Now func() time.Time
 
-	cfgMu    sync.RWMutex // guards Config.MCP, which the API can change
-	jobsOnce sync.Once
-	jobs     *jobTable
+	cfgMu     sync.RWMutex // guards Config.MCP, which the API can change
+	sumOnce   sync.Once    // starts the research summary runner on first use
+	sum       *summaryRunner
+	checkOnce sync.Once // creates checks on first use
+	checks    *checkTable
+	jobsOnce  sync.Once
+	jobs      *jobTable
 }
 
 // DefaultModelFactory builds an llm.Router.
