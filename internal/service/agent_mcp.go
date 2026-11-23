@@ -38,6 +38,12 @@ func (m mcpCaller) CallTool(ctx context.Context, name string, args json.RawMessa
 // pauses. A server that cannot be reached fails the call, naming it.
 func (s *Service) mcpTools(ctx context.Context, nb *notebook.Notebook,
 ) (tools []agenttools.Tool, closeAll func(), err error) {
+	return s.mcpToolsFor(ctx, nb.Manifest.Agent.MCPServers)
+}
+
+// mcpToolsFor connects to the named servers and returns their tools; see mcpTools.
+func (s *Service) mcpToolsFor(ctx context.Context, names []string,
+) (tools []agenttools.Tool, closeAll func(), err error) {
 	var clients []*mcpSession
 	closeAll = func() {
 		for _, c := range clients {
@@ -48,7 +54,7 @@ func (s *Service) mcpTools(ctx context.Context, nb *notebook.Notebook,
 		}
 	}
 	taken := map[string]bool{} // tool names stay unique across servers
-	for _, name := range nb.Manifest.Agent.MCPServers {
+	for _, name := range names {
 		c, err := s.connectMCP(ctx, name)
 		if err != nil {
 			closeAll()
@@ -72,6 +78,20 @@ func (s *Service) mcpTools(ctx context.Context, nb *notebook.Notebook,
 		tools = append(tools, agenttools.MCPTools(name, specs, mcpCaller{c: c.Client, redact: c.redact}, taken)...)
 	}
 	return tools, closeAll, nil
+}
+
+// checkMCPNames checks names are configured servers, at most maxAttachedMCP.
+func (s *Service) checkMCPNames(names []string) error {
+	cfg := s.mcpConfig()
+	for _, name := range names {
+		if _, ok := cfg.Find(name); !ok {
+			return invalidf("mcp server %q is not configured; add it first", name)
+		}
+	}
+	if len(names) > maxAttachedMCP {
+		return invalidf("at most %d MCP servers", maxAttachedMCP)
+	}
+	return nil
 }
 
 // SetNotebookMCP sets the servers a notebook's agent runs may use. Every

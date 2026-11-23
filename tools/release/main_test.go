@@ -34,7 +34,7 @@ func newApp(t *testing.T) (*app, *fakeGo, string) {
 		}
 	}
 	g := &fakeGo{}
-	return &app{root: root, goBuild: g.build, out: io.Discard}, g, root
+	return &app{root: root, goBuild: g.build, run: fakeRun, out: io.Discard}, g, root
 }
 
 func names(t *testing.T, path string) []string {
@@ -135,7 +135,7 @@ func TestDesktopBundlesTess(t *testing.T) {
 		t.Logf("symlinks unavailable here (%v); symlink entry not checked", err)
 	}
 	dist := filepath.Join(root, "dist")
-	if err := a.desktop(context.Background(), "v1.0.0", dist, "linux", "amd64"); err != nil {
+	if err := a.desktop(context.Background(), "v1.0.0", dist, "linux", "amd64", true, true); err != nil {
 		t.Fatal(err)
 	}
 	if b := g.builds[0]; b.goos != "linux" || b.goarch != "amd64" {
@@ -162,7 +162,8 @@ func TestDesktopMacPutsTessInsideApp(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(app, "Contents", "MacOS"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.desktop(context.Background(), "v1", filepath.Join(root, "dist"), "macos", "arm64"); err != nil {
+	dist := filepath.Join(root, "dist")
+	if err := a.desktop(context.Background(), "v1", dist, "macos", "arm64", true, true); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.HasSuffix(filepath.ToSlash(g.builds[0].out), "tessivo_desktop.app/Contents/MacOS/tess") {
@@ -175,10 +176,10 @@ func TestDesktopMacPutsTessInsideApp(t *testing.T) {
 
 func TestDesktopErrors(t *testing.T) {
 	a, _, root := newApp(t)
-	if err := a.desktop(context.Background(), "v1", root, "beos", "amd64"); err == nil {
+	if err := a.desktop(context.Background(), "v1", root, "beos", "amd64", true, true); err == nil {
 		t.Fatal("unknown platform must fail")
 	}
-	if err := a.desktop(context.Background(), "v1", root, "windows", "amd64"); err == nil ||
+	if err := a.desktop(context.Background(), "v1", root, "windows", "amd64", true, true); err == nil ||
 		!strings.Contains(err.Error(), "flutter build windows") {
 		t.Fatalf("a missing bundle must say how to build it: %v", err)
 	}

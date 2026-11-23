@@ -59,6 +59,7 @@ func chatSend(ctx context.Context, svc *service.Service, args []string, env Env)
 	session := fs.String("session", "", "continue this chat session")
 	model := fs.String("model", "", "model alias for a new session")
 	thinking := fs.String("thinking", "", "thinking effort for a new session: off, low, medium, high")
+	mcp := fs.String("mcp", "", "comma-separated MCP servers this chat may use (tools that ask need your yes)")
 	var attach multiFlag
 	fs.Var(&attach, "attach", "absolute path to a file or folder (repeatable)")
 	rest, err := parse(fs, args)
@@ -84,15 +85,21 @@ func chatSend(ctx context.Context, svc *service.Service, args []string, env Env)
 		id = sess.ID
 		_, _ = fmt.Fprintf(env.Stderr, "session %s\n", id)
 	}
+	if *mcp != "" {
+		servers := strings.Split(*mcp, ",")
+		if _, err := svc.UpdateChat(id, service.ChatPatch{MCPServers: &servers}); err != nil {
+			return err
+		}
+	}
 	switch {
 	case text != "":
-		return sendOne(ctx, svc, id, text, atts, env)
+		return sendOne(ctx, svc, id, text, atts, env, ttyLines(env))
 	case !env.StdinIsTTY && env.Stdin != nil:
 		b, err := io.ReadAll(io.LimitReader(env.Stdin, chat.MaxMessageBytes+1))
 		if err != nil {
 			return fmt.Errorf("read stdin: %w", err)
 		}
-		return sendOne(ctx, svc, id, string(b), atts, env)
+		return sendOne(ctx, svc, id, string(b), atts, env, nil) // stdin is the message: tools that ask are denied
 	default:
 		return chatLoop(ctx, svc, id, atts, env)
 	}
@@ -110,10 +117,13 @@ func attachments(paths []string) ([]chat.Attachment, error) {
 	return out, nil
 }
 
-func sendOne(ctx context.Context, svc *service.Service, id, text string, atts []chat.Attachment, env Env) error {
+func sendOne(ctx context.Context, svc *service.Service, id, text string, atts []chat.Attachment, env Env,
+	readLine func() (string, bool),
+) error {
 	var werr error
 	streamed := false
-	reply, err := svc.SendChat(ctx, id, service.ChatSend{Text: text, Attachments: atts}, func(d string) {
+	in := service.ChatSend{Text: text, Attachments: atts, OnTool: toolLine(env), Approve: askTool(env, readLine)}
+	reply, err := svc.SendChat(ctx, id, in, func(d string) {
 		streamed = true
 		if werr == nil {
 			_, werr = io.WriteString(env.Stdout, d)
@@ -151,7 +161,13 @@ func chatLoop(ctx context.Context, svc *service.Service, id string, atts []chat.
 		case "/quit", "/exit":
 			return nil
 		}
-		if err := sendOne(ctx, svc, id, line, atts, env); err != nil {
+		readLine := func() (string, bool) {
+			if !sc.Scan() {
+				return "", false
+			}
+			return sc.Text(), true
+		}
+		if err := sendOne(ctx, svc, id, line, atts, env, readLine); err != nil {
 			if ctx.Err() != nil {
 				return err
 			}

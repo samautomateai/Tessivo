@@ -46,7 +46,7 @@ func (s *Service) auditTools(rec *runAudit, st *storedRun) error {
 	for ; st.Audited < len(calls); st.Audited++ {
 		c := calls[st.Audited]
 		data := map[string]any{
-			"tool": c.Tool, "policy": c.Policy, "args_sha256": audit.Digest(c.Args),
+			auditKeyTool: c.Tool, "policy": c.Policy, "args_sha256": audit.Digest(c.Args),
 			"result_sha256": audit.Digest(c.Result), "duration_ms": c.DurationMS,
 		}
 		if c.Decision != "" {

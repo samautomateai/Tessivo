@@ -116,6 +116,13 @@ func (s *Server) sendChat(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "streaming unsupported")
 		return
 	}
+	cid := r.PathValue("cid")
+	in.OnTool = func(e service.ChatToolEvent) { sse.send("tool", e) }
+	ctx := r.Context()
+	in.Approve = func(req service.ChatToolRequest) service.ChatToolAnswer {
+		sse.send("approval", req)
+		return s.chatAsk.wait(ctx, cid+"/"+req.ID, chatApprovalWait)
+	}
 	reply, err := s.svc.SendChat(r.Context(), r.PathValue("cid"), in, func(d string) {
 		sse.send("delta", map[string]string{keyText: d})
 	})

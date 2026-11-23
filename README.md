@@ -1,31 +1,43 @@
 # Tessivo
 
-Analyze, summarize, document and report with self-hosted models. A native desktop app and a CLI
-(`tess`) built on one Go core, using any OpenAI-compatible endpoint such as a LiteLLM proxy.
+Analyze, summarize, document and report with the models you choose. A native desktop app and a CLI (`tess`) built
+on one Go core. It works with any OpenAI-compatible endpoint, self-hosted (LiteLLM, vLLM, Ollama) or hosted, and
+with Anthropic and Gemini through their own APIs.
 
-> Status: M1 foundations in progress. See [docs/checklist.md](docs/checklist.md).
+> Status: feature-complete for the first release; see the [user guide](docs/user-guide.md) and the
+> [delivery checklist](docs/checklist.md).
 
 ## Concepts
 
-- **Notebook**: one project for one recurring job: a work type, context, prompts, memory, runs,
-  outputs and schedules in one portable folder.
-- **Work type**: Analyze, Summarize, Document or Report. Sets the starter prompt, expected context
-  and the structure of the output.
-- **Context**: any mix of documents, spreadsheets, code bases, diffs, URLs, text and MCP resources.
+- **Notebook**: one project for one recurring job: a work type, sources, prompts, memory, runs, outputs and
+  schedules in one portable folder.
+- **Work type**: Analyze, Summarize, Document or Report. Sets the starter prompt, expected context and the
+  structure of the output.
+- **Sources**: any mix of documents (PDF, Word, Excel, PowerPoint), code bases, git changes, web pages, pasted
+  text and MCP resources.
+- **Agent mode, chat and research**: tools under allow/ask/block rules, chats that can become notebooks, and
+  research notebooks with cited answers.
 
 ## Download
 
 Each release on the GitHub Releases page has:
 
-- `tess_<version>_<os>_<arch>`: the CLI for Linux, macOS and Windows on amd64 and arm64 (`.tar.gz`, or `.zip` for
-  Windows).
-- `tessivo-desktop_<version>_<platform>_<arch>`: the desktop app with `tess` bundled beside it (Linux and Windows
-  x64, macOS Apple silicon).
+- Installers:
+  - Windows: `…_windows_amd64_setup.exe`, a per-user install with no admin rights needed.
+  - macOS: `…_macos_arm64.dmg`.
+  - Linux: `…_linux_amd64.deb` and `.AppImage`.
+- `tessivo-desktop_<version>_<platform>_<arch>` archives: the desktop app with `tess` bundled beside it.
+- `tess_<version>_<os>_<arch>`: the CLI for Linux, macOS and Windows on amd64 and arm64.
 - `SHA256SUMS`: check a download with `sha256sum -c SHA256SUMS --ignore-missing`.
 
-Builds from `main` are kept for 30 days as artifacts of the `release` workflow run. The desktop builds are not
-signed yet, so macOS Gatekeeper and Windows SmartScreen warn on first launch. Build locally with `task release:cli`
-(all CLI targets) or `task release:desktop PLATFORM=linux|windows|macos` (this OS).
+Releases are signed and notarized once the signing secrets are configured ([ADR 0008](docs/adr/0008-installers-signing.md)).
+Until then, Windows SmartScreen and macOS Gatekeeper warn on the first launch; the [user guide](docs/user-guide.md)
+says how to proceed. Builds from `main` are kept for 30 days as artifacts of the `release` workflow run.
+
+To build locally:
+- `task release:cli` builds every CLI target.
+- `task release:desktop PLATFORM=linux|windows|macos` builds the desktop app for the OS you are on.
+- `go run ./tools/release installer` builds the installers.
 
 ## Quick start
 
@@ -57,7 +69,8 @@ task desktop:run    # run the desktop app on this OS
 task desktop:check  # format, analyze, test (coverage ≥ 80%) the desktop app
 ```
 
-Docs: [architecture](docs/architecture.md) · [decisions](docs/adr) · [security](SECURITY.md) ·
+Docs: [user guide](docs/user-guide.md) · [architecture](docs/architecture.md) · [decisions](docs/adr) ·
+[security](SECURITY.md) ·
 [rules for contributors](CLAUDE.md)
 
 ## License

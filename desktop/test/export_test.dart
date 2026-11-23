@@ -32,6 +32,24 @@ void main() {
     expect(find.textContaining('Saved'), findsOneWidget);
   });
 
+  testWidgets('the export menu offers PDF', (tester) async {
+    await pumpApp(tester);
+    await tester.enterText(find.byKey(const Key('prompt')), 'Assess PR 482');
+    await tester.tap(find.byKey(const Key('run')));
+    await tester.pumpAndSettle();
+    final dir = await tester.runAsync(() => Directory.systemTemp.createTemp('tessivo-pdf'));
+    addTearDown(() => dir!.deleteSync(recursive: true));
+    final path = '${dir!.path}${Platform.pathSeparator}r.pdf';
+    await tester.tap(find.byKey(const Key('export-output')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-pdf')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, path);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(File(path).readAsStringSync(), startsWith('%PDF'));
+  });
+
   test('http client downloads an export', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     final seen = <String>[];

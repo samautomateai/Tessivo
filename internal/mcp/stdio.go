@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/samautomateai/tessivo/internal/proctree"
 )
 
 // maxStderr is how much of a server's stderr is kept (the start of it).
@@ -30,6 +32,7 @@ var childEnvNames = []string{
 
 type stdioConn struct {
 	cmd    *exec.Cmd
+	tree   *proctree.Tree // nil when the OS could not name the tree; then only cmd is killed
 	stdin  io.WriteCloser
 	stderr *capped
 
@@ -59,8 +62,12 @@ func startStdio(ctx context.Context, s Server) (*stdioConn, error) {
 		pending: map[int64]chan message{}, exited: make(chan struct{}), writes: make(chan writeOp, writeQueue),
 	}
 	cmd.Stderr = c.stderr
+	proctree.Prepare(cmd)
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start %s: %w", s.Command, err)
+	}
+	if c.tree, err = proctree.Attach(cmd); err != nil {
+		c.tree = nil // still usable: close kills the direct process
 	}
 	go c.readLoop(stdout)
 	go c.writeLoop()
@@ -106,9 +113,13 @@ func (c *stdioConn) readLoop(stdout io.Reader) {
 	}
 	c.mu.Unlock()
 	if errors.Is(err, ErrTooLarge) {
-		_ = c.cmd.Process.Kill() // a flooding server is stopped at once
+		c.kill() // a flooding server is stopped at once
 	}
 	_ = c.cmd.Wait()
+	if c.tree != nil {
+		c.kill() // descendants the server left behind when it exited
+		_ = c.tree.Release()
+	}
 	close(c.exited)
 }
 
@@ -197,7 +208,7 @@ func (c *stdioConn) stall(cause error) error {
 	}
 	err := c.dead
 	c.mu.Unlock()
-	_ = c.cmd.Process.Kill()
+	c.kill()
 	return err
 }
 
@@ -252,7 +263,7 @@ func (c *stdioConn) notify(ctx context.Context, m message) error {
 }
 
 // close closes stdin (servers exit on EOF), then kills the process if it is
-// still running after closeGrace. Only the direct process is killed.
+// still running after closeGrace, with every process it started.
 func (c *stdioConn) close() error {
 	c.closing.Do(func() {
 		c.mu.Lock()
@@ -266,7 +277,7 @@ func (c *stdioConn) close() error {
 			return
 		case <-time.After(closeGrace):
 		}
-		_ = c.cmd.Process.Kill()
+		c.kill()
 		select { // a child that inherited stdout can keep the pipe open; do not wait forever
 		case <-c.exited:
 		case <-time.After(closeGrace):
@@ -303,4 +314,13 @@ func (b *capped) String() string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return string(b.buf)
+}
+
+// kill stops the server and, where the OS can name them, the processes it started.
+func (c *stdioConn) kill() {
+	if c.tree != nil {
+		_ = c.tree.Kill()
+		return
+	}
+	_ = c.cmd.Process.Kill()
 }

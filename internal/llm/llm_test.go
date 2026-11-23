@@ -164,7 +164,7 @@ func TestNewRouterFromConfig(t *testing.T) {
 	f := config.Default()
 	f.Providers = append(f.Providers, config.Provider{Name: "open", BaseURL: "http://o"})
 	alias := config.Alias{
-		Name: "smart", MaxRetries: 2,
+		Name: "smart", MaxRetries: func() *int { n := 2; return &n }(),
 		Chain: []config.ModelRef{
 			{Provider: "litellm", Model: "a"},
 			{Provider: "litellm", Model: "b"},

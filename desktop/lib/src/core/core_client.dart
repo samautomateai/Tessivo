@@ -153,6 +153,7 @@ class DemoCoreClient
     required String prompt,
     required Map<String, String> vars,
     String? promptName,
+    String? model,
   }) async* {
     yield const RunStatus('Generating output');
     const parts = ['# Risk report\n\n', '## Risk score\n\n7 of 10, high\n\n', '## Mitigations\n\n- Add idempotency\n'];
@@ -289,6 +290,13 @@ class DemoCoreClient
     return _addItem(notebookId, label.isEmpty ? 'Pasted text' : label, 'MD', text.length ~/ 4);
   }
 
+  @override
+  Future<Notebook> addGitDiffContext(String notebookId, String repo, String base, {String label = ''}) async {
+    if (base.isEmpty || base.startsWith('-') || base.contains('..')) throw const CoreException(400, 'bad base');
+    final name = repo.split(RegExp(r'[/\\]')).where((p) => p.isNotEmpty).last;
+    return _addItem(notebookId, label.isEmpty ? '$name changes since $base' : label, 'Git changes', 0);
+  }
+
   Notebook _addItem(String notebookId, String label, String kind, int tokens) {
     final nb = _find(notebookId);
     final item = ContextItem(id: 'c${_nextId++}', label: label, kind: kind, enabled: true, estimatedTokens: tokens);
@@ -338,13 +346,61 @@ class DemoCoreClient
   }
 
   @override
+  Future<RunInfo> outputRun(String notebookId, String outputId) async =>
+      const RunInfo(prompt: 'Assess the risk of merging this change.', model: 'smart');
+
+  @override
+  Future<OutputDiffInfo> diffOutput(String notebookId, String outputId, {String? against}) async {
+    final o = demoOutputs.firstWhere(
+      (o) => o.id == outputId,
+      orElse: () => throw const CoreException(404, 'no output'),
+    );
+    final from = against ?? o.parentId;
+    if (from == null) throw CoreException(400, 'output $outputId is an original, not a revision');
+    return OutputDiffInfo(
+      from: from,
+      to: outputId,
+      lines: const [
+        DiffLine(' ', '# Risk report'),
+        DiffLine('-', 'Score 7'),
+        DiffLine('+', 'Score 6 after mitigation'),
+      ],
+      added: 1,
+      removed: 1,
+    );
+  }
+
+  @override
+  Future<List<SearchHit>> search(String query) async {
+    final words = query.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) throw const CoreException(400, 'give words to search for');
+    bool hit(String text) => words.every(text.toLowerCase().contains);
+    return [
+      for (final n in _notebooks)
+        if (hit(n.name)) SearchHit(kind: 'notebook', notebookId: n.id, title: n.name, snippet: n.name),
+      for (final o in await listOutputs())
+        if (hit(o.title)) SearchHit(kind: 'output', notebookId: o.notebookId, id: o.id, title: o.title),
+      for (final r in await listResearch())
+        if (hit('${r.name} ${r.description}'))
+          SearchHit(kind: 'research', notebookId: r.id, title: r.name, snippet: r.description),
+    ];
+  }
+
+  @override
   Future<Uint8List> diagnostics() async => Uint8List.fromList(utf8.encode('PK demo diagnostics'));
 
   @override
   Future<Uint8List> exportOutput(String notebookId, String outputId, String format) async {
-    if (format != 'md' && format != 'docx') throw CoreException(400, 'format "$format": want md or docx');
+    if (!const ['md', 'docx', 'pdf'].contains(format)) {
+      throw CoreException(400, 'format "$format": want md, docx or pdf');
+    }
     final o = await getOutput(notebookId, outputId);
-    return Uint8List.fromList(utf8.encode(format == 'md' ? o.markdown : 'PK demo docx of ${o.title}'));
+    final body = switch (format) {
+      'md' => o.markdown,
+      'pdf' => '%PDF-1.4 demo of ${o.title}',
+      _ => 'PK demo docx of ${o.title}',
+    };
+    return Uint8List.fromList(utf8.encode(body));
   }
 
   @override

@@ -40,7 +40,7 @@ class ContextItem {
   bool get isMcp => kind.startsWith('MCP');
 
   /// Read when a run starts (an MCP resource or a web page), not from disk.
-  bool get readAtRunTime => isMcp || kind == 'Web page';
+  bool get readAtRunTime => isMcp || kind == 'Web page' || kind == 'Git changes';
 
   ContextItem copyWith({bool? enabled}) =>
       ContextItem(id: id, label: label, kind: kind, enabled: enabled ?? this.enabled, estimatedTokens: estimatedTokens);
@@ -342,10 +342,19 @@ class OutputDetail {
 
 /// A model provider as configured; the key is a reference, never a value.
 class ProviderInfo {
-  const ProviderInfo({required this.name, required this.baseUrl, this.keyRef});
+  const ProviderInfo({required this.name, required this.baseUrl, this.keyRef, this.kind = 'openai'});
   final String name;
   final String baseUrl;
   final String? keyRef;
+
+  /// openai (any OpenAI-compatible endpoint), anthropic or gemini.
+  final String kind;
+
+  String get kindLabel => switch (kind) {
+    'anthropic' => 'Anthropic API',
+    'gemini' => 'Gemini API',
+    _ => 'OpenAI-compatible',
+  };
 }
 
 /// A named fallback chain such as "smart" → [provider/model, …].
@@ -412,4 +421,80 @@ class SavedPrompt {
     };
     return {'text': text, if (settings.isNotEmpty) 'settings': settings};
   }
+}
+
+/// One search match (docs/api.md, search).
+class SearchHit {
+  const SearchHit({required this.kind, required this.notebookId, this.id = '', required this.title, this.snippet = ''});
+
+  factory SearchHit.fromJson(Map<String, Object?> j) => SearchHit(
+    kind: j['kind'] as String? ?? '',
+    notebookId: j['notebookId'] as String? ?? '',
+    id: j['id'] as String? ?? '',
+    title: j['title'] as String? ?? '',
+    snippet: j['snippet'] as String? ?? '',
+  );
+
+  /// notebook, output, prompt, research or note.
+  final String kind;
+  final String notebookId;
+  final String id;
+  final String title;
+  final String snippet;
+}
+
+/// What a past run used (docs/api.md, the run behind an output).
+class RunInfo {
+  const RunInfo({required this.prompt, this.promptName, this.vars = const {}, this.model = ''});
+
+  factory RunInfo.fromJson(Map<String, Object?> j) => RunInfo(
+    prompt: j['prompt'] as String? ?? '',
+    promptName: j['promptName'] as String?,
+    vars: {
+      if (j['vars'] case final Map<String, Object?> v)
+        for (final e in v.entries)
+          if (e.value case final String s) e.key: s,
+    },
+    model: j['model'] as String? ?? '',
+  );
+
+  final String prompt;
+  final String? promptName;
+  final Map<String, String> vars;
+  final String model;
+}
+
+/// One line of a version diff: op is ' ', '+' or '-'.
+class DiffLine {
+  const DiffLine(this.op, this.text);
+  final String op;
+  final String text;
+}
+
+/// Two versions of an output compared line by line.
+class OutputDiffInfo {
+  const OutputDiffInfo({required this.from, required this.to, this.lines = const [], this.added = 0, this.removed = 0});
+
+  factory OutputDiffInfo.fromJson(Map<String, Object?> j) {
+    final counts = j['counts'] is Map<String, Object?>
+        ? j['counts']! as Map<String, Object?>
+        : const <String, Object?>{};
+    return OutputDiffInfo(
+      from: j['from'] as String? ?? '',
+      to: j['to'] as String? ?? '',
+      lines: [
+        for (final l in j['lines'] is List ? j['lines']! as List : const [])
+          if (l is Map<String, Object?>)
+            DiffLine(String.fromCharCode((l['op'] as num?)?.toInt() ?? 32), l['text'] as String? ?? ''),
+      ],
+      added: (counts['added'] as num?)?.toInt() ?? 0,
+      removed: (counts['removed'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  final String from;
+  final String to;
+  final List<DiffLine> lines;
+  final int added;
+  final int removed;
 }

@@ -36,6 +36,7 @@ type Server struct {
 	token   string
 	version string
 	runs    chan struct{}
+	chatAsk chatApprovals // tool calls chat replies wait on
 	log     *slog.Logger
 }
 
@@ -84,6 +85,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PATCH /v1/chats/{cid}", s.updateChat)
 	mux.HandleFunc("DELETE /v1/chats/{cid}", s.deleteChat)
 	mux.HandleFunc("POST /v1/chats/{cid}/messages", s.sendChat)
+	mux.HandleFunc("POST /v1/chats/{cid}/approvals/{aid}", s.answerChatTool)
 	mux.HandleFunc("GET /v1/chats/{cid}/repeatable", s.planRepeatable)
 	mux.HandleFunc("POST /v1/chats/{cid}/notebook", s.makeRepeatable)
 	mux.HandleFunc("POST /v1/chats/{cid}/messages/{mid}/output", s.saveReply)
@@ -176,6 +178,10 @@ func (s *Server) addContext(w http.ResponseWriter, r *http.Request) {
 		Label  string `json:"label"`
 		URL    string `json:"url"`
 		Text   string `json:"text"`
+		Git    *struct {
+			Repo string `json:"repo"`
+			Base string `json:"base"`
+		} `json:"git"`
 	}
 	if err := decode(w, r, &body); err != nil {
 		s.fail(w, r, err)
@@ -191,6 +197,8 @@ func (s *Server) addContext(w http.ResponseWriter, r *http.Request) {
 		return
 	case body.Server != "":
 		info, err = s.svc.AddMCPContext(r.PathValue("id"), body.Server, body.URI, body.Label)
+	case body.Git != nil:
+		info, err = s.svc.AddGitDiffContext(r.PathValue("id"), body.Git.Repo, body.Git.Base, body.Label)
 	case body.URL != "":
 		info, err = s.svc.AddURLContext(r.PathValue("id"), body.URL, body.Label)
 	case body.Text != "":

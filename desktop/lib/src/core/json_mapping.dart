@@ -92,6 +92,8 @@ ContextItem contextFromJson(Map<String, Object?> j) {
   final dot = label.lastIndexOf('.');
   final kind = j['kind'] == 'url'
       ? 'Web page'
+      : j['kind'] == 'git-diff'
+      ? 'Git changes'
       : j['kind'] == 'mcp-resource'
       ? 'MCP · ${j['server'] as String? ?? ''}'
       : (j['inPlace'] as bool? ?? false)
@@ -155,6 +157,7 @@ SettingsInfo settingsFromJson(Map<String, Object?> j) {
             name: p['name'] as String? ?? '',
             baseUrl: p['base_url'] as String? ?? '',
             keyRef: p['api_key_ref'] as String?,
+            kind: p['kind'] as String? ?? 'openai',
           ),
         )
         .toList(),
@@ -224,6 +227,7 @@ ChatSession chatSessionFromJson(Map<String, Object?> j) => ChatSession(
   model: j['model'] as String? ?? '',
   thinkingEffort: j['thinkingEffort'] as String? ?? '',
   messages: jsonList(j['messages']).map(chatMessageFromJson).toList(),
+  mcpServers: _strings(j['mcpServers']),
 );
 
 RepeatablePlan repeatablePlanFromJson(Map<String, Object?> j) => RepeatablePlan(

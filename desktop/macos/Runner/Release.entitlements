@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
+<!-- Not sandboxed: Tessivo ships outside the App Store (Developer ID, ADR 0008); the app starts tess,
+     which reads the folders the user picks and talks to the app over loopback. -->
 <dict>
-	<key>com.apple.security.app-sandbox</key>
-	<true/>
 </dict>
 </plist>

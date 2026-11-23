@@ -61,17 +61,19 @@ Usage:
   tess notebook rename|archive|unarchive <notebook> [name]   tess notebook delete --yes <notebook>
   tess prompt list|show|rm <notebook> [name]   tess prompt save <notebook> <name> [--model M] [text|stdin]
   tess usage                                today's token use and limits
+  tess search <words> [--limit N]           search notebooks, outputs, prompts and research notes
   tess diagnostics [--out FILE]             a zip for bug reports (no keys, names or content)
   tess config get|set <key> [value]          e.g. tess config set limits.max_tokens_per_day 50000
   tess config export [file]   tess config import <file> [--force]
-  tess context add <notebook> <path>...      attach files (copied) or folders (referenced)
+  tess context add <notebook> <path|url>...  attach files (copied), folders (referenced) or web pages
+  tess context add <notebook> --text T|- [--label L] | --git-diff <repo> [--base main]   pasted text, git changes
   tess context list <notebook>
   tess context enable|disable <notebook> <id-or-label>
   tess run [<notebook>] [flags]             run a notebook, or pipe text: cat x | tess run --type summarize
   tess run pending|approve|deny|resume|cancel ...   agent runs waiting for approval (see 'tess run -h')
   tess outputs <notebook>                   list saved outputs, newest first
-  tess output ask|suggest|suggestions|apply|dismiss|refine <notebook> <output-id> ...
-                                            talk to an output, refine it, improve the notebook
+  tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff <notebook> <output-id> ...
+                                            talk to an output, refine, export, run again, compare
   tess mcp add|list|test|remove ...        MCP servers notebooks can attach (see 'tess mcp -h')
   tess research new|list|show|delete|source|ask|note ...   research notebooks: summaries, cited answers
   tess models [--provider NAME]             list models from configured providers
@@ -84,7 +86,7 @@ Usage:
   tess template list [--type T] | show <id> | use <id> <dir> | save <notebook> --name N
   tess template extend <id> --name N | delete <id>
   tess memory list|add|remove <notebook> [text|number]   pinned facts included in every run
-  tess chat [--session ID] [--attach PATH]... [message]   chat (interactive without a message)
+  tess chat [--session ID] [--attach PATH]... [--mcp S,...] [message]   chat (interactive without a message)
   tess chat list|show|rename|pin|archive|delete|memory|repeat|save ...   see 'tess chat -h'
   tess secret set|delete|check <ref>          store API keys in the OS keychain (value read from stdin)
   tess config init|show|path
@@ -153,15 +155,29 @@ func noCtx(f func([]string, Env) error) handler {
 }
 
 var commands = map[string]handler{
-	"new": noCtx(cmdNew), "notebook": noCtx(cmdNotebook), "prompt": noCtx(cmdPrompt), "usage": noCtx(cmdUsage),
+	"new":         noCtx(cmdNew),
+	"notebook":    noCtx(cmdNotebook),
+	"prompt":      noCtx(cmdPrompt),
+	"usage":       noCtx(cmdUsage),
+	"search":      noCtx(cmdSearch),
 	"diagnostics": noCtx(cmdDiagnostics),
 	"context":     noCtx(cmdContext),
-	"run":         cmdRun, "outputs": noCtx(cmdOutputs), "models": cmdModels, "config": noCtx(cmdConfig),
-	"audit": noCtx(cmdAudit), "serve": cmdServe,
-	"secret": cmdSecret, "schedule": noCtx(cmdSchedule), "template": noCtx(cmdTemplate),
-	"memory": noCtx(cmdMemory), "chat": cmdChat, "notify": cmdNotify, "output": cmdOutput, "mcp": cmdMCP,
-	"research":  cmdResearch,
-	"worktypes": func(_ context.Context, _ []string, env Env) error { return cmdWorkTypes(env) },
+	"run":         cmdRun,
+	"outputs":     noCtx(cmdOutputs),
+	"models":      cmdModels,
+	"config":      noCtx(cmdConfig),
+	"audit":       noCtx(cmdAudit),
+	"serve":       cmdServe,
+	"secret":      cmdSecret,
+	"schedule":    noCtx(cmdSchedule),
+	"template":    noCtx(cmdTemplate),
+	"memory":      noCtx(cmdMemory),
+	"chat":        cmdChat,
+	"notify":      cmdNotify,
+	"output":      cmdOutput,
+	"mcp":         cmdMCP,
+	"research":    cmdResearch,
+	"worktypes":   func(_ context.Context, _ []string, env Env) error { return cmdWorkTypes(env) },
 }
 
 func dispatch(ctx context.Context, args []string, env Env) error {

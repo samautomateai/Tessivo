@@ -26,7 +26,14 @@ abstract interface class CoreClient {
     required String prompt,
     required Map<String, String> vars,
     String? promptName,
+    String? model,
   });
+
+  /// The run behind an output: its prompt, variables and model.
+  Future<RunInfo> outputRun(String notebookId, String outputId);
+
+  /// An output compared with the version it revised (or [against]).
+  Future<OutputDiffInfo> diffOutput(String notebookId, String outputId, {String? against});
   Future<List<SavedPrompt>> listPrompts(String notebookId);
   Future<SavedPrompt> savePrompt(String notebookId, SavedPrompt prompt);
   Future<void> deletePrompt(String notebookId, String name);
@@ -39,6 +46,9 @@ abstract interface class CoreClient {
 
   /// Saves pasted text as a source.
   Future<Notebook> addTextContext(String notebookId, String text, {String label});
+
+  /// Adds a repository's changes since [base], read with git on every run.
+  Future<Notebook> addGitDiffContext(String notebookId, String repo, String base, {String label});
   Future<Notebook> setMemory(String notebookId, List<String> memory);
   Future<OutputDetail> getOutput(String notebookId, String outputId);
 
@@ -47,6 +57,9 @@ abstract interface class CoreClient {
 
   /// A zip for bug reports (no keys, notebook names or content).
   Future<Uint8List> diagnostics();
+
+  /// Notebooks, outputs, prompts, research notebooks and notes matching every word.
+  Future<List<SearchHit>> search(String query);
   Future<SettingsInfo> getSettings();
 
   /// Saves providers, aliases, defaults and limits (a SettingsDraft body).
@@ -77,7 +90,11 @@ abstract interface class CoreClient {
     bool? archived,
     String? model,
     String? thinkingEffort,
+    List<String>? mcpServers,
   });
+
+  /// Answers a tool call a chat reply is waiting on ([ChatApprovalNeeded]).
+  Future<void> answerChatTool(String chatId, String callId, {required bool allow, bool remember});
   Future<void> deleteChat(String chatId);
 
   /// Streams a reply. Cancelling the subscription stops it; the core keeps the partial reply.

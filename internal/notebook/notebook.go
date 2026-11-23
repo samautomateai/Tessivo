@@ -18,6 +18,7 @@ import (
 
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/format"
+	"github.com/samautomateai/tessivo/internal/gitdiff"
 	"github.com/samautomateai/tessivo/internal/webfetch"
 	"github.com/samautomateai/tessivo/internal/worktype"
 )
@@ -189,8 +190,8 @@ func (n *Notebook) SetEnabled(idOrLabel string, enabled bool) error {
 
 // ContextPath returns the absolute path of a context item.
 func (n *Notebook) ContextPath(c ContextItem) string {
-	if c.IsMCP() || c.IsURL() {
-		return "" // read from its server or the web, never from disk
+	if c.IsMCP() || c.IsURL() || c.IsGitDiff() {
+		return "" // read from its server, the web or git, never as files
 	}
 	if c.InPlace || filepath.IsAbs(c.Path) {
 		return c.Path
@@ -319,3 +320,33 @@ const FormatVersion = 1
 
 // upgrades[i] turns a format i+1 manifest into format i+2.
 var upgrades []func(*Manifest) error
+
+// KindGitDiff marks a repository's changes against a base (Path: the
+// repository, URI: the base), read with git on every run.
+const KindGitDiff = "git-diff"
+
+// IsGitDiff reports whether the item is a repository's changes.
+func (c ContextItem) IsGitDiff() bool { return c.Kind == KindGitDiff }
+
+// AddGitDiff attaches a repository's changes since base (read on every run).
+func (n *Notebook) AddGitDiff(repo, base, label string) (ContextItem, error) {
+	abs, err := filepath.Abs(repo)
+	if err != nil {
+		return ContextItem{}, fmt.Errorf("repository: %w", err)
+	}
+	if info, err := os.Stat(abs); err != nil || !info.IsDir() {
+		return ContextItem{}, fmt.Errorf("repository %s: not a folder", repo)
+	}
+	if err := gitdiff.CheckBase(base); err != nil {
+		return ContextItem{}, err
+	}
+	if label == "" {
+		label = filepath.Base(abs) + " changes since " + base
+	}
+	item := ContextItem{
+		ID: NewID(), Label: label, Enabled: true, AddedAt: now(), Kind: KindGitDiff, Path: abs,
+		InPlace: true, URI: base,
+	}
+	n.Manifest.Context = append(n.Manifest.Context, item)
+	return item, n.Save()
+}

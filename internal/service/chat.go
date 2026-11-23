@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/samautomateai/tessivo/internal/chat"
@@ -23,11 +24,12 @@ type ChatInput struct {
 
 // ChatPatch changes a session; nil fields stay as they are.
 type ChatPatch struct {
-	Title          *string `json:"title"`
-	Pinned         *bool   `json:"pinned"`
-	Archived       *bool   `json:"archived"`
-	Model          *string `json:"model"`
-	ThinkingEffort *string `json:"thinkingEffort"`
+	Title          *string   `json:"title"`
+	Pinned         *bool     `json:"pinned"`
+	Archived       *bool     `json:"archived"`
+	Model          *string   `json:"model"`
+	ThinkingEffort *string   `json:"thinkingEffort"`
+	MCPServers     *[]string `json:"mcpServers"` // servers whose tools the chat may use (configured ones only)
 }
 
 // ChatDirName is the chat store folder next to the notebooks workspace.
@@ -127,6 +129,11 @@ func (s *Service) UpdateChat(id string, p ChatPatch) (chat.Session, error) {
 			return chat.Session{}, chatErr(err)
 		}
 	}
+	if p.MCPServers != nil {
+		if err := s.checkMCPNames(*p.MCPServers); err != nil {
+			return chat.Session{}, err
+		}
+	}
 	st, err := s.chatStore()
 	if err != nil {
 		return chat.Session{}, err
@@ -139,6 +146,9 @@ func (s *Service) UpdateChat(id string, p ChatPatch) (chat.Session, error) {
 }
 
 func applyPatch(sess *chat.Session, p ChatPatch) {
+	if p.MCPServers != nil {
+		sess.MCPServers = slices.Compact(slices.Clone(*p.MCPServers))
+	}
 	if p.Title != nil {
 		sess.Title = strings.TrimSpace(*p.Title)
 	}

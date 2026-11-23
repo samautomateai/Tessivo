@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 	"text/tabwriter"
-	"time"
 
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/llm"
@@ -85,9 +84,7 @@ func listModels(ctx context.Context, p config.Provider, sec secrets.Resolver) ([
 		}
 		key = v
 	}
-	c := llm.NewClient(p.BaseURL, key, time.Duration(p.TimeoutSeconds)*time.Second)
-	c.Headers = p.Headers
-	return c.Models(ctx)
+	return llm.NewProviderClient(p, key).Models(ctx)
 }
 
 func cmdModels(ctx context.Context, args []string, env Env) error {

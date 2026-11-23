@@ -2,7 +2,6 @@ package llm
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/secrets"
@@ -11,8 +10,8 @@ import (
 // NewRouter builds a Router for a resolved alias, creating one client per
 // provider and looking up API keys through sec.
 func NewRouter(f config.File, alias config.Alias, sec secrets.Resolver) (*Router, error) {
-	clients := map[string]*Client{}
-	r := &Router{Triggers: alias.Triggers(), MaxRetries: alias.MaxRetries}
+	clients := map[string]ProviderClient{}
+	r := &Router{Triggers: alias.Triggers(), MaxRetries: alias.Retries()}
 	for _, m := range alias.Chain {
 		c, ok := clients[m.Provider]
 		if !ok {
@@ -28,8 +27,7 @@ func NewRouter(f config.File, alias config.Alias, sec secrets.Resolver) (*Router
 				}
 				key = v
 			}
-			c = NewClient(p.BaseURL, key, time.Duration(p.TimeoutSeconds)*time.Second)
-			c.Headers = p.Headers
+			c = NewProviderClient(p, key)
 			clients[m.Provider] = c
 		}
 		r.Chain = append(r.Chain, Target{Label: m.Provider + "/" + m.Model, Model: m.Model, Client: c})

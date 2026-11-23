@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"slices"
 	"time"
 )
@@ -130,8 +131,28 @@ func (r *Router) tryTarget(ctx context.Context, t Target, rq Request, call func(
 		if errors.As(err, &mid) || !retryable(trigger) || attempt >= r.MaxRetries {
 			return resp, trigger, err
 		}
-		if serr := sleep(ctx, backoff(attempt)); serr != nil {
+		wait := jittered(backoff(attempt))
+		var api *APIError
+		if errors.As(err, &api) && api.RetryAfter > 0 {
+			if api.RetryAfter > MaxRetryWait {
+				return resp, trigger, err // too long to wait here: fall back now (the error says when to retry)
+			}
+			wait = jittered(api.RetryAfter)
+		}
+		if serr := sleep(ctx, wait); serr != nil {
 			return resp, trigger, serr
 		}
 	}
+}
+
+// MaxRetryWait is the longest a model is waited for before a retry; a
+// provider asking for longer makes the router fall back (or fail) at once.
+const MaxRetryWait = 30 * time.Second
+
+// jittered adds up to 25% to d so parallel callers do not retry in step.
+func jittered(d time.Duration) time.Duration {
+	if d <= 0 {
+		return d
+	}
+	return d + rand.N(d/4+1) //nolint:gosec // G404: timing jitter, not security
 }

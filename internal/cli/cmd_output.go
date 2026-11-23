@@ -17,7 +17,9 @@ tess output suggest <notebook> <output-id>               ask for improvements fr
 tess output suggestions <notebook> <output-id>           list suggestions
 tess output apply|dismiss <notebook> <output-id> <suggestion-id>
 tess output refine <notebook> <output-id> [--from MESSAGE_ID]   save a revised version
-tess output export <notebook> <output-id> [--format md|docx] [--out FILE]   save as Markdown or Word`
+tess output export <notebook> <output-id> [--format md|docx|pdf] [--out FILE]   save as Markdown, Word or PDF
+tess output rerun <notebook> <output-id> [--model M]   run it again, optionally on another model
+tess output diff <notebook> <output-id> [--against ID]   lines changed since the version it revised`
 
 // outputCommands maps each subcommand to its handler and the positional
 // arguments it needs after the notebook and output (-1: one or more).
@@ -28,6 +30,8 @@ var outputCommands = map[string]struct {
 	"ask": {outputAsk, -1}, "suggest": {outputSuggest, 0}, "suggestions": {outputSuggestions, 0},
 	"apply": {outputApply, 1}, "dismiss": {outputDismiss, 1}, "refine": {outputRefine, 0},
 	subExport: {outputExport, 0},
+	"rerun":   {outputRerun, 0},
+	"diff":    {outputDiff, 0},
 }
 
 type outputArgs struct {
@@ -36,6 +40,8 @@ type outputArgs struct {
 	from    string   // refine --from
 	format  string   // export --format
 	file    string   // export --out
+	model   string   // rerun --model
+	against string   // diff --against
 }
 
 func cmdOutput(ctx context.Context, args []string, env Env) error {
@@ -49,7 +55,9 @@ func cmdOutput(ctx context.Context, args []string, env Env) error {
 	fs := newFlags("output "+args[0], env)
 	fs.Usage = func() { _, _ = fmt.Fprintln(env.Stderr, outputHelp) }
 	from := fs.String("from", "", "refine: revise from this thread reply (default: the latest)")
-	format := fs.String("format", service.FormatMarkdown, "export: md or docx")
+	format := fs.String("format", service.FormatMarkdown, "export: md, docx or pdf")
+	model := fs.String("model", "", "rerun: the model to use (default: the settings that apply now)")
+	against := fs.String("against", "", "diff: the version to compare with (default: the one it revised)")
 	out := fs.String("out", "", "export: file to write (default: the output's title in this folder)")
 	pos, err := parse(fs, args[1:])
 	if err != nil {
@@ -74,7 +82,9 @@ func cmdOutput(ctx context.Context, args []string, env Env) error {
 		return err
 	}
 	svc.NotebookDirs = []string{dir}
-	a := outputArgs{nb: dir, out: pos[1], rest: pos[2:], from: *from, format: *format, file: *out}
+	a := outputArgs{
+		nb: dir, out: pos[1], rest: pos[2:], from: *from, format: *format, file: *out, model: *model, against: *against,
+	}
 	return cliErr(c.run(ctx, svc, a, env))
 }
 
@@ -219,5 +229,38 @@ func outputExport(_ context.Context, _ *service.Service, a outputArgs, env Env) 
 		return fmt.Errorf("export: %w", err)
 	}
 	_, err = fmt.Fprintf(env.Stdout, "wrote %s\n", path)
+	return wrapWrite(err)
+}
+
+// outputRerun runs the run behind an output again (optionally on --model)
+// and prints the new output.
+func outputRerun(ctx context.Context, svc *service.Service, a outputArgs, env Env) error {
+	req, err := svc.RerunRequest(a.nb, a.out, a.model)
+	if err != nil {
+		return err
+	}
+	out, err := svc.Run(ctx, req, nil)
+	if err != nil {
+		return err
+	}
+	if err := writeResult(out, runOpts{}, env); err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(env.Stderr, "saved output %s (model %s)\n", out.OutputID, out.Result.Model)
+	return wrapWrite(err)
+}
+
+// outputDiff prints the lines a version changed against its parent (or --against).
+func outputDiff(_ context.Context, svc *service.Service, a outputArgs, env Env) error {
+	d, err := svc.DiffOutputs(a.nb, a.out, a.against)
+	if err != nil {
+		return err
+	}
+	for _, l := range d.Lines {
+		if _, err := fmt.Fprintf(env.Stdout, "%c %s\n", l.Op, l.Text); err != nil {
+			return wrapWrite(err)
+		}
+	}
+	_, err = fmt.Fprintf(env.Stderr, "%s → %s: %d added, %d removed\n", d.From, d.To, d.Counts.Added, d.Counts.Removed)
 	return wrapWrite(err)
 }

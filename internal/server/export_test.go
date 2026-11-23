@@ -36,7 +36,14 @@ func TestExportOutputAPI(t *testing.T) {
 			t.Fatalf("%s: %d %v", format, resp.StatusCode, resp.Header)
 		}
 	}
-	if code, _ := call(t, ts, "GET", "/v1/notebooks/ops/outputs/"+out.OutputID+"/export?format=pdf", ""); code != 400 {
-		t.Fatalf("pdf: %d", code)
+	if code, _ := call(t, ts, "GET", "/v1/notebooks/ops/outputs/"+out.OutputID+"/diff", ""); code != 400 {
+		t.Fatalf("diff of an original: %d", code)
+	}
+	if code, body := call(t, ts, "GET", "/v1/notebooks/ops/outputs/"+out.OutputID+"/run", ""); code != 200 ||
+		!strings.Contains(body, `"prompt":"Summarize"`) {
+		t.Fatalf("run info: %d %s", code, body)
+	}
+	if code, _ := call(t, ts, "GET", "/v1/notebooks/ops/outputs/"+out.OutputID+"/export?format=rtf", ""); code != 400 {
+		t.Fatalf("rtf: %d", code)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/samautomateai/tessivo/internal/extract"
+	"github.com/samautomateai/tessivo/internal/gitdiff"
 	"github.com/samautomateai/tessivo/internal/notebook"
 )
 
@@ -50,6 +51,12 @@ func (s *Service) itemDocs(ctx context.Context, clients map[string]*mcpSession, 
 	case c.IsMCP():
 		d, err := s.readResource(ctx, clients, c)
 		return []extract.Document{d}, err
+	case c.IsGitDiff():
+		text, err := gitdiff.Diff(ctx, c.Path, c.URI)
+		if err != nil {
+			return nil, fmt.Errorf("git changes %s: %w", c.Label, err)
+		}
+		return []extract.Document{{Source: "git:" + c.Path + "@" + c.URI, Kind: "diff", Text: text}}, nil
 	default:
 		return extract.Path(nb.ContextPath(c))
 	}

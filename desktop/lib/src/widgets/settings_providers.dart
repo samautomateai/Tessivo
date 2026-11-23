@@ -79,7 +79,7 @@ class _ProviderCardState extends State<ProviderCard> {
                 ),
               ],
             ),
-            Text(p.baseUrl),
+            Text(p.baseUrl.isEmpty ? p.kindLabel : '${p.kindLabel} · ${p.baseUrl}'),
             FutureBuilder<bool>(future: _keySet, builder: (context, snap) => _keyStatus(context, p, snap)),
             if (p.keyRef != null)
               Text('Stored in your OS keychain as ${p.keyRef}', style: const TextStyle(color: Tokens.textMuted)),
@@ -170,7 +170,39 @@ class _KeyDialogState extends State<_KeyDialog> {
   );
 }
 
-/// Adds a provider (name and base URL; its key reference is NAME_KEY).
+/// A known provider: its API kind, base URL and whether it needs a key.
+class ProviderPreset {
+  const ProviderPreset(this.label, this.name, this.kind, this.url, {this.needsKey = true});
+  final String label;
+  final String name;
+  final String kind;
+  final String url;
+  final bool needsKey;
+}
+
+/// Providers the Add provider dialog can fill in. The OpenAI-compatible ones
+/// differ only in URL; Anthropic and Gemini use their native APIs.
+const providerPresets = [
+  ProviderPreset('Custom (OpenAI-compatible)', '', 'openai', ''),
+  ProviderPreset('LiteLLM proxy', 'litellm', 'openai', 'http://localhost:4000/v1'),
+  ProviderPreset('OpenAI', 'openai', 'openai', 'https://api.openai.com/v1'),
+  ProviderPreset('Anthropic (native API)', 'anthropic', 'anthropic', ''),
+  ProviderPreset('Google Gemini (native API)', 'gemini', 'gemini', ''),
+  ProviderPreset('Ollama (local)', 'ollama', 'openai', 'http://localhost:11434/v1', needsKey: false),
+  ProviderPreset('LM Studio (local)', 'lmstudio', 'openai', 'http://localhost:1234/v1', needsKey: false),
+  ProviderPreset('vLLM (local)', 'vllm', 'openai', 'http://localhost:8000/v1', needsKey: false),
+  ProviderPreset('OpenRouter', 'openrouter', 'openai', 'https://openrouter.ai/api/v1'),
+  ProviderPreset('Groq', 'groq', 'openai', 'https://api.groq.com/openai/v1'),
+  ProviderPreset('DeepSeek', 'deepseek', 'openai', 'https://api.deepseek.com/v1'),
+  ProviderPreset('Mistral', 'mistral', 'openai', 'https://api.mistral.ai/v1'),
+  ProviderPreset('xAI', 'xai', 'openai', 'https://api.x.ai/v1'),
+  ProviderPreset('Together AI', 'together', 'openai', 'https://api.together.xyz/v1'),
+];
+
+/// A provider to add: name, URL ("" for a native API's default), kind and whether it needs a key.
+typedef NewProvider = ({String name, String url, String kind, bool needsKey});
+
+/// Adds a provider from a preset or by hand; its key reference is NAME_KEY.
 class AddProviderDialog extends StatefulWidget {
   const AddProviderDialog({super.key});
 
@@ -181,6 +213,7 @@ class AddProviderDialog extends StatefulWidget {
 class _AddProviderDialogState extends State<AddProviderDialog> {
   final _name = TextEditingController();
   final _url = TextEditingController();
+  ProviderPreset _preset = providerPresets.first;
 
   @override
   void dispose() {
@@ -189,36 +222,71 @@ class _AddProviderDialogState extends State<AddProviderDialog> {
     super.dispose();
   }
 
+  void _pick(ProviderPreset? p) {
+    if (p == null) return;
+    setState(() {
+      _preset = p;
+      _name.text = p.name;
+      _url.text = p.url;
+    });
+  }
+
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Add a model provider'),
-    content: SizedBox(
-      width: 460,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            key: const Key('provider-name'),
-            controller: _name,
-            decoration: const InputDecoration(labelText: 'Name', helperText: 'e.g. litellm, ollama'),
-          ),
-          TextField(
-            key: const Key('provider-url'),
-            controller: _url,
-            decoration: const InputDecoration(labelText: 'Base URL', helperText: 'OpenAI-compatible, ending in /v1'),
-          ),
-        ],
+  Widget build(BuildContext context) {
+    final native = _preset.kind != 'openai';
+    return AlertDialog(
+      title: const Text('Add a model provider'),
+      content: SizedBox(
+        width: 460,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<ProviderPreset>(
+              key: const Key('provider-preset'),
+              initialValue: _preset,
+              decoration: const InputDecoration(labelText: 'Provider'),
+              items: [for (final p in providerPresets) DropdownMenuItem(value: p, child: Text(p.label))],
+              onChanged: _pick,
+            ),
+            TextField(
+              key: const Key('provider-name'),
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Name', helperText: 'Used in model names: name/model'),
+            ),
+            TextField(
+              key: const Key('provider-url'),
+              controller: _url,
+              decoration: InputDecoration(
+                labelText: 'Base URL',
+                helperText: native ? 'Leave empty for the official API' : 'OpenAI-compatible, ending in /v1',
+              ),
+            ),
+            if (native)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'Requests go straight to this cloud provider, not through your own proxy.',
+                  style: TextStyle(color: Tokens.textMuted),
+                ),
+              ),
+          ],
+        ),
       ),
-    ),
-    actions: [
-      TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-      FilledButton(
-        key: const Key('save-provider'),
-        onPressed: () => Navigator.of(context).pop((_name.text.trim(), _url.text.trim())),
-        child: const Text('Add'),
-      ),
-    ],
-  );
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        FilledButton(
+          key: const Key('save-provider'),
+          onPressed: () => Navigator.of(context).pop<NewProvider>((
+            name: _name.text.trim(),
+            url: _url.text.trim(),
+            kind: _preset.kind,
+            needsKey: _preset.needsKey,
+          )),
+          child: const Text('Add'),
+        ),
+      ],
+    );
+  }
 }
 
 /// The key reference a new provider's API key is stored under.

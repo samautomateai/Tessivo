@@ -16,7 +16,11 @@ void main() {
     final dir = await tester.runAsync(() => Directory.systemTemp.createTemp('tessivo-diag'));
     addTearDown(() => dir!.deleteSync(recursive: true));
     final path = '${dir!.path}${Platform.pathSeparator}diag.zip';
-    await tester.ensureVisible(find.byKey(const Key('save-diagnostics')));
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('save-diagnostics')),
+      200,
+      scrollable: find.descendant(of: find.byKey(const Key('settings-list')), matching: find.byType(Scrollable)).first,
+    );
     await tester.tap(find.byKey(const Key('save-diagnostics')));
     await tester.pumpAndSettle();
     expect(tester.widget<TextField>(find.byType(TextField).last).controller!.text, endsWith('.zip'));

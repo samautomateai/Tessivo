@@ -199,11 +199,17 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
     required String prompt,
     required Map<String, String> vars,
     String? promptName,
+    String? model,
   }) async* {
     final resp = await _send(
       'POST',
       '/v1/notebooks/${Uri.encodeComponent(notebookId)}/runs',
-      body: {'prompt': prompt, 'vars': vars, 'promptName': ?promptName},
+      body: {
+        'prompt': prompt,
+        'vars': vars,
+        'promptName': ?promptName,
+        if (model != null && model.isNotEmpty) 'overrides': {'model': model},
+      },
     );
     if (resp.statusCode >= 400) {
       final text = await _readLimited(resp);
@@ -256,6 +262,19 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
       notebookFromJson(await _json('POST', '${_nb(notebookId)}/context', body: {'text': text, 'label': label}));
 
   @override
+  Future<Notebook> addGitDiffContext(String notebookId, String repo, String base, {String label = ''}) async =>
+      notebookFromJson(
+        await _json(
+          'POST',
+          '${_nb(notebookId)}/context',
+          body: {
+            'git': {'repo': repo, 'base': base},
+            'label': label,
+          },
+        ),
+      );
+
+  @override
   Future<Notebook> setMemory(String notebookId, List<String> memory) async {
     checkMemory(memory);
     return notebookFromJson(await _json('PUT', '${_nb(notebookId)}/memory', body: {'memory': memory}));
@@ -273,6 +292,24 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
 
   @override
   Future<Uint8List> diagnostics() => _bytes('/v1/diagnostics');
+
+  @override
+  Future<RunInfo> outputRun(String notebookId, String outputId) async =>
+      RunInfo.fromJson(await _json('GET', '${_nb(notebookId)}/outputs/${Uri.encodeComponent(outputId)}/run'));
+
+  @override
+  Future<OutputDiffInfo> diffOutput(String notebookId, String outputId, {String? against}) async =>
+      OutputDiffInfo.fromJson(
+        await _json(
+          'GET',
+          '${_nb(notebookId)}/outputs/${Uri.encodeComponent(outputId)}/diff',
+          query: {'against': ?against},
+        ),
+      );
+
+  @override
+  Future<List<SearchHit>> search(String query) async =>
+      jsonList((await _json('GET', '/v1/search', query: {'q': query}))['results']).map(SearchHit.fromJson).toList();
 
   /// A file the core sends (an export, diagnostics), bounded like JSON replies.
   Future<Uint8List> _bytes(String path, {Map<String, String>? query}) async {

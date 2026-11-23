@@ -31,7 +31,10 @@ var DefaultTriggers = []string{TriggerTimeout, TriggerRateLimit, TriggerServerEr
 // Provider is an OpenAI-compatible endpoint such as a LiteLLM proxy.
 // The API key is never stored here: APIKeyRef names the secret to look up.
 type Provider struct {
-	Name           string            `json:"name"`
+	Name string `json:"name"`
+	// Kind is the API: "openai" (default: any OpenAI-compatible endpoint), or the
+	// native "anthropic" and "gemini" APIs, whose base_url may be left empty.
+	Kind           string            `json:"kind,omitempty"`
 	BaseURL        string            `json:"base_url"`
 	APIKeyRef      string            `json:"api_key_ref,omitempty"`
 	Headers        map[string]string `json:"headers,omitempty"`
@@ -39,6 +42,9 @@ type Provider struct {
 	// AllowInsecureHTTP permits plain http:// to a non-loopback host (e.g. a
 	// LiteLLM proxy on a trusted LAN). Off by default: keys travel in headers.
 	AllowInsecureHTTP bool `json:"allow_insecure_http,omitempty"`
+	// MaxConcurrent caps requests in flight to this provider (0: no cap), e.g.
+	// for a local server or a low-tier key; extra requests wait their turn.
+	MaxConcurrent int `json:"max_concurrent,omitempty"`
 }
 
 // ModelRef points at one model on one provider.
@@ -52,7 +58,9 @@ type Alias struct {
 	Name       string     `json:"name"`
 	Chain      []ModelRef `json:"chain"`
 	FallbackOn []string   `json:"fallback_on,omitempty"`
-	MaxRetries int        `json:"max_retries,omitempty"`
+	// MaxRetries is how often a model is retried on a rate limit, server error or
+	// timeout before falling back; nil means DefaultRetries, 0 turns retries off.
+	MaxRetries *int `json:"max_retries,omitempty"`
 }
 
 // Triggers returns the alias's fallback triggers or the defaults.
@@ -72,13 +80,14 @@ type Limits struct {
 // File is the on-disk application config shared by the CLI and desktop app.
 type File struct {
 	// WorkspaceDir holds notebooks managed by the desktop app (default ~/Tessivo/notebooks).
-	WorkspaceDir string      `json:"workspace_dir,omitempty"`
-	Providers    []Provider  `json:"providers"`
-	Aliases      []Alias     `json:"aliases"`
-	Defaults     RunSettings `json:"defaults"`
-	Limits       Limits      `json:"limits"`
-	Agent        AgentConfig `json:"agent,omitzero"`
-	MCP          MCPConfig   `json:"mcp,omitzero"`
+	WorkspaceDir string        `json:"workspace_dir,omitempty"`
+	Providers    []Provider    `json:"providers"`
+	Aliases      []Alias       `json:"aliases"`
+	Defaults     RunSettings   `json:"defaults"`
+	Limits       Limits        `json:"limits"`
+	Agent        AgentConfig   `json:"agent,omitzero"`
+	MCP          MCPConfig     `json:"mcp,omitzero"`
+	Desktop      DesktopConfig `json:"desktop,omitzero"`
 }
 
 // Default returns a starter config pointing at a local LiteLLM proxy.
@@ -175,6 +184,9 @@ func (f File) Validate() error {
 		if err := validateBaseURL(p); err != nil {
 			errs = append(errs, err)
 		}
+		if p.MaxConcurrent < 0 || p.MaxConcurrent > 64 {
+			errs = append(errs, fmt.Errorf("provider %q: max_concurrent must be 0 to 64", p.Name))
+		}
 	}
 	aliases := map[string]bool{}
 	for _, a := range f.Aliases {
@@ -189,7 +201,12 @@ func (f File) Validate() error {
 }
 
 func validateBaseURL(p Provider) error {
-	u, err := url.Parse(p.BaseURL)
+	switch p.Kind {
+	case "", KindOpenAI, KindAnthropic, KindGemini:
+	default:
+		return fmt.Errorf("provider %q: kind %q: want openai, anthropic or gemini", p.Name, p.Kind)
+	}
+	u, err := url.Parse(p.URL())
 	if err != nil || u.Host == "" || (u.Scheme != schemeHTTP && u.Scheme != schemeHTTPS) {
 		return fmt.Errorf("provider %q: base_url must be an http:// or https:// URL", p.Name)
 	}
@@ -232,7 +249,7 @@ func validateAlias(a Alias, providers, seen map[string]bool) []error {
 			errs = append(errs, fmt.Errorf("alias %q: unknown fallback trigger %q", a.Name, t))
 		}
 	}
-	if a.MaxRetries < 0 || a.MaxRetries > 10 {
+	if r := a.Retries(); r < 0 || r > 10 {
 		errs = append(errs, fmt.Errorf("alias %q: max_retries must be 0 to 10", a.Name))
 	}
 	return errs
@@ -261,4 +278,44 @@ func (f File) ResolveModel(name string) (Alias, error) {
 		}
 	}
 	return Alias{}, fmt.Errorf("unknown model %q: not an alias or provider/model", name)
+}
+
+// Provider kinds.
+const (
+	KindOpenAI    = "openai"
+	KindAnthropic = "anthropic"
+	KindGemini    = "gemini"
+)
+
+// URL is the provider's base URL, or its API's official URL when a native
+// provider leaves base_url empty.
+func (p Provider) URL() string {
+	if p.BaseURL != "" {
+		return p.BaseURL
+	}
+	switch p.Kind {
+	case KindAnthropic:
+		return "https://api.anthropic.com"
+	case KindGemini:
+		return "https://generativelanguage.googleapis.com"
+	}
+	return ""
+}
+
+// DefaultRetries is how often a model is retried when an alias sets no max_retries.
+const DefaultRetries = 2
+
+// Retries is the alias's max_retries, or DefaultRetries when unset.
+func (a Alias) Retries() int {
+	if a.MaxRetries == nil {
+		return DefaultRetries
+	}
+	return *a.MaxRetries
+}
+
+// DesktopConfig holds the desktop app's own preferences.
+type DesktopConfig struct {
+	// CloseToTray keeps the app running in the system tray when its window is
+	// closed, so schedules and runs go on; Quit in the tray menu ends it.
+	CloseToTray bool `json:"close_to_tray,omitempty"`
 }

@@ -7,8 +7,10 @@ import '../core/core_client.dart';
 import '../theme.dart';
 import '../thread_state.dart';
 import 'chat_widgets.dart';
+import 'compare_button.dart';
 import 'export_menu.dart';
 import 'markdown_view.dart';
+import 'rerun_button.dart';
 
 /// The open output, its conversation, the suggestions it produced and the
 /// box to ask about it.
@@ -105,6 +107,9 @@ class _Header extends StatelessWidget {
             title: thread.detail?.title ?? 'output',
           ),
           if (thread.busy) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+          RerunButton(state: state, outputId: thread.outputId, enabled: idle && !state.running),
+          if (state.outputs.where((o) => o.id == thread.outputId).firstOrNull?.parentId != null)
+            CompareButton(core: state.core, notebookId: thread.notebookId, outputId: thread.outputId),
           TextButton.icon(
             key: const Key('suggest-improvements'),
             onPressed: idle && hasReply ? () => unawaited(thread.suggest()) : null,

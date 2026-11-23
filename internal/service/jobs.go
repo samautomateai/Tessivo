@@ -141,7 +141,7 @@ func (s *Service) applyAnswer(nb *notebook.Notebook, st *storedRun, rec *noteboo
 		return err
 	}
 	return s.auditOnce(nb, st, audit.KindToolDecision, map[string]any{
-		"approval_id": rec.ID, "tool": rec.Tool, "answer": answer, "remember": remember,
+		"approval_id": rec.ID, auditKeyTool: rec.Tool, "answer": answer, "remember": remember,
 	})
 }
 

@@ -203,6 +203,12 @@ class AppState extends ChangeNotifier {
     if (nb != null) _put(await core.addTextContext(nb.id, text, label: label));
   }
 
+  /// Adds a repository's changes against [base] as a source, read with git on every run.
+  Future<void> addGitDiffContext(String repo, String base) async {
+    final nb = selected;
+    if (nb != null) _put(await core.addGitDiffContext(nb.id, repo, base));
+  }
+
   /// Configured MCP servers (loaded with the notebooks; refreshed on demand).
   List<McpServer> mcpServers = const [];
 
@@ -364,18 +370,28 @@ class AppState extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  Future<void> run(String prompt, Map<String, String> vars, {String? promptName}) async {
+  /// The model the last run asked for, if any (null: the settings that apply).
+  String? lastModel;
+
+  Future<void> run(String prompt, Map<String, String> vars, {String? promptName, String? model}) async {
     final nb = selected;
     if (nb == null || running) return;
     running = true;
     lastPromptName = promptName;
+    lastModel = model;
     outcome = null;
     _stream.clear();
     toolLog.clear();
     paused = const [];
     notifyListeners();
     try {
-      await for (final e in core.startRun(notebookId: nb.id, prompt: prompt, vars: vars, promptName: promptName)) {
+      await for (final e in core.startRun(
+        notebookId: nb.id,
+        prompt: prompt,
+        vars: vars,
+        promptName: promptName,
+        model: model,
+      )) {
         switch (e) {
           case RunStatus(:final text):
             status = text;

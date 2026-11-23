@@ -210,6 +210,21 @@ func (c *Client) Models(ctx context.Context) ([]Model, error) {
 const maxBody = 32 << 20 // 32 MiB
 
 func (c *Client) do(ctx context.Context, method, path string, body any) (*http.Response, error) {
+	headers := map[string]string{}
+	if c.APIKey != "" {
+		headers["Authorization"] = "Bearer " + c.APIKey
+	}
+	for k, v := range c.Headers {
+		headers[k] = v
+	}
+	return sendJSON(ctx, c.HTTP, method, c.BaseURL+path, headers, body, c.APIKey)
+}
+
+// sendJSON sends body as JSON (nil: no body) with headers. A non-2xx
+// response becomes an APIError whose body has key redacted.
+func sendJSON(ctx context.Context, hc *http.Client, method, url string, headers map[string]string, body any,
+	key string,
+) (*http.Response, error) {
 	var rdr io.Reader
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -218,29 +233,27 @@ func (c *Client) do(ctx context.Context, method, path string, body any) (*http.R
 		}
 		rdr = bytes.NewReader(b)
 	}
-	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, rdr)
+	req, err := http.NewRequestWithContext(ctx, method, url, rdr)
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if c.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.APIKey)
-	}
-	for k, v := range c.Headers {
+	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
-	hc := c.HTTP
 	if hc == nil {
 		hc = http.DefaultClient
 	}
 	resp, err := hc.Do(req)
 	if err != nil {
-		return nil, &TransportError{Err: err}
+		return nil, &TransportError{Err: err} // keys travel in headers, never in the URL
 	}
 	if resp.StatusCode >= 300 {
 		defer func() { _ = resp.Body.Close() }()
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<10))
-		return nil, &APIError{Status: resp.StatusCode, Body: redactKey(string(b), c.APIKey)}
+		body := redactKey(string(b), key)
+		wait := retryAfter(resp.Header, body, time.Now())
+		return nil, &APIError{Status: resp.StatusCode, Body: body, RetryAfter: wait}
 	}
 	return resp, nil
 }

@@ -14,6 +14,8 @@ import 'screens/templates_screen.dart';
 import 'screens/workspace_screen.dart';
 import 'theme.dart';
 import 'widgets/approvals_sheet.dart';
+import 'widgets/command_palette.dart';
+import 'widgets/search_box.dart';
 
 /// Window layout: graphite sidebar plus the active section.
 class AppShell extends StatelessWidget {
@@ -30,21 +32,24 @@ class AppShell extends StatelessWidget {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         return Scaffold(
-          body: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Sidebar(state: state),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (state.setupMessage != null) _SetupBanner(state: state),
-                    if (state.notices.isNotEmpty) _NoticeBanner(state: state),
-                    Expanded(child: _content()),
-                  ],
+          body: AppShortcuts(
+            state: state,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Sidebar(state: state),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (state.setupMessage != null) _SetupBanner(state: state),
+                      if (state.notices.isNotEmpty) _NoticeBanner(state: state),
+                      Expanded(child: _content()),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -78,6 +83,8 @@ class _Sidebar extends StatelessWidget {
         children: [
           const _Brand(),
           const SizedBox(height: 16),
+          SearchBox(state: state),
+          const SizedBox(height: 12),
           FilledButton.icon(
             key: const Key('new-notebook'),
             onPressed: () => showNewNotebookDialog(context, state),
@@ -165,6 +172,8 @@ extension on _Sidebar {
     key: Key('nav-${nb.id}'),
     child: _NavItem(
       label: nb.name,
+      semanticLabel:
+          '${nb.name}, ${workTypeLabel(nb.workType)} notebook${nb.schedule == null ? '' : ', runs ${nb.schedule}'}',
       dot: colorsFor(nb.workType).dot,
       trailing: nb.schedule,
       selected: state.section == Section.notebooks && nb.id == state.selectedId,
@@ -230,7 +239,14 @@ class _Caption extends StatelessWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem({required this.label, required this.selected, required this.onTap, this.dot, this.trailing});
+  const _NavItem({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.dot,
+    this.trailing,
+    this.semanticLabel,
+  });
 
   final String label;
   final bool selected;
@@ -238,8 +254,22 @@ class _NavItem extends StatelessWidget {
   final Color? dot;
   final String? trailing;
 
+  /// What a screen reader says (default: [label]); the dot's meaning goes here.
+  final String? semanticLabel;
+
   @override
   Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: semanticLabel ?? label,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: _box(),
+    );
+  }
+
+  Widget _box() {
     return Material(
       color: selected ? Tokens.sidebarSelected : Colors.transparent,
       borderRadius: BorderRadius.circular(6),

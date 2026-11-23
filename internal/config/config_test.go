@@ -105,7 +105,7 @@ func TestValidateAliases(t *testing.T) {
 	f.Aliases = append(f.Aliases,
 		Alias{Name: "smart", Chain: []ModelRef{{"litellm", "a"}}},
 		Alias{Name: "a/b"},
-		Alias{Name: "x", Chain: []ModelRef{{"nope", "m"}}, FallbackOn: []string{"weather"}, MaxRetries: 11},
+		Alias{Name: "x", Chain: []ModelRef{{"nope", "m"}}, FallbackOn: []string{"weather"}, MaxRetries: intPtr(11)},
 	)
 	f.Defaults.Mode = "bad"
 	err := f.Validate()

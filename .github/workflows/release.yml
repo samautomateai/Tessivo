@@ -48,6 +48,12 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      # Signing runs only when its secrets exist (ADR 0008); otherwise the builds are unsigned.
+      SIGN_WINDOWS: ${{ secrets.WINDOWS_CERT_PFX != '' && 'yes' || '' }}
+      SIGN_MACOS: ${{ secrets.MACOS_CERT_P12 != '' && 'yes' || '' }}
+      NOTARIZE: ${{ secrets.APPLE_API_KEY_P8 != '' && 'yes' || '' }}
+      APP: desktop/build/macos/Build/Products/Release/tessivo_desktop.app
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -60,16 +66,122 @@ jobs:
           cache: true
       - name: Linux desktop toolchain
         if: matrix.platform == 'linux'
-        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          clang cmake ninja-build pkg-config libgtk-3-dev libayatana-appindicator3-dev
       - name: Build the desktop app
         working-directory: desktop
         run: |
           flutter pub get --enforce-lockfile
           flutter build ${{ matrix.platform }} --release
-      - name: Package with tess beside the app
+      - name: Put tess and the legal files in the bundle
         run: >-
-          go run ./tools/release desktop -version "$VERSION"
-          -platform ${{ matrix.platform }} -arch ${{ matrix.arch }} -out dist
+          go run ./tools/release desktop -version "$VERSION" -archive=false
+          -platform ${{ matrix.platform }} -arch ${{ matrix.arch }}
+
+      # Windows: the certificate goes into the user store, so its password never reaches argv.
+      - name: Sign the Windows app
+        if: matrix.platform == 'windows' && env.SIGN_WINDOWS == 'yes'
+        shell: pwsh
+        env:
+          WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'sign.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERT_PFX))
+          $pw = ConvertTo-SecureString $env:WINDOWS_CERT_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pw
+          Remove-Item $pfx
+          "SIGN_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          "SIGNTOOL=$($signtool.FullName)" >> $env:GITHUB_ENV
+          Get-ChildItem desktop/build/windows/x64/runner/Release -Recurse -Include *.exe, *.dll | ForEach-Object {
+            & $signtool.FullName sign /sha1 $cert.Thumbprint /fd sha256 `
+              /tr http://timestamp.digicert.com /td sha256 $_.FullName
+            if ($LASTEXITCODE) { exit 1 }
+          }
+
+      # macOS: a throwaway keychain holds the Developer ID certificate; hardened runtime for notarization.
+      - name: Sign the macOS app
+        if: matrix.platform == 'macos' && env.SIGN_MACOS == 'yes'
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          kc="$RUNNER_TEMP/sign.keychain-db"; kcpw="$(openssl rand -hex 16)"
+          security create-keychain -p "$kcpw" "$kc"
+          security set-keychain-settings -lut 21600 "$kc"
+          security unlock-keychain -p "$kcpw" "$kc"
+          printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$kc" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$kcpw" "$kc" > /dev/null
+          security list-keychains -d user -s "$kc" $(security list-keychains -d user | tr -d '"')
+          codesign --force --options runtime --timestamp --sign "$MACOS_SIGN_IDENTITY" "$APP/Contents/MacOS/tess"
+          codesign --force --deep --options runtime --timestamp \
+            --entitlements desktop/macos/Runner/Release.entitlements --sign "$MACOS_SIGN_IDENTITY" "$APP"
+          codesign --verify --strict --verbose=2 "$APP"
+
+      - name: Archive the bundle
+        run: >-
+          go run ./tools/release desktop -version "$VERSION" -stage=false -out dist
+          -platform ${{ matrix.platform }} -arch ${{ matrix.arch }}
+
+      - name: appimagetool 1.9.1 (checksum pinned)
+        if: matrix.platform == 'linux'
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/appimagetool" \
+            https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+          echo "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0  $RUNNER_TEMP/appimagetool" |
+            sha256sum -c -
+          chmod +x "$RUNNER_TEMP/appimagetool"
+          echo "TOOL=$RUNNER_TEMP/appimagetool" >> "$GITHUB_ENV"
+          echo "APPIMAGE_EXTRACT_AND_RUN=1" >> "$GITHUB_ENV"
+          echo "ARCH=x86_64" >> "$GITHUB_ENV"
+      - name: Inno Setup
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; if ($LASTEXITCODE) { exit 1 } }
+          "TOOL=$iscc" >> $env:GITHUB_ENV
+      - name: Build the installers
+        run: >-
+          go run ./tools/release installer -version "$VERSION" -out dist -tool "${TOOL:-}"
+          -platform ${{ matrix.platform }} -arch ${{ matrix.arch }}
+      - name: Check the Debian package
+        if: matrix.platform == 'linux'
+        run: dpkg-deb --info dist/*.deb && dpkg-deb --contents dist/*.deb | head -20
+
+      - name: Sign the Windows installer
+        if: matrix.platform == 'windows' && env.SIGN_WINDOWS == 'yes'
+        shell: pwsh
+        run: |
+          Get-ChildItem dist/*_setup.exe | ForEach-Object {
+            & $env:SIGNTOOL sign /sha1 $env:SIGN_THUMBPRINT /fd sha256 `
+              /tr http://timestamp.digicert.com /td sha256 $_.FullName
+            if ($LASTEXITCODE) { exit 1 }
+          }
+      - name: Sign and notarize the disk image
+        if: matrix.platform == 'macos' && env.SIGN_MACOS == 'yes'
+        env:
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          dmg="$(ls dist/*.dmg)"
+          codesign --force --timestamp --sign "$MACOS_SIGN_IDENTITY" "$dmg"
+          if [ "$NOTARIZE" = yes ]; then
+            printf '%s' "$APPLE_API_KEY_P8" | base64 --decode > "$RUNNER_TEMP/key.p8"
+            xcrun notarytool submit "$dmg" --key "$RUNNER_TEMP/key.p8" \
+              --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait
+            rm "$RUNNER_TEMP/key.p8"
+            xcrun stapler staple "$dmg"
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: tessivo-desktop-${{ matrix.platform }}-${{ matrix.arch }}

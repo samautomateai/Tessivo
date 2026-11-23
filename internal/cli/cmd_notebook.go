@@ -56,13 +56,23 @@ func cmdContext(args []string, env Env) error {
 func contextAdd(nb *notebook.Notebook, args []string, env Env) error {
 	fs := newFlags("context add", env)
 	text := fs.String("text", "", "add this text as a source (- reads stdin)")
-	label := fs.String("label", "", "label for --text")
+	label := fs.String("label", "", "label for --text or --git-diff")
+	gitRepo := fs.String("git-diff", "", "add a repository's changes against --base (read with git on every run)")
+	base := fs.String("base", "main", "--git-diff: the branch, tag or commit to compare with")
 	paths, err := parse(fs, args)
 	if err != nil {
 		return err
 	}
 	if *text != "" {
 		return contextAddText(nb, *text, *label, env)
+	}
+	if *gitRepo != "" {
+		item, err := nb.AddGitDiff(*gitRepo, *base, *label)
+		if err != nil {
+			return usageError{err.Error()}
+		}
+		_, err = fmt.Fprintln(env.Stdout, "added "+item.Label+" (git changes, read on every run) id="+item.ID)
+		return wrapWrite(err)
 	}
 	if len(paths) == 0 {
 		return usagef("context add: want at least one path, URL or --text")

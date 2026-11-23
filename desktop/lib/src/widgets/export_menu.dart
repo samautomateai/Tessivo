@@ -31,7 +31,11 @@ class ExportMenu extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final path = await askText(
       context,
-      title: format == 'docx' ? 'Save as Word document' : 'Save as Markdown',
+      title: switch (format) {
+        'docx' => 'Save as Word document',
+        'pdf' => 'Save as PDF',
+        _ => 'Save as Markdown',
+      },
       label: 'File path',
       initial: _suggested(format),
       maxLength: 4096,
@@ -55,6 +59,7 @@ class ExportMenu extends StatelessWidget {
       onSelected: (f) => unawaited(_export(context, f)),
       itemBuilder: (_) => const [
         PopupMenuItem(key: Key('export-docx'), value: 'docx', child: Text('Word document (.docx)…')),
+        PopupMenuItem(key: Key('export-pdf'), value: 'pdf', child: Text('PDF (.pdf)…')),
         PopupMenuItem(key: Key('export-md'), value: 'md', child: Text('Markdown (.md)…')),
       ],
     );

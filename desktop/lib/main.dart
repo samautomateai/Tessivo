@@ -5,9 +5,12 @@ import 'package:material_ui/material_ui.dart';
 import 'src/app_state.dart';
 import 'src/core/core_client.dart';
 import 'src/core/http_core_client.dart';
+import 'src/core/settings_draft.dart';
 import 'src/core/supervisor.dart';
 import 'src/shell.dart';
 import 'src/theme.dart';
+import 'src/tray.dart';
+import 'src/tray_plugins.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +21,19 @@ Future<void> main() async {
   unawaited(state.load());
   state.listenForEvents();
   runApp(TessivoApp(state: state));
+  unawaited(startTray(TrayController(window: PluginDesktopWindow(), closeToTray: () => closeToTray(state.core))));
+}
+
+/// Whether the config asks to keep running in the tray when the window closes.
+Future<bool> closeToTray(CoreClient core) async => SettingsDraft.fromJson((await core.getSettings()).raw).closeToTray;
+
+/// Starts the tray; without one (no tray on this desktop) the window closes as usual.
+Future<void> startTray(TrayController tray) async {
+  try {
+    await tray.start();
+  } on Object catch (e) {
+    debugPrint('Tessivo tray not available ($e)');
+  }
 }
 
 /// Connects to the core (reusing or starting `tess serve`); falls back to

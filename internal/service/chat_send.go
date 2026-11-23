@@ -26,6 +26,10 @@ const DefaultChatBudget = 64000
 type ChatSend struct {
 	Text        string            `json:"text"`
 	Attachments []chat.Attachment `json:"attachments"`
+	// OnTool reports tool calls and results while the reply runs (chats with MCP servers).
+	OnTool func(ChatToolEvent) `json:"-"`
+	// Approve answers a tool call that needs approval; nil denies it.
+	Approve func(ChatToolRequest) ChatToolAnswer `json:"-"`
 }
 
 // ChatReply is the result of SendChat: the stored user and assistant turns.
@@ -98,9 +102,22 @@ func (s *Service) SendChat(ctx context.Context, id string, in ChatSend, onDelta 
 		ReasoningEffort: settings.ThinkingEffort,
 		Messages:        chat.Build(sess, memory, docs, budget(settings)),
 	}
-	reply, runErr := s.streamReply(ctx, alias, req, onDelta)
+	var (
+		reply  chat.Message
+		used   []string
+		runErr error
+	)
+	if len(sess.MCPServers) > 0 {
+		remember := func(tool, rule string) { s.rememberChatRule(st, id, tool, rule) }
+		reply, used, runErr = s.chatWithTools(ctx, alias, req, sess, in, remember, onDelta)
+	} else {
+		reply, runErr = s.streamReply(ctx, alias, req, onDelta)
+	}
 	if _, err := st.Update(id, func(sess *chat.Session) error {
 		sess.Messages = append(sess.Messages, reply)
+		if len(used) > 0 {
+			sess.Messages = append(sess.Messages, toolNote(used))
+		}
 		return nil
 	}); err != nil {
 		return ChatReply{User: user, Assistant: reply}, errors.Join(runErr, chatErr(err))

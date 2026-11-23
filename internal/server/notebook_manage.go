@@ -11,6 +11,8 @@ func (s *Server) notebookManageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /v1/notebooks/{id}", s.updateNotebook)
 	mux.HandleFunc("DELETE /v1/notebooks/{id}", s.deleteNotebook)
 	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/export", s.exportOutput)
+	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/run", s.outputRun)
+	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/diff", s.diffOutput)
 }
 
 func (s *Server) updateNotebook(w http.ResponseWriter, r *http.Request) {
@@ -46,4 +48,22 @@ func (s *Server) exportOutput(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f.Data)
+}
+
+func (s *Server) outputRun(w http.ResponseWriter, r *http.Request) {
+	ri, err := s.svc.OutputRun(r.PathValue("id"), r.PathValue("out"))
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, ri)
+}
+
+func (s *Server) diffOutput(w http.ResponseWriter, r *http.Request) {
+	d, err := s.svc.DiffOutputs(r.PathValue("id"), r.PathValue("out"), r.URL.Query().Get("against"))
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, d)
 }

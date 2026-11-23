@@ -8,6 +8,7 @@ import (
 const (
 	FormatMarkdown = "md"
 	FormatDOCX     = "docx"
+	FormatPDF      = "pdf"
 )
 
 // ExportFile is an output rendered as a file to save or share.
@@ -44,7 +45,13 @@ func RenderExport(title, markdown, format string) (ExportFile, error) {
 			ContentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 			Data:        b,
 		}, nil
+	case FormatPDF:
+		b, err := export.PDF(title, markdown)
+		if err != nil {
+			return ExportFile{}, &InvalidError{err.Error()}
+		}
+		return ExportFile{Name: export.FileName(title, FormatPDF), ContentType: "application/pdf", Data: b}, nil
 	default:
-		return ExportFile{}, invalidf("format %q: want md or docx", format)
+		return ExportFile{}, invalidf("format %q: want md, docx or pdf", format)
 	}
 }

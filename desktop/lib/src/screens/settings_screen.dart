@@ -46,9 +46,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _addProvider(SettingsInfo s) async {
-    final got = await showDialog<(String, String)>(context: context, builder: (_) => const AddProviderDialog());
-    if (got == null || got.$1.isEmpty || got.$2.isEmpty) return;
-    final err = await _save(SettingsDraft.fromJson(s.raw)..addProvider(got.$1, got.$2, keyRefFor(got.$1)));
+    final got = await showDialog<NewProvider>(context: context, builder: (_) => const AddProviderDialog());
+    if (got == null || got.name.isEmpty || (got.url.isEmpty && got.kind == 'openai')) return;
+    final draft = SettingsDraft.fromJson(s.raw)
+      ..addProvider(got.name, got.url, got.needsKey ? keyRefFor(got.name) : '', kind: got.kind);
+    final err = await _save(draft);
     if (err != null && mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
   }
 
@@ -80,6 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         final s = snap.data!;
         return ListView(
+          key: const Key('settings-list'),
           padding: const EdgeInsets.all(28),
           children: [
             Text('Models and aliases', style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
@@ -114,6 +117,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             const SizedBox(height: 24),
             McpServersSection(core: widget.core),
+            const SizedBox(height: 24),
+            Text('Desktop', style: text.titleMedium),
+            SwitchListTile(
+              key: const Key('close-to-tray'),
+              contentPadding: EdgeInsets.zero,
+              value: SettingsDraft.fromJson(s.raw).closeToTray,
+              title: const Text('Keep running in the tray when the window is closed'),
+              subtitle: const Text('Runs and schedules go on; Quit in the tray menu ends Tessivo.'),
+              onChanged: (on) => unawaited(_save(SettingsDraft.fromJson(s.raw)..closeToTray = on)),
+            ),
             const SizedBox(height: 24),
             Text('Troubleshooting', style: text.titleMedium),
             const SizedBox(height: 8),

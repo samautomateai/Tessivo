@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/extract"
@@ -153,7 +152,7 @@ func describe(id string, nb *notebook.Notebook, stats bool) NotebookInfo {
 	}
 	for _, c := range nb.Manifest.Context {
 		ci := ContextInfo{ContextItem: c}
-		if !stats || c.IsMCP() || c.IsURL() { // MCP resources and web pages are read at run time
+		if !stats || c.IsMCP() || c.IsURL() || c.IsGitDiff() { // read at run time
 			info.Context = append(info.Context, ci)
 			continue
 		}
@@ -275,9 +274,7 @@ func (s *Service) Models(ctx context.Context, provider string) (map[string][]str
 			}
 			key = v
 		}
-		c := llm.NewClient(p.BaseURL, key, time.Duration(p.TimeoutSeconds)*time.Second)
-		c.Headers = p.Headers
-		ms, err := c.Models(ctx)
+		ms, err := llm.NewProviderClient(p, key).Models(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("provider %s: %w", p.Name, err)
 		}

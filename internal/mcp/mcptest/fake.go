@@ -94,7 +94,7 @@ func Serve(mode string, in io.Reader, out, errOut io.Writer) int {
 		initialized = initialized || m.Method == "initialize"
 		_ = enc.Encode(msg{JSONRPC: "2.0", ID: m.ID, Result: answer(mode, m)})
 		if initialized && (mode == ModeStall || mode == ModePings) {
-			return stop(mode, enc)
+			return stop(mode, enc, in)
 		}
 	}
 	return 0
@@ -180,10 +180,12 @@ func readResource(uri string) any {
 	return map[string]any{"contents": []any{contents}}
 }
 
-// stop sends pings (ModePings), then never reads its input again; it ends
-// when the client kills it.
-func stop(mode string, enc *json.Encoder) int {
+// stop stops answering. ModeStall never reads its input again; ModePings
+// sends pings and keeps draining its input (the replies), so the flood tests
+// the bounded reply queue and not a full pipe. Both end when the client kills them.
+func stop(mode string, enc *json.Encoder, in io.Reader) int {
 	if mode == ModePings {
+		go func() { _, _ = io.Copy(io.Discard, in) }()
 		for i := range 20000 {
 			_ = enc.Encode(msg{JSONRPC: "2.0", ID: json.RawMessage(fmt.Sprintf(`"p%d"`, i)), Method: "ping"})
 		}

@@ -63,3 +63,38 @@ extension SetupCheck on AppState {
     return null;
   }
 }
+
+/// Opening a search match.
+extension SearchActions on AppState {
+  /// Shows where a match lives: its notebook (and output), or its research notebook.
+  Future<void> openHit(SearchHit h) async {
+    switch (h.kind) {
+      case 'research' || 'note':
+        selectResearch(h.notebookId);
+      case 'output':
+        select(h.notebookId);
+        await loadOutputs(open: h.id);
+      default:
+        select(h.notebookId);
+    }
+  }
+}
+
+/// Running an output's run again.
+extension RerunActions on AppState {
+  /// The run behind an output, or null when it cannot be read (a notice says why).
+  Future<RunInfo?> runOf(String outputId) async {
+    final nb = selected;
+    if (nb == null) return null;
+    try {
+      return await core.outputRun(nb.id, outputId);
+    } on CoreException catch (e) {
+      _notice(e.message);
+      return null;
+    }
+  }
+
+  /// Runs [info] again, on [model] when given.
+  Future<void> rerun(RunInfo info, {String? model}) =>
+      run(info.prompt, info.vars, promptName: info.promptName, model: model);
+}

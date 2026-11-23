@@ -79,6 +79,7 @@ class ChatSession {
     this.model = '',
     this.thinkingEffort = '',
     this.messages = const [],
+    this.mcpServers = const [],
   });
 
   final String id;
@@ -89,6 +90,9 @@ class ChatSession {
   final String thinkingEffort; // '' uses the app default
   final List<ChatMessage> messages;
 
+  /// MCP servers whose tools this chat may use.
+  final List<String> mcpServers;
+
   ChatSession copyWith({String? title, List<ChatMessage>? messages}) => ChatSession(
     id: id,
     title: title ?? this.title,
@@ -97,6 +101,7 @@ class ChatSession {
     model: model,
     thinkingEffort: thinkingEffort,
     messages: messages ?? this.messages,
+    mcpServers: mcpServers,
   );
 }
 
@@ -144,4 +149,21 @@ class ChatOutput {
   final String notebookId;
   final String outputId;
   final String title;
+}
+
+/// A tool the reply called, or its result (kind: call, result, denied or blocked).
+class ChatToolActivity extends ChatEvent {
+  const ChatToolActivity({required this.kind, required this.tool, this.args = '', this.summary = ''});
+  final String kind;
+  final String tool;
+  final String args;
+  final String summary;
+}
+
+/// A tool call waiting for the user's answer (answer it with answerChatTool).
+class ChatApprovalNeeded extends ChatEvent {
+  const ChatApprovalNeeded({required this.id, required this.tool, this.args = ''});
+  final String id;
+  final String tool;
+  final String args;
 }
