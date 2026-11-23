@@ -114,8 +114,7 @@ func (s *Service) SetNotebookMCP(notebookID string, servers []string) (NotebookI
 	if len(list) > maxAttachedMCP {
 		return NotebookInfo{}, invalidf("at most %d MCP servers per notebook", maxAttachedMCP)
 	}
-	nb.Manifest.Agent.MCPServers = list
-	if err := nb.Save(); err != nil {
+	if err := nb.Update(func(m *notebook.Manifest) error { m.Agent.MCPServers = list; return nil }); err != nil {
 		return NotebookInfo{}, err
 	}
 	return describe(notebookID, nb, false), nil

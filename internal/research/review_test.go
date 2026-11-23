@@ -1,10 +1,13 @@
 package research
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/samautomateai/tessivo/internal/notebook"
 )
 
 func TestOpenRefusesFilePathsOutsideSources(t *testing.T) {
@@ -26,6 +29,9 @@ func TestOpenRefusesFilePathsOutsideSources(t *testing.T) {
 	}
 	for _, bad := range []string{filepath.Join("..", "thesis.docx"), outside, filepath.Join("sources", "other-x")} {
 		nb.Manifest.Sources[0].Path = bad
+		if cur, err := Open(dir); err == nil { // this test overwrites the manifest on purpose
+			nb.Manifest.Revision = cur.Manifest.Revision
+		}
 		if err := nb.Save(); err != nil {
 			t.Fatal(err)
 		}
@@ -81,5 +87,33 @@ func TestResearchFormatVersion(t *testing.T) {
 	_ = os.WriteFile(path, []byte(strings.Replace(string(b), `"formatVersion": 1`, `"formatVersion": 7`, 1)), 0o600)
 	if _, err := Open(dir); err == nil || !strings.Contains(err.Error(), "newer version") {
 		t.Fatalf("newer: %v", err)
+	}
+}
+
+func TestTwoHandlesBothAddSources(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "nb")
+	a, err := Create(dir, "nb", "Nb", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := Open(dir) // the CLI and the app each hold a copy
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, h := range []*Notebook{a, b} {
+		src := filepath.Join(root, string(rune('a'+i))+".md")
+		_ = os.WriteFile(src, []byte("x"), 0o600)
+		if _, err := h.AddPath(src); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := Open(dir)
+	if err != nil || len(got.Manifest.Sources) != 2 {
+		t.Fatalf("both sources must be kept: %v %d", err, len(got.Manifest.Sources))
+	}
+	a.Manifest.Name = "stale"
+	if err := a.Save(); !errors.Is(err, notebook.ErrChanged) {
+		t.Fatalf("a stale save must be refused: %v", err)
 	}
 }

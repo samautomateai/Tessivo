@@ -30,8 +30,13 @@ func (n *Notebook) addSource(s Source) (Source, error) {
 		s.ID = notebook.NewID()
 	}
 	s.Level, s.AddedAt = LevelFull, now()
-	n.Manifest.Sources = append(n.Manifest.Sources, s)
-	return s, n.Save()
+	return s, n.Update(func(m *Manifest) error { // keeps sources added meanwhile elsewhere
+		if len(m.Sources) >= MaxSources {
+			return fmt.Errorf("%w: at most %d sources", ErrLimit, MaxSources)
+		}
+		m.Sources = append(m.Sources, s)
+		return nil
+	})
 }
 
 // AddPath adds a file (copied into sources/) or a folder (used in place).

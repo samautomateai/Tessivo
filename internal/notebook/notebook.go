@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -16,6 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/samautomateai/tessivo/internal/atomicfile"
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/format"
 	"github.com/samautomateai/tessivo/internal/gitdiff"
@@ -79,6 +79,8 @@ type Manifest struct {
 	Template      string             `json:"template,omitempty"` // "id@version" this notebook came from
 	Agent         AgentSettings      `json:"agent,omitzero"`
 	Archived      bool               `json:"archived,omitempty"` // listed apart; schedules do not run
+	// Revision counts saves, so a save of a stale copy is refused (lock.go).
+	Revision int `json:"revision,omitempty"`
 }
 
 // AgentSettings are the notebook's agent-mode settings.
@@ -143,15 +145,6 @@ func Open(dir string) (*Notebook, error) {
 	return &Notebook{Dir: dir, Manifest: m}, nil
 }
 
-// Save writes the manifest atomically.
-func (n *Notebook) Save() error {
-	if err := n.Manifest.Settings.Validate(); err != nil {
-		return fmt.Errorf("notebook settings: %w", err)
-	}
-	n.Manifest.FormatVersion = FormatVersion
-	return writeJSON(filepath.Join(n.Dir, ManifestFile), n.Manifest)
-}
-
 // AddContext attaches a file (copied into the notebook) or a folder
 // (referenced in place, e.g. a code base) and saves the manifest.
 func (n *Notebook) AddContext(src string) (ContextItem, error) {
@@ -173,19 +166,20 @@ func (n *Notebook) AddContext(src string) (ContextItem, error) {
 		}
 		item.Path = rel
 	}
-	n.Manifest.Context = append(n.Manifest.Context, item)
-	return item, n.Save()
+	return item, n.addItem(item)
 }
 
 // SetEnabled toggles a context item by ID or label.
 func (n *Notebook) SetEnabled(idOrLabel string, enabled bool) error {
-	for i, c := range n.Manifest.Context {
-		if c.ID == idOrLabel || c.Label == idOrLabel {
-			n.Manifest.Context[i].Enabled = enabled
-			return n.Save()
+	return n.Update(func(m *Manifest) error {
+		for i, c := range m.Context {
+			if c.ID == idOrLabel || c.Label == idOrLabel {
+				m.Context[i].Enabled = enabled
+				return nil
+			}
 		}
-	}
-	return fmt.Errorf("no context item %q", idOrLabel)
+		return fmt.Errorf("no context item %q", idOrLabel)
+	})
 }
 
 // ContextPath returns the absolute path of a context item.
@@ -246,14 +240,7 @@ func writeJSON(path string, v any) error {
 	if err != nil {
 		return fmt.Errorf("encode %s: %w", filepath.Base(path), err)
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, append(b, '\n'), 0o600); err != nil {
-		return fmt.Errorf("write %s: %w", filepath.Base(path), err)
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		return errors.Join(fmt.Errorf("replace %s: %w", filepath.Base(path), err), os.Remove(tmp))
-	}
-	return nil
+	return atomicfile.Write(path, append(b, '\n'), 0o600)
 }
 
 // AddMCPResource attaches a resource of an MCP server; it is read on every run.
@@ -268,8 +255,7 @@ func (n *Notebook) AddMCPResource(server, uri, label string) (ContextItem, error
 	item := ContextItem{
 		ID: NewID(), Label: label, Enabled: true, AddedAt: now(), Kind: KindMCPResource, Server: server, URI: uri,
 	}
-	n.Manifest.Context = append(n.Manifest.Context, item)
-	return item, n.Save()
+	return item, n.addItem(item)
 }
 
 // KindURL marks a web page read on every run (URI; Path is empty).
@@ -292,8 +278,7 @@ func (n *Notebook) AddURL(raw, label string) (ContextItem, error) {
 		label = strings.TrimSuffix(u.Host+u.Path, "/")
 	}
 	item := ContextItem{ID: NewID(), Label: label, Enabled: true, AddedAt: now(), Kind: KindURL, URI: raw}
-	n.Manifest.Context = append(n.Manifest.Context, item)
-	return item, n.Save()
+	return item, n.addItem(item)
 }
 
 // AddText saves pasted text as a Markdown file in the notebook and attaches it.
@@ -310,8 +295,7 @@ func (n *Notebook) AddText(label, text string) (ContextItem, error) {
 		return ContextItem{}, fmt.Errorf("save text: %w", err)
 	}
 	item := ContextItem{ID: id, Label: label, Path: rel, Enabled: true, AddedAt: now()}
-	n.Manifest.Context = append(n.Manifest.Context, item)
-	return item, n.Save()
+	return item, n.addItem(item)
 }
 
 // FormatVersion is the notebook folder format this Tessivo writes. Raise it
@@ -347,6 +331,13 @@ func (n *Notebook) AddGitDiff(repo, base, label string) (ContextItem, error) {
 		ID: NewID(), Label: label, Enabled: true, AddedAt: now(), Kind: KindGitDiff, Path: abs,
 		InPlace: true, URI: base,
 	}
-	n.Manifest.Context = append(n.Manifest.Context, item)
-	return item, n.Save()
+	return item, n.addItem(item)
+}
+
+// addItem appends a context item to the manifest as it is on disk now.
+func (n *Notebook) addItem(item ContextItem) error {
+	return n.Update(func(m *Manifest) error {
+		m.Context = append(m.Context, item)
+		return nil
+	})
 }

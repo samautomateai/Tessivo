@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/samautomateai/tessivo/internal/atomicfile"
 )
 
 // Checkpoints let a paused or interrupted agent run continue later. Each is
@@ -17,9 +19,6 @@ const checkpointSuffix = ".checkpoint.json"
 
 // MaxCheckpoint bounds one checkpoint file. A variable so tests can lower it.
 var MaxCheckpoint = 64 << 20
-
-// rename is os.Rename; a variable so tests can simulate a busy target.
-var rename = os.Rename
 
 // LockRefresh is how often the holder refreshes its lock's mtime.
 var LockRefresh = 30 * time.Second
@@ -55,12 +54,8 @@ func (n *Notebook) SaveCheckpoint(runID string, v any) error {
 	if len(b) > MaxCheckpoint {
 		return fmt.Errorf("%w: %d bytes, at most %d", ErrCheckpointTooLarge, len(b), MaxCheckpoint)
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o600); err != nil {
-		return fmt.Errorf("write checkpoint: %w", err)
-	}
-	if err := renameRetry(tmp, path); err != nil {
-		return errors.Join(fmt.Errorf("replace checkpoint: %w", err), os.Remove(tmp))
+	if err := atomicfile.Write(path, b, 0o600); err != nil {
+		return fmt.Errorf("checkpoint: %w", err)
 	}
 	return nil
 }
@@ -168,17 +163,4 @@ func refreshLock(path string, stop <-chan struct{}, done chan<- struct{}) {
 			_ = os.Chtimes(path, now, now)
 		}
 	}
-}
-
-// renameRetry replaces to with from, retrying briefly: on Windows a rename
-// onto a file another reader has open fails until that reader closes it.
-func renameRetry(from, to string) error {
-	var err error
-	for i := range 5 {
-		if err = rename(from, to); err == nil {
-			return nil
-		}
-		time.Sleep(time.Duration(10*(i+1)) * time.Millisecond)
-	}
-	return err
 }

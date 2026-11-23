@@ -299,17 +299,22 @@ func (s *Service) UpdateNotebook(id string, in NotebookUpdate) (NotebookInfo, er
 	if err != nil {
 		return NotebookInfo{}, err
 	}
+	clean := ""
 	if in.Name != nil {
-		clean, err := notebook.CheckName(*in.Name)
-		if err != nil {
+		if clean, err = notebook.CheckName(*in.Name); err != nil {
 			return NotebookInfo{}, &InvalidError{err.Error()}
 		}
-		nb.Manifest.Name = clean
 	}
-	if in.Archived != nil {
-		nb.Manifest.Archived = *in.Archived
-	}
-	if err := nb.Save(); err != nil {
+	err = nb.Update(func(m *notebook.Manifest) error {
+		if in.Name != nil {
+			m.Name = clean
+		}
+		if in.Archived != nil {
+			m.Archived = *in.Archived
+		}
+		return nil
+	})
+	if err != nil {
 		return NotebookInfo{}, err
 	}
 	return describe(id, nb, false), nil

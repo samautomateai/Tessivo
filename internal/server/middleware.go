@@ -119,7 +119,8 @@ func classify(err error) (int, string) {
 		return http.StatusBadRequest, msg
 	case errors.Is(err, service.ErrNotFound):
 		return http.StatusNotFound, msg
-	case errors.Is(err, service.ErrConflict), errors.Is(err, notebook.ErrRunLocked):
+	case errors.Is(err, service.ErrConflict), errors.Is(err, notebook.ErrRunLocked),
+		errors.Is(err, notebook.ErrChanged):
 		return http.StatusConflict, msg
 	case errors.Is(err, llm.ErrInvalidOutput):
 		return http.StatusUnprocessableEntity, msg

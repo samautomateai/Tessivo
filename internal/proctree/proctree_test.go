@@ -18,6 +18,9 @@ const modeEnv = "PROCTREE_TEST_MODE"
 func TestMain(m *testing.M) {
 	switch os.Getenv(modeEnv) {
 	case "parent":
+		// Like an MCP server, start children only after the first input, which
+		// comes after Attach (ADR 0006: a child started before is outside the job).
+		_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
 		exe, _ := os.Executable()
 		child := exec.Command(exe)
 		child.Env = append(os.Environ(), modeEnv+"=sleeper")
@@ -49,6 +52,10 @@ func startTree(t *testing.T) (*exec.Cmd, *Tree, *bufio.Reader) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	in, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
 	Prepare(cmd)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
@@ -56,6 +63,10 @@ func startTree(t *testing.T) (*exec.Cmd, *Tree, *bufio.Reader) {
 	tree, err := Attach(cmd)
 	if err != nil {
 		_ = cmd.Process.Kill()
+		t.Fatal(err)
+	}
+	if _, err := in.Write([]byte("go\n")); err != nil {
+		_ = tree.Kill()
 		t.Fatal(err)
 	}
 	r := bufio.NewReader(out)

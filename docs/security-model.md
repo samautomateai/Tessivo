@@ -20,7 +20,8 @@ holds credentials for model providers. Every control below exists in code and is
 | Path tricks in notebook names | Prompt and file names restricted to `[A-Za-z0-9._-]`; copied context files renamed | `notebook` |
 | Untrusted model output | Validated against the work type's schema; invalid output is never saved as an output | `schema`, `executor` |
 | Repudiation / silent edits of history | Hash-chained, fsynced, 0600 audit log; prompts recorded as digests; `tess audit verify` | `audit` |
-| Local file exposure | Files written 0600, directories 0700/0750, atomic replace | `config`, `notebook`, `audit` |
+| Local file exposure | Files written 0600, directories 0700/0750, atomic replace through a unique temporary file per writer (retried briefly while another process holds the target) | `atomicfile`, `config`, `notebook`, `audit` |
+| CLI and app writing at once | A job notebook's manifest changes under a lock file (`.manifest.lock`, broken after 30 s if its writer died) and re-read from disk, so neither side loses the other's change; a save from a stale copy is refused (`409`); research notebooks the same way; outputs, runs and prompts are separate files | `notebook`, `research`, `atomicfile` |
 | Other local users or processes calling the core | 0600 socket in a 0700 dir (loopback-only TCP on Windows); 256-bit per-session token, constant-time compare; token only in a 0600 endpoint file. The token is equivalent to running programs as the user: it can add an MCP server (a program) and start it with `test` | `server` |
 | Websites attacking the loopback API (CSRF, DNS rebinding) | Requests with `Origin`/`Sec-Fetch-*` refused; only loopback `Host` values accepted | `server/middleware.go` |
 | API abuse | 1 MiB bodies, strict JSON, header/read timeouts, ≤ 4 concurrent runs, panic recovery, errors redacted | `server` |

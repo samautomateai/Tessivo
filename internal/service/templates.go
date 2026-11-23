@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/samautomateai/tessivo/internal/notebook"
 	"github.com/samautomateai/tessivo/internal/template"
 )
 
@@ -141,8 +142,7 @@ func (s *Service) SetMemory(notebookID string, facts []string) (NotebookInfo, er
 		}
 		clean = append(clean, f)
 	}
-	nb.Manifest.Memory = clean
-	if err := nb.Save(); err != nil {
+	if err := nb.Update(func(m *notebook.Manifest) error { m.Memory = clean; return nil }); err != nil {
 		return NotebookInfo{}, err
 	}
 	return describe(notebookID, nb, false), nil

@@ -38,15 +38,19 @@ func (n *Notebook) Rename(name string) error {
 	if err != nil {
 		return err
 	}
-	n.Manifest.Name = clean
-	return n.Save()
+	return n.Update(func(m *Manifest) error {
+		m.Name = clean
+		return nil
+	})
 }
 
 // SetArchived archives or restores the notebook. Archived notebooks are
 // listed apart and their schedules do not run.
 func (n *Notebook) SetArchived(archived bool) error {
-	n.Manifest.Archived = archived
-	return n.Save()
+	return n.Update(func(m *Manifest) error {
+		m.Archived = archived
+		return nil
+	})
 }
 
 // Busy reports whether a run holds a fresh lock or a paused or interrupted
