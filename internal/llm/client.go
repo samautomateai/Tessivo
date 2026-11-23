@@ -251,7 +251,9 @@ func sendJSON(ctx context.Context, hc *http.Client, method, url string, headers 
 	if resp.StatusCode >= 300 {
 		defer func() { _ = resp.Body.Close() }()
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<10))
-		return nil, &APIError{Status: resp.StatusCode, Body: redactKey(string(b), key)}
+		body := redactKey(string(b), key)
+		wait := retryAfter(resp.Header, body, time.Now())
+		return nil, &APIError{Status: resp.StatusCode, Body: body, RetryAfter: wait}
 	}
 	return resp, nil
 }

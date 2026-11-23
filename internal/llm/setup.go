@@ -11,7 +11,7 @@ import (
 // provider and looking up API keys through sec.
 func NewRouter(f config.File, alias config.Alias, sec secrets.Resolver) (*Router, error) {
 	clients := map[string]ProviderClient{}
-	r := &Router{Triggers: alias.Triggers(), MaxRetries: alias.MaxRetries}
+	r := &Router{Triggers: alias.Triggers(), MaxRetries: alias.Retries()}
 	for _, m := range alias.Chain {
 		c, ok := clients[m.Provider]
 		if !ok {

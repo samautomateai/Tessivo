@@ -45,6 +45,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Folder format versions: `formatVersion` in `notebook.json` and `research.json`, step-by-step upgrades (`internal/format`), newer folders refused instead of overwritten | NFR Reliability | ☑ |
 | Core log (rotated, redacted) and a diagnostics bundle for bug reports (`tess diagnostics`, `GET /v1/diagnostics`, desktop Settings › Save diagnostics) | NFR Operations | ☑ |
 | Native Anthropic and Gemini providers (`kind` in the config; caching, thinking, tools, structured output) and provider presets in the desktop (LiteLLM, OpenAI, Anthropic, Gemini, Ollama, LM Studio, vLLM, OpenRouter, Groq, DeepSeek, Mistral, xAI, Together) | SET-1, SET-2 | ☑ |
+| Rate limits and provider failures: 2 retries by default, `Retry-After` honoured, jitter, long waits fall back at once, context overflow recognised for every provider, `max_concurrent` per provider, plain hints for 401/403/404/429 | SET-4 | ☑ |
 | SQLite index (FTS) alongside the folder store | NB-3 | ☐ |
 | Agent mode phase 1 (ADR 0005): our own loop with LLM tool calling, rooted read-only code tools, allow/ask/block rules, durable pause and resume across restarts, runs as jobs, `tess run` approve, deny, resume, cancel and pending, approval endpoints and events, desktop approvals | WT/E11 | ☑ |
 | Agent mode phase 2: commands from a per-notebook allow-list (no shell) | WT/E11 | ☐ |
