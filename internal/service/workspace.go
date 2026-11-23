@@ -152,7 +152,7 @@ func describe(id string, nb *notebook.Notebook, stats bool) NotebookInfo {
 	}
 	for _, c := range nb.Manifest.Context {
 		ci := ContextInfo{ContextItem: c}
-		if !stats || c.IsMCP() || c.IsURL() { // MCP resources and web pages are read at run time
+		if !stats || c.IsMCP() || c.IsURL() || c.IsGitDiff() { // read at run time
 			info.Context = append(info.Context, ci)
 			continue
 		}

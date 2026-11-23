@@ -46,6 +46,9 @@ abstract interface class CoreClient {
 
   /// Saves pasted text as a source.
   Future<Notebook> addTextContext(String notebookId, String text, {String label});
+
+  /// Adds a repository's changes since [base], read with git on every run.
+  Future<Notebook> addGitDiffContext(String notebookId, String repo, String base, {String label});
   Future<Notebook> setMemory(String notebookId, List<String> memory);
   Future<OutputDetail> getOutput(String notebookId, String outputId);
 

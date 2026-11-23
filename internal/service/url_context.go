@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/samautomateai/tessivo/internal/extract"
 	"github.com/samautomateai/tessivo/internal/notebook"
@@ -40,4 +41,19 @@ func fetchPage(ctx context.Context, c notebook.ContextItem) (extract.Document, e
 		return extract.Document{}, fmt.Errorf("url source %s: %w", c.Label, err)
 	}
 	return d, nil
+}
+
+// AddGitDiffContext attaches a repository's changes since base; git reads them on every run.
+func (s *Service) AddGitDiffContext(notebookID, repo, base, label string) (NotebookInfo, error) {
+	nb, err := s.openNotebookRef(notebookID)
+	if err != nil {
+		return NotebookInfo{}, err
+	}
+	if !filepath.IsAbs(repo) {
+		return NotebookInfo{}, invalidf("repository: want an absolute path")
+	}
+	if _, err := nb.AddGitDiff(repo, base, label); err != nil {
+		return NotebookInfo{}, &InvalidError{err.Error()}
+	}
+	return describe(notebookID, nb, true), nil
 }

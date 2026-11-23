@@ -178,6 +178,10 @@ func (s *Server) addContext(w http.ResponseWriter, r *http.Request) {
 		Label  string `json:"label"`
 		URL    string `json:"url"`
 		Text   string `json:"text"`
+		Git    *struct {
+			Repo string `json:"repo"`
+			Base string `json:"base"`
+		} `json:"git"`
 	}
 	if err := decode(w, r, &body); err != nil {
 		s.fail(w, r, err)
@@ -193,6 +197,8 @@ func (s *Server) addContext(w http.ResponseWriter, r *http.Request) {
 		return
 	case body.Server != "":
 		info, err = s.svc.AddMCPContext(r.PathValue("id"), body.Server, body.URI, body.Label)
+	case body.Git != nil:
+		info, err = s.svc.AddGitDiffContext(r.PathValue("id"), body.Git.Repo, body.Git.Base, body.Label)
 	case body.URL != "":
 		info, err = s.svc.AddURLContext(r.PathValue("id"), body.URL, body.Label)
 	case body.Text != "":

@@ -54,6 +54,7 @@ var codeExt = map[string]bool{
 
 var textExt = map[string]string{
 	".txt": KindText, ".log": KindText, ".md": KindMarkdown, ".markdown": KindMarkdown, ".rst": KindText,
+	".diff": KindText, ".patch": KindText,
 }
 
 // KindOf reports the extractor kind for a file name, or "" if unsupported.

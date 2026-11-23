@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../app_state.dart';
 import '../core/core_client.dart';
 import '../core/models.dart';
+import '../widgets/git_diff_dialog.dart';
 import '../widgets/memory_card.dart';
 import '../widgets/paste_text_dialog.dart';
 import '../widgets/text_prompt_dialog.dart';
@@ -35,6 +36,7 @@ class NotebookSourcesPane extends StatelessWidget {
             onAdd: state.addContext,
             onAddUrl: state.addUrlContext,
             onAddText: state.addTextContext,
+            onAddGit: state.addGitDiffContext,
           ),
           const SizedBox(height: 16),
           MemoryCard(notebook: notebook, onChanged: state.setMemory),
@@ -74,6 +76,7 @@ class ContextCard extends StatelessWidget {
     required this.onAdd,
     this.onAddUrl,
     this.onAddText,
+    this.onAddGit,
   });
 
   final Notebook notebook;
@@ -81,6 +84,7 @@ class ContextCard extends StatelessWidget {
   final Future<void> Function(String path) onAdd;
   final Future<void> Function(String url)? onAddUrl;
   final Future<void> Function(String label, String text)? onAddText;
+  final Future<void> Function(String repo, String base)? onAddGit;
 
   Future<void> _addMore(BuildContext context, String what) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -88,6 +92,9 @@ class ContextCard extends StatelessWidget {
       if (what == 'url') {
         final url = await askText(context, title: 'Add a web page', label: 'URL (http or https)', maxLength: 2048);
         if (url != null && url.trim().isNotEmpty) await onAddUrl?.call(url.trim());
+      } else if (what == 'git') {
+        final got = await showDialog<(String, String)>(context: context, builder: (_) => const GitDiffDialog());
+        if (got != null && got.$1.isNotEmpty) await onAddGit?.call(got.$1, got.$2.isEmpty ? 'main' : got.$2);
       } else {
         final got = await showDialog<(String, String)>(context: context, builder: (_) => const PasteTextDialog());
         if (got != null && got.$2.trim().isNotEmpty) await onAddText?.call(got.$1, got.$2);
@@ -140,6 +147,7 @@ class ContextCard extends StatelessWidget {
                   itemBuilder: (_) => const [
                     PopupMenuItem(key: Key('context-add-url'), value: 'url', child: Text('Web page…')),
                     PopupMenuItem(key: Key('context-add-text'), value: 'text', child: Text('Paste text…')),
+                    PopupMenuItem(key: Key('context-add-git'), value: 'git', child: Text('Git changes…')),
                   ],
                 ),
               ],

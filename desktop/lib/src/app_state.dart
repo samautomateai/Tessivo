@@ -203,6 +203,12 @@ class AppState extends ChangeNotifier {
     if (nb != null) _put(await core.addTextContext(nb.id, text, label: label));
   }
 
+  /// Adds a repository's changes against [base] as a source, read with git on every run.
+  Future<void> addGitDiffContext(String repo, String base) async {
+    final nb = selected;
+    if (nb != null) _put(await core.addGitDiffContext(nb.id, repo, base));
+  }
+
   /// Configured MCP servers (loaded with the notebooks; refreshed on demand).
   List<McpServer> mcpServers = const [];
 

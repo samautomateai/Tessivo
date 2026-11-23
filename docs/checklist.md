@@ -41,6 +41,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | `tess config get|set <key> [value]` (dotted keys such as `defaults.model` or `providers.0.base_url`; values decoded strictly and validated), `config export [file]` and `config import <file> [--force]` (the replaced config is kept as `.bak`) | SET-9 | ☑ |
 | Desktop settings: edit run defaults and token limits, add providers, set API keys (to the OS keychain through the core; never shown), edit alias fallback chains; a setup banner until a provider, a default model and its key are set (`PUT /v1/settings`, `/v1/secrets/{ref}`) | SET-1, SET-3, SET-4 | ☑ |
 | Web pages (fetched on every run) and pasted text (saved as Markdown) as notebook sources (`tess context add <nb> https://…` or `--text`, the context API, desktop Sources menu) | SRC-2 | ☑ |
+| Git changes as sources (the diff of a repository against a base branch, tag or commit, read with hardened git on every run: `tess context add <nb> --git-diff <repo> --base main`, the context API, desktop Sources menu); `.diff` and `.patch` files read as text | SRC-4 | ☑ |
 | Export an output as Markdown, Word (.docx) or PDF, built with the standard library and fuzzed; PDFs use the built-in fonts, so text outside Windows-1252 prints as "?" (`tess output export`, `…/outputs/{id}/export`, desktop Export menu) | REP-2 | ☑ |
 | Folder format versions: `formatVersion` in `notebook.json` and `research.json`, step-by-step upgrades (`internal/format`), newer folders refused instead of overwritten | NFR Reliability | ☑ |
 | Core log (rotated, redacted) and a diagnostics bundle for bug reports (`tess diagnostics`, `GET /v1/diagnostics`, desktop Settings › Save diagnostics) | NFR Operations | ☑ |
@@ -56,6 +57,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | MCP client: stdio and Streamable HTTP servers in settings (`tess mcp`, `/v1/mcp/servers`, desktop Settings), test lists tools, resources and prompts | MCP-1 | ☑ |
 | MCP servers attached to notebooks; their tools in agent runs as `mcp__<server>__<tool>` (ask by default) | MCP-2 | ☑ |
 | MCP resources as notebook sources, read on every run | MCP-3 | ☑ |
+| MCP stdio servers stop with every process they started (`npx`, `uvx`, scripts): process group on Unix, Job Object on Windows, also when Tessivo crashes on Windows (ADR 0006) | MCP-4 | ☑ |
 | Research notebooks, separate from job notebooks: files, folders and MCP resources as sources (`tess research`, `/v1/research`, desktop RESEARCH group and Job/Research choice) | RES-1 | ☑ |
 | Per-source summaries in the background (≤ 2 at a time, fingerprinted, events) and context levels full, summary or off, with a context bar | RES-2 | ☑ |
 | Cited conversations (`[n]` / `[n:path]` resolved to sources and notes, References that open the source) and notes, human or saved from answers, in or out of the context | RES-3 | ☑ |

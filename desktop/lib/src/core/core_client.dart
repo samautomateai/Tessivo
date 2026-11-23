@@ -290,6 +290,13 @@ class DemoCoreClient
     return _addItem(notebookId, label.isEmpty ? 'Pasted text' : label, 'MD', text.length ~/ 4);
   }
 
+  @override
+  Future<Notebook> addGitDiffContext(String notebookId, String repo, String base, {String label = ''}) async {
+    if (base.isEmpty || base.startsWith('-') || base.contains('..')) throw const CoreException(400, 'bad base');
+    final name = repo.split(RegExp(r'[/\\]')).where((p) => p.isNotEmpty).last;
+    return _addItem(notebookId, label.isEmpty ? '$name changes since $base' : label, 'Git changes', 0);
+  }
+
   Notebook _addItem(String notebookId, String label, String kind, int tokens) {
     final nb = _find(notebookId);
     final item = ContextItem(id: 'c${_nextId++}', label: label, kind: kind, enabled: true, estimatedTokens: tokens);

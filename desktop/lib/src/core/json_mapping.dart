@@ -92,6 +92,8 @@ ContextItem contextFromJson(Map<String, Object?> j) {
   final dot = label.lastIndexOf('.');
   final kind = j['kind'] == 'url'
       ? 'Web page'
+      : j['kind'] == 'git-diff'
+      ? 'Git changes'
       : j['kind'] == 'mcp-resource'
       ? 'MCP · ${j['server'] as String? ?? ''}'
       : (j['inPlace'] as bool? ?? false)

@@ -32,6 +32,21 @@ void main() {
     expect(state.selected!.context.map((c) => c.label), contains('Meeting notes'));
   });
 
+  testWidgets('add git changes as a source', (tester) async {
+    final state = await pumpApp(tester);
+    await tester.tap(find.byKey(const Key('context-add-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('context-add-git')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('git-repo')), '/src/payments');
+    await tester.enterText(find.byKey(const Key('git-base')), 'develop');
+    await tester.tap(find.byKey(const Key('git-save')));
+    await tester.pumpAndSettle();
+    final item = state.selected!.context.last;
+    expect((item.label, item.kind), ('payments changes since develop', 'Git changes'));
+    expect(find.text('Git changes · read at run time'), findsOneWidget);
+  });
+
   test('http client sends url and text sources', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     final bodies = <String>[];
@@ -46,7 +61,12 @@ void main() {
     );
     await client.addUrlContext('ops', 'https://x.example/a', label: 'A');
     await client.addTextContext('ops', 'hello', label: 'Notes');
-    expect(bodies, ['{"url":"https://x.example/a","label":"A"}', '{"text":"hello","label":"Notes"}']);
+    await client.addGitDiffContext('ops', '/src/a', 'main');
+    expect(bodies, [
+      '{"url":"https://x.example/a","label":"A"}',
+      '{"text":"hello","label":"Notes"}',
+      '{"git":{"repo":"/src/a","base":"main"},"label":""}',
+    ]);
     client.close();
     await server.close(force: true);
   });
