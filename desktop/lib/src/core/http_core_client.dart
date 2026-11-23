@@ -199,11 +199,17 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
     required String prompt,
     required Map<String, String> vars,
     String? promptName,
+    String? model,
   }) async* {
     final resp = await _send(
       'POST',
       '/v1/notebooks/${Uri.encodeComponent(notebookId)}/runs',
-      body: {'prompt': prompt, 'vars': vars, 'promptName': ?promptName},
+      body: {
+        'prompt': prompt,
+        'vars': vars,
+        'promptName': ?promptName,
+        if (model != null && model.isNotEmpty) 'overrides': {'model': model},
+      },
     );
     if (resp.statusCode >= 400) {
       final text = await _readLimited(resp);
@@ -273,6 +279,10 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
 
   @override
   Future<Uint8List> diagnostics() => _bytes('/v1/diagnostics');
+
+  @override
+  Future<RunInfo> outputRun(String notebookId, String outputId) async =>
+      RunInfo.fromJson(await _json('GET', '${_nb(notebookId)}/outputs/${Uri.encodeComponent(outputId)}/run'));
 
   @override
   Future<List<SearchHit>> search(String query) async =>

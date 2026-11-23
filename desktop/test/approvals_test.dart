@@ -47,8 +47,11 @@ class RecordingCore extends DemoCoreClient {
     required String prompt,
     required Map<String, String> vars,
     String? promptName,
+    String? model,
   }) {
-    if (!pauseRuns) return super.startRun(notebookId: notebookId, prompt: prompt, vars: vars, promptName: promptName);
+    if (!pauseRuns) {
+      return super.startRun(notebookId: notebookId, prompt: prompt, vars: vars, promptName: promptName, model: model);
+    }
     return Stream.fromIterable(const [
       RunToolCall(tool: 'read_file', args: '{"path":"a.go"}'),
       RunToolResult(tool: 'read_file', result: 'package a'),

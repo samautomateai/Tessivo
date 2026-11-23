@@ -26,7 +26,11 @@ abstract interface class CoreClient {
     required String prompt,
     required Map<String, String> vars,
     String? promptName,
+    String? model,
   });
+
+  /// The run behind an output: its prompt, variables and model.
+  Future<RunInfo> outputRun(String notebookId, String outputId);
   Future<List<SavedPrompt>> listPrompts(String notebookId);
   Future<SavedPrompt> savePrompt(String notebookId, SavedPrompt prompt);
   Future<void> deletePrompt(String notebookId, String name);

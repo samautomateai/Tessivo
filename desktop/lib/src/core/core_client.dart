@@ -153,6 +153,7 @@ class DemoCoreClient
     required String prompt,
     required Map<String, String> vars,
     String? promptName,
+    String? model,
   }) async* {
     yield const RunStatus('Generating output');
     const parts = ['# Risk report\n\n', '## Risk score\n\n7 of 10, high\n\n', '## Mitigations\n\n- Add idempotency\n'];
@@ -336,6 +337,10 @@ class DemoCoreClient
     );
     return OutputDetail(id: o.id, title: o.title, markdown: '# ${o.title}\n\nSample output from ${o.notebookName}.');
   }
+
+  @override
+  Future<RunInfo> outputRun(String notebookId, String outputId) async =>
+      const RunInfo(prompt: 'Assess the risk of merging this change.', model: 'smart');
 
   @override
   Future<List<SearchHit>> search(String query) async {

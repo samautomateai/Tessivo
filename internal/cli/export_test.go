@@ -29,3 +29,16 @@ func TestOutputExport(t *testing.T) {
 		t.Fatalf("rtf: exit %d", code)
 	}
 }
+
+func TestOutputRerun(t *testing.T) {
+	h, dir, id := outputHarness(t)
+	if out := h.mustRun("output", "rerun", dir, id, "--model", "litellm/m"); !strings.Contains(out, "Digest") {
+		t.Fatalf("rerun: %q", out)
+	}
+	if !strings.Contains(h.errOut.String(), "saved output") {
+		t.Fatalf("stderr: %q", h.errOut.String())
+	}
+	if code := h.run("output", "rerun", dir, "nope"); code == ExitOK {
+		t.Fatal("rerun of a missing output succeeded")
+	}
+}

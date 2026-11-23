@@ -79,3 +79,22 @@ extension SearchActions on AppState {
     }
   }
 }
+
+/// Running an output's run again.
+extension RerunActions on AppState {
+  /// The run behind an output, or null when it cannot be read (a notice says why).
+  Future<RunInfo?> runOf(String outputId) async {
+    final nb = selected;
+    if (nb == null) return null;
+    try {
+      return await core.outputRun(nb.id, outputId);
+    } on CoreException catch (e) {
+      _notice(e.message);
+      return null;
+    }
+  }
+
+  /// Runs [info] again, on [model] when given.
+  Future<void> rerun(RunInfo info, {String? model}) =>
+      run(info.prompt, info.vars, promptName: info.promptName, model: model);
+}

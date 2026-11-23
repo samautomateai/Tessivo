@@ -442,3 +442,24 @@ class SearchHit {
   final String title;
   final String snippet;
 }
+
+/// What a past run used (docs/api.md, the run behind an output).
+class RunInfo {
+  const RunInfo({required this.prompt, this.promptName, this.vars = const {}, this.model = ''});
+
+  factory RunInfo.fromJson(Map<String, Object?> j) => RunInfo(
+    prompt: j['prompt'] as String? ?? '',
+    promptName: j['promptName'] as String?,
+    vars: {
+      if (j['vars'] case final Map<String, Object?> v)
+        for (final e in v.entries)
+          if (e.value case final String s) e.key: s,
+    },
+    model: j['model'] as String? ?? '',
+  );
+
+  final String prompt;
+  final String? promptName;
+  final Map<String, String> vars;
+  final String model;
+}
