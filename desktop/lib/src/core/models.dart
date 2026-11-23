@@ -342,10 +342,19 @@ class OutputDetail {
 
 /// A model provider as configured; the key is a reference, never a value.
 class ProviderInfo {
-  const ProviderInfo({required this.name, required this.baseUrl, this.keyRef});
+  const ProviderInfo({required this.name, required this.baseUrl, this.keyRef, this.kind = 'openai'});
   final String name;
   final String baseUrl;
   final String? keyRef;
+
+  /// openai (any OpenAI-compatible endpoint), anthropic or gemini.
+  final String kind;
+
+  String get kindLabel => switch (kind) {
+    'anthropic' => 'Anthropic API',
+    'gemini' => 'Gemini API',
+    _ => 'OpenAI-compatible',
+  };
 }
 
 /// A named fallback chain such as "smart" → [provider/model, …].

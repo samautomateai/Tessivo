@@ -31,7 +31,10 @@ var DefaultTriggers = []string{TriggerTimeout, TriggerRateLimit, TriggerServerEr
 // Provider is an OpenAI-compatible endpoint such as a LiteLLM proxy.
 // The API key is never stored here: APIKeyRef names the secret to look up.
 type Provider struct {
-	Name           string            `json:"name"`
+	Name string `json:"name"`
+	// Kind is the API: "openai" (default: any OpenAI-compatible endpoint), or the
+	// native "anthropic" and "gemini" APIs, whose base_url may be left empty.
+	Kind           string            `json:"kind,omitempty"`
 	BaseURL        string            `json:"base_url"`
 	APIKeyRef      string            `json:"api_key_ref,omitempty"`
 	Headers        map[string]string `json:"headers,omitempty"`
@@ -189,7 +192,12 @@ func (f File) Validate() error {
 }
 
 func validateBaseURL(p Provider) error {
-	u, err := url.Parse(p.BaseURL)
+	switch p.Kind {
+	case "", KindOpenAI, KindAnthropic, KindGemini:
+	default:
+		return fmt.Errorf("provider %q: kind %q: want openai, anthropic or gemini", p.Name, p.Kind)
+	}
+	u, err := url.Parse(p.URL())
 	if err != nil || u.Host == "" || (u.Scheme != schemeHTTP && u.Scheme != schemeHTTPS) {
 		return fmt.Errorf("provider %q: base_url must be an http:// or https:// URL", p.Name)
 	}
@@ -261,4 +269,26 @@ func (f File) ResolveModel(name string) (Alias, error) {
 		}
 	}
 	return Alias{}, fmt.Errorf("unknown model %q: not an alias or provider/model", name)
+}
+
+// Provider kinds.
+const (
+	KindOpenAI    = "openai"
+	KindAnthropic = "anthropic"
+	KindGemini    = "gemini"
+)
+
+// URL is the provider's base URL, or its API's official URL when a native
+// provider leaves base_url empty.
+func (p Provider) URL() string {
+	if p.BaseURL != "" {
+		return p.BaseURL
+	}
+	switch p.Kind {
+	case KindAnthropic:
+		return "https://api.anthropic.com"
+	case KindGemini:
+		return "https://generativelanguage.googleapis.com"
+	}
+	return ""
 }

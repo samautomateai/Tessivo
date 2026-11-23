@@ -38,8 +38,12 @@ class SettingsDraft {
     }
   }
 
-  void addProvider(String name, String url, String keyRef) =>
-      providers.add({'name': name, 'base_url': url, if (keyRef.isNotEmpty) 'api_key_ref': keyRef});
+  void addProvider(String name, String url, String keyRef, {String kind = 'openai'}) => providers.add({
+    'name': name,
+    if (kind != 'openai') 'kind': kind,
+    'base_url': url,
+    if (keyRef.isNotEmpty) 'api_key_ref': keyRef,
+  });
 
   /// Sets an alias's fallback chain from "provider/model" entries.
   void setAliasChain(String name, List<String> chain) {

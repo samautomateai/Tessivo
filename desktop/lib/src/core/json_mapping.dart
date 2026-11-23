@@ -155,6 +155,7 @@ SettingsInfo settingsFromJson(Map<String, Object?> j) {
             name: p['name'] as String? ?? '',
             baseUrl: p['base_url'] as String? ?? '',
             keyRef: p['api_key_ref'] as String?,
+            kind: p['kind'] as String? ?? 'openai',
           ),
         )
         .toList(),

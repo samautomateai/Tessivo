@@ -23,6 +23,7 @@ below with its reason in the same change that adds it.
 | Desktop ↔ core API (JSON + SSE over Unix socket/loopback) | `net/http` and `dart:io` cover it; see ADR 0004 |
 | Length, text-file (encoding, line endings), coverage (Go and LCOV) gates; fuzz runner | Tiny tools in `tools/` |
 | Agent loop, tool calling, code tools (ADR 0005) | Small and specific to our rules, checkpoints and validation; Eino/Fantasy would bypass our router |
+| Anthropic and Gemini provider clients (`internal/llm/anthropic*.go`, `gemini.go`) | Written for Tessivo with the standard library, following the provider split in Zero (MIT): one native client per API family, everything else on the OpenAI-compatible path. A few hundred lines each; no vendor SDKs |
 | MCP client: JSON-RPC framing, stdio and Streamable HTTP, tools, resources, prompts (`internal/mcp`) | Ported from Zero (MIT, stdlib-only, commit `8288ae81bd6a`, notice kept in `internal/mcp/doc.go` and `THIRD_PARTY.md`); a few hundred lines, no MCP SDK dependency |
 | Dev tool setup (`task install/doctor/update`) | `tools/devtools` runs `go install …@latest`, `git` and `flutter`; tools are installed binaries, never module dependencies. It does not install Flutter: PATH and the native desktop toolchain (Visual Studio C++, Xcode + CocoaPods, clang/CMake/Ninja/GTK) differ per OS and need admin rights, so `doctor` prints per-OS install steps instead (approved OS-specific text, `tools/devtools/flutter.go`) |
 

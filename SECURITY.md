@@ -10,7 +10,7 @@ Do not open a public issue. We aim to acknowledge reports within 3 working days.
 
 - **Secrets** (API keys, MCP tokens) live in the OS keychain or environment variables, never in
   config files, notebooks, templates or logs.
-- **Self-hosted by design**: model traffic goes only to the providers you configure. No telemetry.
+- **Self-hosted by default**: model traffic goes only to the providers you configure: an OpenAI-compatible endpoint such as LiteLLM, or Anthropic and Gemini directly if you add them. No telemetry.
 - **Local-only core**: the desktop UI talks to the Go core over a 0600 Unix socket (loopback on Windows)
   with a per-session token; browser-origin and non-loopback Host requests are refused.
 - **Audit trail**: every run, model attempt, tool call and saved output is appended to a hash-chained

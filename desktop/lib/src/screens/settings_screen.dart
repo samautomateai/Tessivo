@@ -46,9 +46,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _addProvider(SettingsInfo s) async {
-    final got = await showDialog<(String, String)>(context: context, builder: (_) => const AddProviderDialog());
-    if (got == null || got.$1.isEmpty || got.$2.isEmpty) return;
-    final err = await _save(SettingsDraft.fromJson(s.raw)..addProvider(got.$1, got.$2, keyRefFor(got.$1)));
+    final got = await showDialog<NewProvider>(context: context, builder: (_) => const AddProviderDialog());
+    if (got == null || got.name.isEmpty || (got.url.isEmpty && got.kind == 'openai')) return;
+    final draft = SettingsDraft.fromJson(s.raw)
+      ..addProvider(got.name, got.url, got.needsKey ? keyRefFor(got.name) : '', kind: got.kind);
+    final err = await _save(draft);
     if (err != null && mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
   }
 
