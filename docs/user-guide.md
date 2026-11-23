@@ -112,7 +112,9 @@ output you can:
 
 Agent mode lets the model explore code and documents and call MCP tools before it writes the output. Limits on
 steps, tool calls, tokens and time, and the default rule for each tool, are in **Settings → Agent mode**. Every tool
-has a rule: *allow*, *ask* or *block*. An *ask* pauses the run until you answer in the app or with
+has a rule: *allow*, *ask* or *block*. The agent can also run programs (`run_command`, without a shell); list the
+commands that may run without asking under **Agent commands** on the notebook page (`go test *`, where `*` is one
+argument), or with `tess notebook commands`. An *ask* pauses the run until you answer in the app or with
 `tess run approve|deny`, even if the run was scheduled.
 
 ### Schedules

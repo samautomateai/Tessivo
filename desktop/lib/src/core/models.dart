@@ -3,7 +3,11 @@
 /// widgets never depend on generated code.
 library;
 
+import 'command_rule.dart';
+
+export 'command_rule.dart';
 export 'output_detail.dart';
+export 'saved_prompt.dart';
 
 enum WorkTypeId { analyze, summarize, document, report }
 
@@ -57,6 +61,7 @@ class Notebook {
     this.schedule,
     this.memory = const [],
     this.mcpServers = const [],
+    this.commands = const [],
     this.archived = false,
   });
 
@@ -68,6 +73,9 @@ class Notebook {
 
   /// MCP servers whose tools this notebook's agent runs may use.
   final List<String> mcpServers;
+
+  /// Agent-mode commands that run without asking.
+  final List<CommandRule> commands;
 
   /// Short facts the notebook keeps across runs (≤ 50 items, ≤ 1000 chars each).
   final List<String> memory;
@@ -81,6 +89,7 @@ class Notebook {
     List<ContextItem>? context,
     List<String>? memory,
     List<String>? mcpServers,
+    List<CommandRule>? commands,
     String? name,
     bool? archived,
   }) => Notebook(
@@ -91,6 +100,7 @@ class Notebook {
     schedule: schedule,
     memory: memory ?? this.memory,
     mcpServers: mcpServers ?? this.mcpServers,
+    commands: commands ?? this.commands,
     archived: archived ?? this.archived,
   );
 }
@@ -381,40 +391,6 @@ class SettingsInfo {
 
   /// The settings JSON as the core sent it (edited through SettingsDraft).
   final Map<String, Object?> raw;
-}
-
-/// A notebook's saved prompt with its own model settings (docs/api.md, prompts).
-class SavedPrompt {
-  const SavedPrompt({required this.name, required this.text, this.model = '', this.temperature, this.maxOutputTokens});
-
-  factory SavedPrompt.fromJson(Map<String, Object?> j) {
-    final s = j['settings'] is Map<String, Object?>
-        ? j['settings']! as Map<String, Object?>
-        : const <String, Object?>{};
-    return SavedPrompt(
-      name: j['name'] as String? ?? '',
-      text: j['text'] as String? ?? '',
-      model: s['model'] as String? ?? '',
-      temperature: (s['temperature'] as num?)?.toDouble(),
-      maxOutputTokens: (s['max_output_tokens'] as num?)?.toInt(),
-    );
-  }
-
-  final String name;
-  final String text;
-  final String model;
-  final double? temperature;
-  final int? maxOutputTokens;
-
-  /// The PUT body: the text and only the settings that are set.
-  Map<String, Object?> toBody() {
-    final settings = <String, Object?>{
-      if (model.isNotEmpty) 'model': model,
-      'temperature': ?temperature,
-      'max_output_tokens': ?maxOutputTokens,
-    };
-    return {'text': text, if (settings.isNotEmpty) 'settings': settings};
-  }
 }
 
 /// One search match (docs/api.md, search).

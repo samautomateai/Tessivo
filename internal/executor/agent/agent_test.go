@@ -378,3 +378,32 @@ func TestAgentToolCallLimit(t *testing.T) {
 		t.Fatal("the final step must say the tool-call limit stopped the loop")
 	}
 }
+
+// preTool is a tool that preapproves calls whose args say {"ok":true}.
+type preTool struct{ fakeTool }
+
+func (p *preTool) Preapproved(args json.RawMessage) bool { return string(args) == `{"ok":true}` }
+
+func TestPreapprovedCallsRunWithoutAsking(t *testing.T) {
+	run := func(args string, rules map[string]string) (*preTool, error) {
+		h := newHarness()
+		pt := &preTool{fakeTool{name: "run_command", out: "exit code 0"}}
+		h.agent.Tools = agenttools.NewRegistry(h.read, pt)
+		h.agent.Policy.Notebook = rules
+		h.model.replies = []llm.Response{calls(call("c1", "run_command", args)), {Content: goodSummary}}
+		_, err := h.agent.Start(context.Background(), spec(t), &Checkpoint{RunID: "r1"}, nil)
+		return pt, err
+	}
+	if pt, err := run(`{"ok":true}`, nil); err != nil || pt.count() != 1 {
+		t.Fatalf("an allow-listed call runs at once: %v (ran %d)", err, pt.count())
+	}
+	if pt, err := run(`{"ok":false}`, nil); !errors.Is(err, ErrPaused) || pt.count() != 0 {
+		t.Fatalf("any other call asks: %v", err)
+	}
+	if _, err := run(`{"ok":true}`, map[string]string{"run_command": "ask"}); !errors.Is(err, ErrPaused) {
+		t.Fatalf("a rule the user set wins over the allow-list: %v", err)
+	}
+	if pt, err := run(`{"ok":true}`, map[string]string{"run_*": "block"}); err != nil || pt.count() != 0 {
+		t.Fatalf("a block rule wins too: %v (ran %d)", err, pt.count())
+	}
+}

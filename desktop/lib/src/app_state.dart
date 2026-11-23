@@ -222,6 +222,12 @@ class AppState extends ChangeNotifier {
   }
 
   /// Sets the MCP servers the selected notebook's agent runs may use.
+  /// Replaces the selected notebook's agent command allow-list.
+  Future<void> setNotebookCommands(List<CommandRule> commands) async {
+    final nb = selected;
+    if (nb != null) _put(await core.setNotebookCommands(nb.id, commands));
+  }
+
   Future<void> setNotebookMcp(List<String> servers) async {
     final nb = selected;
     if (nb != null) _put(await core.setNotebookMcp(nb.id, servers));

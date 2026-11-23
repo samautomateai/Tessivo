@@ -152,6 +152,9 @@ abstract interface class CoreClient {
   Future<void> removeMcpServer(String name);
   Future<McpTestResult> testMcpServer(String name);
   Future<Notebook> setNotebookMcp(String notebookId, List<String> servers);
+
+  /// Replaces the notebook's run_command allow-list (agent mode).
+  Future<Notebook> setNotebookCommands(String notebookId, List<CommandRule> commands);
   Future<Notebook> addMcpContext(String notebookId, String server, String uri);
 
   // Research notebooks (docs/api.md, "Research notebooks").

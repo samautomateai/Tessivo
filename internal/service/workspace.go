@@ -22,17 +22,18 @@ var idPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 
 // NotebookInfo is a notebook as listed to clients.
 type NotebookInfo struct {
-	ID         string             `json:"id"`
-	Name       string             `json:"name"`
-	WorkType   string             `json:"workType"`
-	Context    []ContextInfo      `json:"context"`
-	Settings   config.RunSettings `json:"settings"`
-	Created    string             `json:"createdAt"`
-	Outputs    int                `json:"outputs"`
-	Memory     []string           `json:"memory"`
-	Template   string             `json:"template,omitempty"`
-	MCPServers []string           `json:"mcpServers"` // servers agent runs may use
-	Archived   bool               `json:"archived"`
+	ID         string               `json:"id"`
+	Name       string               `json:"name"`
+	WorkType   string               `json:"workType"`
+	Context    []ContextInfo        `json:"context"`
+	Settings   config.RunSettings   `json:"settings"`
+	Created    string               `json:"createdAt"`
+	Outputs    int                  `json:"outputs"`
+	Memory     []string             `json:"memory"`
+	Template   string               `json:"template,omitempty"`
+	MCPServers []string             `json:"mcpServers"` // servers agent runs may use
+	Commands   []config.CommandRule `json:"commands"`   // run_command allow-list
+	Archived   bool                 `json:"archived"`
 	nb         *notebook.Notebook
 }
 
@@ -148,6 +149,7 @@ func describe(id string, nb *notebook.Notebook, stats bool) NotebookInfo {
 		Created: nb.Manifest.CreatedAt, Context: []ContextInfo{}, nb: nb,
 		Memory: append([]string{}, nb.Manifest.Memory...), Template: nb.Manifest.Template,
 		MCPServers: append([]string{}, nb.Manifest.Agent.MCPServers...),
+		Commands:   append([]config.CommandRule{}, nb.Manifest.Agent.Commands...),
 		Archived:   nb.Manifest.Archived,
 	}
 	for _, c := range nb.Manifest.Context {

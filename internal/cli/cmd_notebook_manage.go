@@ -12,9 +12,12 @@ const subArchive = "archive"
 // cmdNotebook renames, archives, restores or deletes a notebook folder.
 func cmdNotebook(args []string, env Env) error {
 	if len(args) < 2 {
-		return usagef("notebook: want rename|archive|unarchive|delete <notebook> ...")
+		return usagef("notebook: want rename|archive|unarchive|delete|commands <notebook> ...")
 	}
 	sub := args[0]
+	if sub == "commands" {
+		return notebookCommands(args[1:], env)
+	}
 	if sub == "delete" {
 		return notebookDelete(args[1:], env)
 	}

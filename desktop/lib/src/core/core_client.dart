@@ -308,6 +308,14 @@ class DemoCoreClient
   }
 
   @override
+  Future<Notebook> setNotebookCommands(String notebookId, List<CommandRule> commands) async {
+    if (commands.any((c) => c.program.trim().isEmpty)) throw const CoreException(400, 'a command needs a program');
+    final updated = _find(notebookId).copyWith(commands: List.unmodifiable(commands));
+    _replace(updated);
+    return updated;
+  }
+
+  @override
   Future<Notebook> setNotebookMcp(String notebookId, List<String> servers) async {
     for (final s in servers) {
       if (!demoMcpServers.any((m) => m.name == s)) throw CoreException(400, 'mcp server "$s" is not configured');

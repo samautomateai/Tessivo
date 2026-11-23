@@ -323,3 +323,28 @@ func TestPromptLibrary(t *testing.T) {
 		}
 	}
 }
+
+func TestNotebookCommandsCLI(t *testing.T) {
+	h := newHarness(t)
+	dir := filepath.Join(h.dir, "build")
+	h.mustRun("new", dir, "--type", "analyze")
+	h.mustRun("notebook", "commands", dir, "add", "go", "test", "*")
+	h.mustRun("notebook", "commands", dir, "add", "make", "lint")
+	if out := h.mustRun("notebook", "commands", dir); out != "1. go test *\n2. make lint\n" {
+		t.Fatalf("list: %q", out)
+	}
+	h.mustRun("notebook", "commands", dir, "remove", "1")
+	if out := h.mustRun("notebook", "commands", dir); out != "1. make lint\n" {
+		t.Fatalf("after remove: %q", out)
+	}
+	for _, args := range [][]string{
+		{"notebook", "commands", dir, "remove", "9"},
+		{"notebook", "commands", dir, "add"},
+		{"notebook", "commands", dir, "add", " "},
+		{"notebook", "commands"},
+	} {
+		if code := h.run(args...); code != ExitUsage {
+			t.Fatalf("%v: exit %d (%s)", args, code, h.errOut)
+		}
+	}
+}

@@ -161,7 +161,7 @@ func (a *Agent) step(ctx context.Context, spec executor.Spec, cp *Checkpoint,
 			a.answer(cp, PendingCall{Call: c, Decision: Allow}, "finishing", "", 0)
 			continue
 		}
-		cp.Pending = append(cp.Pending, PendingCall{Call: c, Decision: a.decide(cp, c.Name), State: StateQueued})
+		cp.Pending = append(cp.Pending, PendingCall{Call: c, Decision: a.decide(cp, c), State: StateQueued})
 	}
 	if finished {
 		for _, p := range cp.Pending {
@@ -172,7 +172,7 @@ func (a *Agent) step(ctx context.Context, spec executor.Spec, cp *Checkpoint,
 	return finished, nil
 }
 
-func (a *Agent) decide(cp *Checkpoint, tool string) Decision {
+func (a *Agent) decide(cp *Checkpoint, c llm.ToolCall) Decision {
 	p := a.Policy
 	if len(cp.RunRules) > 0 {
 		merged := map[string]string{}
@@ -184,7 +184,15 @@ func (a *Agent) decide(cp *Checkpoint, tool string) Decision {
 		}
 		p.Run = merged
 	}
-	return p.Decide(tool)
+	d := p.Decide(c.Name)
+	if d == Ask && !p.Ruled(c.Name) && a.Tools != nil {
+		if t, ok := a.Tools.Get(c.Name); ok {
+			if pre, ok := t.(Preapprover); ok && pre.Preapproved(json.RawMessage(c.Arguments)) {
+				return Allow
+			}
+		}
+	}
+	return d
 }
 
 func (a *Agent) limitHit(cp *Checkpoint) string {

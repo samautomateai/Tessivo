@@ -84,6 +84,7 @@ Notebook notebookFromJson(Map<String, Object?> j) => Notebook(
   context: jsonList(j['context']).map(contextFromJson).toList(),
   memory: _strings(j['memory']),
   mcpServers: _strings(j['mcpServers']),
+  commands: commandRulesFromJson(j['commands']),
   archived: j['archived'] as bool? ?? false,
 );
 

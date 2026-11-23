@@ -88,6 +88,8 @@ type AgentSettings struct {
 	Tools map[string]string `json:"tools,omitempty"` // tool name or "prefix*" → allow, ask or block
 	// MCPServers names the configured MCP servers whose tools agent runs may use.
 	MCPServers []string `json:"mcpServers,omitempty"`
+	// Commands is the allow-list for run_command: matching calls run without asking.
+	Commands []config.CommandRule `json:"commands,omitempty"`
 }
 
 // Notebook is an opened notebook folder.

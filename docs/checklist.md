@@ -61,7 +61,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Run an output again, optionally on another model (`tess output rerun --model`, `GET …/outputs/{id}/run` then `POST …/runs`, desktop Run again) | RUN-3 | ☑ |
 | Search across notebooks, outputs, prompts, research notebooks and notes (`tess search`, `GET /v1/search`, desktop sidebar search); scans the folders with bounded reads. A SQLite index can come later for large workspaces | NB-3 | ☑ |
 | Agent mode phase 1 (ADR 0005): our own loop with LLM tool calling, rooted read-only code tools, allow/ask/block rules, durable pause and resume across restarts, runs as jobs, `tess run` approve, deny, resume, cancel and pending, approval endpoints and events, desktop approvals | WT/E11 | ☑ |
-| Agent mode phase 2: commands from a per-notebook allow-list (no shell) | WT/E11 | ☐ |
+| Agent mode phase 2: `run_command` runs programs without a shell, in a context folder, with secret-looking variables removed, 5 min timeout (whole process tree stopped), 256 KiB of output; calls matching the notebook allow-list run without asking, others ask (`tess notebook commands`, `PUT …/agent/commands`, desktop Agent commands card) | WT/E11 | ☑ |
 | MCP client: stdio and Streamable HTTP servers in settings (`tess mcp`, `/v1/mcp/servers`, desktop Settings), test lists tools, resources and prompts | MCP-1 | ☑ |
 | MCP servers attached to notebooks; their tools in agent runs as `mcp__<server>__<tool>` (ask by default) | MCP-2 | ☑ |
 | MCP resources as notebook sources, read on every run | MCP-3 | ☑ |

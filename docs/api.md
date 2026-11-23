@@ -72,7 +72,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `DELETE /v1/mcp/servers/{name}` | — | `204` (`404` unknown, `409` attached to a notebook) |
 | `POST /v1/mcp/servers/{name}/test` | — | `{tools: [{name, description}], resources: [{uri, name, mimeType}], prompts: [{name, description}]}` |
 | `PUT /v1/notebooks/{id}/mcp` | `{servers: [name]}` | `Notebook` (`400` for a server that is not configured; at most 20) |
-| `PUT /v1/notebooks/{id}/mcp` | `{servers: [name]}` | `Notebook` (`400` for a server that is not configured; at most 20) |
+| `PUT /v1/notebooks/{id}/agent/commands` | `{commands: [{program, args?}]}` (`*` in args is one free argument; at most 100) | `Notebook` (with `commands`): the `run_command` allow-list; matching calls run without asking unless a rule names `run_command` |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/thread` | — | `ChatSession` of the output's thread (empty if none yet) |
 | `PATCH …/outputs/{outputId}/thread` | `{model?, thinkingEffort?}` | `ChatSession` |
 | `POST …/outputs/{outputId}/thread/messages` | `{text, attachments?}` | SSE stream (see Output threads) |
