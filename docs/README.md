@@ -12,7 +12,8 @@
   [ADR 0004 local JSON API](adr/0004-local-json-api.md) ·
   [ADR 0005 agent loop, MCP, ACP](adr/0005-agent-loop-mcp-acp.md) ·
   [ADR 0006 process trees](adr/0006-process-trees.md) ·
-  [ADR 0007 tray mode](adr/0007-tray-mode.md)
+  [ADR 0007 tray mode](adr/0007-tray-mode.md) ·
+  [ADR 0008 installers and signing](adr/0008-installers-signing.md)
 - Agent mode: [design](superpowers/specs/2026-11-21-agent-mode-design.md) ·
   [phase 1 plan](superpowers/plans/2026-11-21-agent-mode-phase1.md)
 - Output threads: [design](superpowers/specs/2026-11-21-output-threads-design.md) ·

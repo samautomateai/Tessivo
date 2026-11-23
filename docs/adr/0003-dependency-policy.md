@@ -22,6 +22,7 @@ below with its reason in the same change that adds it.
 | OS keychain (macOS `security -i` with hex secrets on stdin, Linux `secret-tool` via stdin, Windows `CredReadW`/`CredWriteW` via `syscall`) | Each is a small wrapper over an OS-provided tool or API; no third-party code needed |
 | Desktop ↔ core API (JSON + SSE over Unix socket/loopback) | `net/http` and `dart:io` cover it; see ADR 0004 |
 | Length, text-file (encoding, line endings), coverage (Go and LCOV) gates; fuzz runner | Tiny tools in `tools/` |
+| Debian package writer, installer scripts (`tools/release`, ADR 0008) | A `.deb` is `ar` + two tar.gz files; Inno Setup and hdiutil are driven with generated scripts and fixed arguments, no packaging library |
 | Agent loop, tool calling, code tools (ADR 0005) | Small and specific to our rules, checkpoints and validation; Eino/Fantasy would bypass our router |
 | Anthropic and Gemini provider clients (`internal/llm/anthropic*.go`, `gemini.go`) | Written for Tessivo with the standard library, following the provider split in Zero (MIT): one native client per API family, everything else on the OpenAI-compatible path. A few hundred lines each; no vendor SDKs |
 | MCP client: JSON-RPC framing, stdio and Streamable HTTP, tools, resources, prompts (`internal/mcp`) | Ported from Zero (MIT, stdlib-only, commit `8288ae81bd6a`, notice kept in `internal/mcp/doc.go` and `THIRD_PARTY.md`); a few hundred lines, no MCP SDK dependency |

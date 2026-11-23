@@ -4,6 +4,9 @@
 //	    tess for every OS and architecture (tess_<version>_<os>_<arch>.zip|tar.gz)
 //	go run ./tools/release desktop -version v1.2.3 -out dist -platform linux -arch amd64
 //	    the Flutter bundle built by `flutter build <platform> --release`, with tess beside the app
+//	    (-archive=false only stages, so CI can sign first; -stage=false only archives)
+//	go run ./tools/release installer -version v1.2.3 -out dist -platform linux -arch amd64
+//	    .deb and .AppImage (linux), Setup.exe (windows) or .dmg (macos) from the staged bundle
 //	go run ./tools/release sums -dir dist
 //	    SHA256SUMS for every file in dist
 //
@@ -56,11 +59,12 @@ var desktopTargets = map[string]desktopTarget{
 }
 
 // flutterArch is Flutter's name for a Go architecture in build paths.
-var flutterArch = map[string]string{archAMD64: "x64", archARM64: "arm64"}
+var flutterArch = map[string]string{archAMD64: "x64", archARM64: archARM64}
 
 type app struct {
 	root    string // repository root
 	goBuild func(ctx context.Context, b build) error
+	run     runner
 	out     io.Writer
 }
 
@@ -92,7 +96,7 @@ func (a *app) cli(ctx context.Context, version, dist string) error {
 }
 
 func (a *app) stageCLI(ctx context.Context, version string, t target, dir string) error {
-	if err := a.goBuild(ctx, newBuild(a.root, version, t, filepath.Join(dir, exe("tess", t.goos)))); err != nil {
+	if err := a.goBuild(ctx, newBuild(a.root, version, t, filepath.Join(dir, exe(exeTess, t.goos)))); err != nil {
 		return err
 	}
 	return a.stageDocs(dir, append([]string{"README.md"}, legalFiles...)...)
@@ -123,24 +127,39 @@ func (a *app) stageDocs(dir string, files ...string) error {
 	return nil
 }
 
-// desktop adds tess to the platform's Flutter bundle and archives the bundle.
-func (a *app) desktop(ctx context.Context, version, dist, platform, arch string) error {
+// bundlePath is where Flutter put the platform's release bundle.
+func (a *app) bundlePath(platform, arch string) (string, error) {
 	dt, ok := desktopTargets[platform]
 	fa, archOK := flutterArch[arch]
 	if !ok || !archOK {
-		return fmt.Errorf("unknown platform %q or arch %q (want linux|windows|macos, amd64|arm64)", platform, arch)
+		return "", fmt.Errorf("unknown platform %q or arch %q (want linux|windows|macos, amd64|arm64)", platform, arch)
 	}
 	bundle := filepath.Join(a.root, filepath.FromSlash(strings.ReplaceAll(dt.bundle, "{arch}", fa)))
 	if _, err := os.Stat(bundle); err != nil {
-		return fmt.Errorf("no bundle at %s; run: cd desktop && flutter build %s --release", bundle, platform)
+		return "", fmt.Errorf("no bundle at %s; run: cd desktop && flutter build %s --release", bundle, platform)
 	}
-	t := target{dt.goos, arch}
-	tess := filepath.Join(bundle, filepath.FromSlash(dt.tessDir), exe("tess", dt.goos))
-	if err := a.goBuild(ctx, newBuild(a.root, version, t, tess)); err != nil {
+	return bundle, nil
+}
+
+// desktop adds tess and the legal files to the platform's Flutter bundle
+// (stage) and archives the bundle (pack). CI stages, signs, then packs.
+func (a *app) desktop(ctx context.Context, version, dist, platform, arch string, stage, pack bool) error {
+	bundle, err := a.bundlePath(platform, arch)
+	if err != nil {
 		return err
 	}
-	if err := a.stageDocs(filepath.Join(bundle, filepath.FromSlash(dt.docsDir)), legalFiles...); err != nil {
-		return err
+	dt := desktopTargets[platform]
+	if stage {
+		tess := filepath.Join(bundle, filepath.FromSlash(dt.tessDir), exe(exeTess, dt.goos))
+		if err := a.goBuild(ctx, newBuild(a.root, version, target{dt.goos, arch}, tess)); err != nil {
+			return err
+		}
+		if err := a.stageDocs(filepath.Join(bundle, filepath.FromSlash(dt.docsDir)), legalFiles...); err != nil {
+			return err
+		}
+	}
+	if !pack {
+		return nil
 	}
 	if err := os.MkdirAll(dist, 0o750); err != nil {
 		return fmt.Errorf("create %s: %w", dist, err)
@@ -169,7 +188,7 @@ func exe(name, goos string) string {
 
 func run(ctx context.Context, args []string, stderr io.Writer, g goBuilder) int {
 	if len(args) == 0 {
-		_, _ = fmt.Fprintln(stderr, "usage: release cli|desktop|sums [flags]")
+		_, _ = fmt.Fprintln(stderr, "usage: release cli|desktop|installer|sums [flags]")
 		return 2
 	}
 	fs := flag.NewFlagSet("release "+args[0], flag.ContinueOnError)
@@ -177,8 +196,11 @@ func run(ctx context.Context, args []string, stderr io.Writer, g goBuilder) int 
 	version := fs.String("version", "", "version to embed and name archives with, e.g. v1.2.3")
 	out := fs.String("out", "dist", "output directory")
 	dir := fs.String("dir", "", "sums: directory of archives")
-	platform := fs.String("platform", "", "desktop: linux, windows or macos")
-	arch := fs.String("arch", archAMD64, "desktop: amd64 or arm64")
+	platform := fs.String("platform", "", "desktop, installer: linux, windows or macos")
+	arch := fs.String("arch", archAMD64, "desktop, installer: amd64 or arm64")
+	stage := fs.Bool("stage", true, "desktop: add tess and the legal files to the bundle")
+	pack := fs.Bool("archive", true, "desktop: archive the bundle")
+	tool := fs.String("tool", "", "installer: path to appimagetool (linux) or iscc (windows)")
 	if err := fs.Parse(args[1:]); err != nil {
 		return 2
 	}
@@ -187,16 +209,19 @@ func run(ctx context.Context, args []string, stderr io.Writer, g goBuilder) int 
 		_, _ = fmt.Fprintln(stderr, "release:", err)
 		return 1
 	}
-	a := &app{root: root, goBuild: g.build, out: stderr}
+	a := &app{root: root, goBuild: g.build, run: osRun, out: stderr}
 	switch {
 	case args[0] == "cli" && *version != "":
 		err = a.cli(ctx, *version, *out)
 	case args[0] == "desktop" && *version != "" && *platform != "":
-		err = a.desktop(ctx, *version, *out, *platform, *arch)
+		err = a.desktop(ctx, *version, *out, *platform, *arch, *stage, *pack)
+	case args[0] == "installer" && *version != "" && *platform != "":
+		err = a.installer(ctx, *version, *out, *platform, *arch, *tool)
 	case args[0] == "sums" && *dir != "":
 		err = sums(*dir)
 	default:
-		_, _ = fmt.Fprintln(stderr, "usage: release cli -version V | desktop -version V -platform P | sums -dir D")
+		_, _ = fmt.Fprintln(stderr,
+			"usage: release cli -version V | desktop|installer -version V -platform P | sums -dir D")
 		return 2
 	}
 	if err != nil {
