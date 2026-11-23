@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/notebook"
@@ -12,6 +13,7 @@ func (s *Server) promptRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /v1/notebooks/{id}/prompts/{name}", s.savePrompt)
 	mux.HandleFunc("DELETE /v1/notebooks/{id}/prompts/{name}", s.deletePrompt)
 	mux.HandleFunc("GET /v1/usage", s.usage)
+	mux.HandleFunc("GET /v1/search", s.search)
 }
 
 func (s *Server) listPrompts(w http.ResponseWriter, r *http.Request) {
@@ -57,4 +59,14 @@ func (s *Server) usage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, u)
+}
+
+func (s *Server) search(w http.ResponseWriter, r *http.Request) {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	res, err := s.svc.Search(r.URL.Query().Get("q"), limit)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"results": res})
 }

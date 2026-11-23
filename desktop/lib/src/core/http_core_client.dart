@@ -274,6 +274,10 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   @override
   Future<Uint8List> diagnostics() => _bytes('/v1/diagnostics');
 
+  @override
+  Future<List<SearchHit>> search(String query) async =>
+      jsonList((await _json('GET', '/v1/search', query: {'q': query}))['results']).map(SearchHit.fromJson).toList();
+
   /// A file the core sends (an export, diagnostics), bounded like JSON replies.
   Future<Uint8List> _bytes(String path, {Map<String, String>? query}) async {
     final resp = await _send('GET', path, query: query);

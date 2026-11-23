@@ -27,3 +27,15 @@ func TestPromptAPI(t *testing.T) {
 		t.Fatalf("delete twice: %d", code)
 	}
 }
+
+func TestSearchAPI(t *testing.T) {
+	ts, _ := newTestServer(t, summary)
+	call(t, ts, "POST", "/v1/notebooks", `{"name":"Payments risk","workType":"summarize"}`)
+	if code, body := call(t, ts, "GET", "/v1/search?q=payments", ""); code != 200 ||
+		!strings.Contains(body, `"kind":"notebook"`) {
+		t.Fatalf("search: %d %s", code, body)
+	}
+	if code, _ := call(t, ts, "GET", "/v1/search?q=", ""); code != 400 {
+		t.Fatalf("blank: %d", code)
+	}
+}

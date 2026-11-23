@@ -63,3 +63,19 @@ extension SetupCheck on AppState {
     return null;
   }
 }
+
+/// Opening a search match.
+extension SearchActions on AppState {
+  /// Shows where a match lives: its notebook (and output), or its research notebook.
+  Future<void> openHit(SearchHit h) async {
+    switch (h.kind) {
+      case 'research' || 'note':
+        selectResearch(h.notebookId);
+      case 'output':
+        select(h.notebookId);
+        await loadOutputs(open: h.id);
+      default:
+        select(h.notebookId);
+    }
+  }
+}

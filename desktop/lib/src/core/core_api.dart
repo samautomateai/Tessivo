@@ -47,6 +47,9 @@ abstract interface class CoreClient {
 
   /// A zip for bug reports (no keys, notebook names or content).
   Future<Uint8List> diagnostics();
+
+  /// Notebooks, outputs, prompts, research notebooks and notes matching every word.
+  Future<List<SearchHit>> search(String query);
   Future<SettingsInfo> getSettings();
 
   /// Saves providers, aliases, defaults and limits (a SettingsDraft body).

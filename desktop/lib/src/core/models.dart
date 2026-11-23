@@ -422,3 +422,23 @@ class SavedPrompt {
     return {'text': text, if (settings.isNotEmpty) 'settings': settings};
   }
 }
+
+/// One search match (docs/api.md, search).
+class SearchHit {
+  const SearchHit({required this.kind, required this.notebookId, this.id = '', required this.title, this.snippet = ''});
+
+  factory SearchHit.fromJson(Map<String, Object?> j) => SearchHit(
+    kind: j['kind'] as String? ?? '',
+    notebookId: j['notebookId'] as String? ?? '',
+    id: j['id'] as String? ?? '',
+    title: j['title'] as String? ?? '',
+    snippet: j['snippet'] as String? ?? '',
+  );
+
+  /// notebook, output, prompt, research or note.
+  final String kind;
+  final String notebookId;
+  final String id;
+  final String title;
+  final String snippet;
+}

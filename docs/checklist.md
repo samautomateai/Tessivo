@@ -37,7 +37,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | OS keychain secrets, built in-house: `tess secret set/delete/check`; env then keychain lookup | SET-1 | ☑ |
 | Rename, archive (schedules paused) and delete notebooks; delete refused while a run is active, paused or interrupted (`tess notebook`, `PATCH|DELETE /v1/notebooks/{id}`, desktop notebook menu and Archived group) | NB-1 | ☑ |
 | Saved prompts per notebook with their own model settings: list, save, delete (refused while a schedule runs one), run by name (`tess prompt`, `/v1/notebooks/{id}/prompts`, desktop Prompts menu in the run bar) | PR-1, PR-2 | ☑ |
-| Token limits: every model call counts toward the day (`usage.json`, 90 days kept); calls stop at `limits.max_tokens_per_day` (429) with `usage.warning` at 80% and `usage.limit` events; runs stop before their next call at `max_tokens_per_run` or the schedule's `maxTokens`; `tess usage`, `tess diagnostics`, `GET /v1/usage`. A single call can go past a limit; a CLI and the core counting at once can lose a few tokens | SET-6 | ☑ |
+| Token limits: every model call counts toward the day (`usage.json`, 90 days kept); calls stop at `limits.max_tokens_per_day` (429) with `usage.warning` at 80% and `usage.limit` events; runs stop before their next call at `max_tokens_per_run` or the schedule's `maxTokens`; `tess usage`, `tess search`, `tess diagnostics`, `GET /v1/usage`. A single call can go past a limit; a CLI and the core counting at once can lose a few tokens | SET-6 | ☑ |
 | `tess config get|set <key> [value]` (dotted keys such as `defaults.model` or `providers.0.base_url`; values decoded strictly and validated), `config export [file]` and `config import <file> [--force]` (the replaced config is kept as `.bak`) | SET-9 | ☑ |
 | Desktop settings: edit run defaults and token limits, add providers, set API keys (to the OS keychain through the core; never shown), edit alias fallback chains; a setup banner until a provider, a default model and its key are set (`PUT /v1/settings`, `/v1/secrets/{ref}`) | SET-1, SET-3, SET-4 | ☑ |
 | Web pages (fetched on every run) and pasted text (saved as Markdown) as notebook sources (`tess context add <nb> https://…` or `--text`, the context API, desktop Sources menu) | SRC-2 | ☑ |
@@ -46,7 +46,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Core log (rotated, redacted) and a diagnostics bundle for bug reports (`tess diagnostics`, `GET /v1/diagnostics`, desktop Settings › Save diagnostics) | NFR Operations | ☑ |
 | Native Anthropic and Gemini providers (`kind` in the config; caching, thinking, tools, structured output) and provider presets in the desktop (LiteLLM, OpenAI, Anthropic, Gemini, Ollama, LM Studio, vLLM, OpenRouter, Groq, DeepSeek, Mistral, xAI, Together) | SET-1, SET-2 | ☑ |
 | Rate limits and provider failures: 2 retries by default, `Retry-After` honoured, jitter, long waits fall back at once, context overflow recognised for every provider, `max_concurrent` per provider, plain hints for 401/403/404/429 | SET-4 | ☑ |
-| SQLite index (FTS) alongside the folder store | NB-3 | ☐ |
+| Search across notebooks, outputs, prompts, research notebooks and notes (`tess search`, `GET /v1/search`, desktop sidebar search); scans the folders with bounded reads. A SQLite index can come later for large workspaces | NB-3 | ☑ |
 | Agent mode phase 1 (ADR 0005): our own loop with LLM tool calling, rooted read-only code tools, allow/ask/block rules, durable pause and resume across restarts, runs as jobs, `tess run` approve, deny, resume, cancel and pending, approval endpoints and events, desktop approvals | WT/E11 | ☑ |
 | Agent mode phase 2: commands from a per-notebook allow-list (no shell) | WT/E11 | ☐ |
 | MCP client: stdio and Streamable HTTP servers in settings (`tess mcp`, `/v1/mcp/servers`, desktop Settings), test lists tools, resources and prompts | MCP-1 | ☑ |
@@ -87,7 +87,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 
 ## CLI reference (current)
 
-`tess new`, `tess notebook rename|archive|unarchive|delete --yes`, `tess prompt list|show|save|rm`, `tess usage`, `tess diagnostics`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
+`tess new`, `tess notebook rename|archive|unarchive|delete --yes`, `tess prompt list|show|save|rm`, `tess usage`, `tess search`, `tess diagnostics`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
 `--prompt-name`, `--var`, `--model`, `--thinking`, `--mode agent`, `--tool name=rule`, `--json`, `--out`, `--no-save`),
 `tess run pending|approve|deny|resume|cancel` (agent approvals; `--notebook DIR`, `--remember run|notebook`), `tess outputs`,
 `tess output ask|suggest|suggestions|apply|dismiss|refine|export <notebook> <output-id>` (output threads; `refine --from ID`; `export --format md|docx --out FILE`),

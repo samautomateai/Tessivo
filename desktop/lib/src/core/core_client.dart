@@ -338,6 +338,22 @@ class DemoCoreClient
   }
 
   @override
+  Future<List<SearchHit>> search(String query) async {
+    final words = query.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) throw const CoreException(400, 'give words to search for');
+    bool hit(String text) => words.every(text.toLowerCase().contains);
+    return [
+      for (final n in _notebooks)
+        if (hit(n.name)) SearchHit(kind: 'notebook', notebookId: n.id, title: n.name, snippet: n.name),
+      for (final o in await listOutputs())
+        if (hit(o.title)) SearchHit(kind: 'output', notebookId: o.notebookId, id: o.id, title: o.title),
+      for (final r in await listResearch())
+        if (hit('${r.name} ${r.description}'))
+          SearchHit(kind: 'research', notebookId: r.id, title: r.name, snippet: r.description),
+    ];
+  }
+
+  @override
   Future<Uint8List> diagnostics() async => Uint8List.fromList(utf8.encode('PK demo diagnostics'));
 
   @override

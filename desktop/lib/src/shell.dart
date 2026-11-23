@@ -14,6 +14,7 @@ import 'screens/templates_screen.dart';
 import 'screens/workspace_screen.dart';
 import 'theme.dart';
 import 'widgets/approvals_sheet.dart';
+import 'widgets/search_box.dart';
 
 /// Window layout: graphite sidebar plus the active section.
 class AppShell extends StatelessWidget {
@@ -78,6 +79,8 @@ class _Sidebar extends StatelessWidget {
         children: [
           const _Brand(),
           const SizedBox(height: 16),
+          SearchBox(state: state),
+          const SizedBox(height: 12),
           FilledButton.icon(
             key: const Key('new-notebook'),
             onPressed: () => showNewNotebookDialog(context, state),
