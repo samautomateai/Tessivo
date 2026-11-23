@@ -75,6 +75,9 @@ all in one folder you can copy or put under version control.
 
 Create one with *New* in the app, start from a template, or run `tess new <dir> --type analyze`.
 
+The prompt menu next to the prompt box saves prompts, and *From the library…* fills the box with a starter prompt
+(change risk, triage, action items, status report and others; `tess prompt library` in the terminal).
+
 ### Sources
 
 Choose *Add* in the Sources pane, or open the menu next to it for more kinds:

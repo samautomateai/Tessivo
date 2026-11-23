@@ -4,6 +4,7 @@ import 'chat_models.dart';
 import 'mcp_models.dart';
 import 'model_check.dart';
 import 'models.dart';
+import 'prompt_library.dart';
 import 'research_models.dart';
 import 'thread_models.dart';
 
@@ -62,6 +63,9 @@ abstract interface class CoreClient {
   /// Notebooks, outputs, prompts, research notebooks and notes matching every word.
   Future<List<SearchHit>> search(String query);
   Future<SettingsInfo> getSettings();
+
+  /// The starter prompts, for one work type (analyze, summarize, …) or all.
+  Future<List<LibraryPrompt>> promptLibrary({String? workType});
 
   /// Sends one tiny request to every model behind an alias or provider/model.
   Future<List<ModelCheck>> testModel(String model);

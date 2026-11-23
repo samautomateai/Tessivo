@@ -2,6 +2,7 @@ import 'errors.dart';
 import 'json_mapping.dart';
 import 'model_check.dart';
 import 'models.dart';
+import 'prompt_library.dart';
 
 /// Demo settings as the core's JSON, editable, plus which API keys are set.
 mixin DemoSettings {
@@ -25,6 +26,11 @@ mixin DemoSettings {
   final Set<String> _keys = {'TESSIVO_LITELLM_KEY'};
 
   Future<SettingsInfo> getSettings() async => settingsFromJson(_settings);
+
+  Future<List<LibraryPrompt>> promptLibrary({String? workType}) async => [
+    for (final p in demoLibrary)
+      if (workType == null || p.workType == workType) p,
+  ];
 
   /// Demo checks: every model in the chain answers, except ones named *offline*.
   Future<List<ModelCheck>> testModel(String model) async {

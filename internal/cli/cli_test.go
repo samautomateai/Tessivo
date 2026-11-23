@@ -307,3 +307,19 @@ func TestModelsTest(t *testing.T) {
 		t.Fatalf("unknown model: %d", code)
 	}
 }
+
+func TestPromptLibrary(t *testing.T) {
+	h := newHarness(t)
+	out := h.mustRun("prompt", "library", "--type", "summarize")
+	if !strings.Contains(out, "action-items") || strings.Contains(out, "triage-issue") {
+		t.Fatalf("library: %s", out)
+	}
+	if out := h.mustRun("prompt", "library", "show", "triage-issue"); !strings.Contains(out, "Triage the issue") {
+		t.Fatalf("show: %s", out)
+	}
+	for _, args := range [][]string{{"prompt", "library", "show", "nope"}, {"prompt", "library", "extra"}} {
+		if code := h.run(args...); code != ExitUsage {
+			t.Fatalf("%v: exit %d", args, code)
+		}
+	}
+}

@@ -12,6 +12,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | OpenAI-compatible client: models, chat, streaming, structured output, reasoning effort | SET-2, SET-3 | ☑ |
 | Test a model: `tess models test <alias|provider/model>`, `POST /v1/models/test`, desktop Test on each alias; one tiny request per model, no retries or fallback, redacted errors | SET-3 | ☑ |
 | Agent-mode settings in the desktop app: max steps, tool calls (new limit, default 200), tokens, minutes, approval expiry, and the app-wide rule for each tool (Settings → Agent mode; `tess config set agent.max_tool_calls N`) | SET-7 | ☑ |
+| Starter prompt library (10 prompts across the work types: change risk, triage, security review, summarize, action items, meeting notes, documentation, how-to, status and incident reports): `tess prompt library`, `GET /v1/prompt-library`, desktop prompt menu → From the library | PR-3 | ☑ |
 | Aliases and fallback chains with retry/backoff | SET-4 | ☑ |
 | Built-in work types with output schemas + validation and retry | WT-1, WT-2, WT-3 | ☑ |
 | Extractors: text, Markdown, CSV, JSON, code base | SRC-1, SRC-3 | ☑ |

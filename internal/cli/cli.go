@@ -59,6 +59,7 @@ const usage = `tess — analyze, summarize, document and report with self-hosted
 Usage:
   tess new <dir> --type analyze|summarize|document|report [--name NAME]
   tess notebook rename|archive|unarchive <notebook> [name]   tess notebook delete --yes <notebook>
+  tess prompt library [--type T] | show <id>   starter prompts (pipe one into tess prompt save)
   tess prompt list|show|rm <notebook> [name]   tess prompt save <notebook> <name> [--model M] [text|stdin]
   tess usage                                today's token use and limits
   tess search <words> [--limit N]           search notebooks, outputs, prompts and research notes

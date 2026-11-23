@@ -12,6 +12,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | --- | --- | --- |
 | `GET /v1/health` | — | `{"ok": true, "version": "…"}` |
 | `GET /v1/worktypes` | — | `{"workTypes": [{id, name, question, starterPrompt, suggestedContext, schema}]}` |
+| `GET /v1/prompt-library?workType=` | — | `{prompts: [{id, name, workType, text}]}`: the starter prompts, all or for one work type |
 | `GET /v1/notebooks` | — | `{"notebooks": [Notebook]}` (no context stats) |
 | `POST /v1/notebooks` | `{name, workType}` or `{templateId, name?}` | `201 Notebook` |
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |

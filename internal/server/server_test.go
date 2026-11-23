@@ -171,6 +171,10 @@ func TestNotebookAPI(t *testing.T) {
 		!strings.Contains(body, "Board Minutes") {
 		t.Fatalf("get: %d %s", code, body)
 	}
+	if code, body := call(t, ts, "GET", "/v1/prompt-library?workType=summarize", ""); code != 200 ||
+		!strings.Contains(body, `"id":"action-items"`) || strings.Contains(body, `"workType":"analyze"`) {
+		t.Fatalf("prompt library: %d %s", code, body)
+	}
 	if code, body := call(t, ts, "GET", "/v1/worktypes", ""); code != 200 || !strings.Contains(body, "analyze") {
 		t.Fatalf("worktypes: %d", code)
 	}
