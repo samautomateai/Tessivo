@@ -129,11 +129,14 @@ func (s *Service) applyAnswer(nb *notebook.Notebook, st *storedRun, rec *noteboo
 		st.Check.RunRules[rec.Tool] = rule
 	}
 	if remember == RememberNotebook {
-		if nb.Manifest.Agent.Tools == nil {
-			nb.Manifest.Agent.Tools = map[string]string{}
-		}
-		nb.Manifest.Agent.Tools[rec.Tool] = rule
-		if err := nb.Save(); err != nil {
+		err := nb.Update(func(m *notebook.Manifest) error {
+			if m.Agent.Tools == nil {
+				m.Agent.Tools = map[string]string{}
+			}
+			m.Agent.Tools[rec.Tool] = rule
+			return nil
+		})
+		if err != nil {
 			return err
 		}
 	}

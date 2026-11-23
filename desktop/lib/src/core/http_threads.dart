@@ -91,4 +91,7 @@ mixin _HttpThreads on _HttpChat {
     final body = {'fromMessageId': ?fromMessageId};
     return outputFromJson(await _json('POST', '${_outputPath(notebookId, outputId)}/versions', body: body));
   }
+
+  Future<OutputSummary> editOutput(String notebookId, String outputId, Map<String, Object?> data) async =>
+      outputFromJson(await _json('POST', '${_outputPath(notebookId, outputId)}/edits', body: {'data': data}));
 }

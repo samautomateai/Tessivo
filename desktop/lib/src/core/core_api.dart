@@ -2,7 +2,9 @@ import 'dart:typed_data';
 
 import 'chat_models.dart';
 import 'mcp_models.dart';
+import 'model_check.dart';
 import 'models.dart';
+import 'prompt_library.dart';
 import 'research_models.dart';
 import 'thread_models.dart';
 
@@ -61,6 +63,12 @@ abstract interface class CoreClient {
   /// Notebooks, outputs, prompts, research notebooks and notes matching every word.
   Future<List<SearchHit>> search(String query);
   Future<SettingsInfo> getSettings();
+
+  /// The starter prompts, for one work type (analyze, summarize, …) or all.
+  Future<List<LibraryPrompt>> promptLibrary({String? workType});
+
+  /// Sends one tiny request to every model behind an alias or provider/model.
+  Future<List<ModelCheck>> testModel(String model);
 
   /// Saves providers, aliases, defaults and limits (a SettingsDraft body).
   Future<SettingsInfo> updateSettings(Map<String, Object?> body);
@@ -135,12 +143,18 @@ abstract interface class CoreClient {
   Future<Suggestion> dismissSuggestion(String notebookId, String outputId, String suggestionId);
   Future<OutputSummary> newVersion(String notebookId, String outputId, {String? fromMessageId});
 
+  /// Saves [data], the output's structured result as edited, as a new version (no model call).
+  Future<OutputSummary> editOutput(String notebookId, String outputId, Map<String, Object?> data);
+
   // MCP servers (docs/api.md, "MCP servers").
   Future<List<McpServer>> listMcpServers();
   Future<McpServer> addMcpServer(McpServer server);
   Future<void> removeMcpServer(String name);
   Future<McpTestResult> testMcpServer(String name);
   Future<Notebook> setNotebookMcp(String notebookId, List<String> servers);
+
+  /// Replaces the notebook's run_command allow-list (agent mode).
+  Future<Notebook> setNotebookCommands(String notebookId, List<CommandRule> commands);
   Future<Notebook> addMcpContext(String notebookId, String server, String uri);
 
   // Research notebooks (docs/api.md, "Research notebooks").

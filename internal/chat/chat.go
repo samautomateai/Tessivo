@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/samautomateai/tessivo/internal/llm"
+	"github.com/samautomateai/tessivo/internal/webfetch"
 )
 
 // Roles.
@@ -28,6 +29,7 @@ const (
 	AttachPath     = "path"     // absolute file or folder path
 	AttachNotebook = "notebook" // a notebook's enabled context
 	AttachOutput   = "output"   // a saved output, ref "notebookID/outputID"
+	AttachURL      = "url"      // a web page, fetched again for every turn
 )
 
 // Limits. Everything read from disk or the API is bounded.
@@ -194,9 +196,13 @@ func CheckMessage(text string, atts []Attachment) error {
 
 func (a Attachment) check() error {
 	switch a.Kind {
+	case AttachURL:
+		if err := webfetch.Check(a.Ref); err != nil {
+			return invalid("attachment url: %v", err)
+		}
 	case AttachPath, AttachNotebook, AttachOutput:
 	default:
-		return invalid("attachment kind %q: want path, notebook or output", a.Kind)
+		return invalid("attachment kind %q: want path, notebook, output or url", a.Kind)
 	}
 	if a.Ref == "" || len(a.Ref) > attachmentRefMax || strings.ContainsRune(a.Ref, 0) {
 		return invalid("attachment ref is empty or too long")

@@ -38,8 +38,8 @@ of context, Tessivo tries the next one.
    thinking and tools included); everything else uses the OpenAI-compatible API.
 2. **Set its API key.** The key goes to the OS keychain: Windows Credential Manager, macOS Keychain, or the Secret
    Service on Linux. It is never written to the config file.
-3. **Choose models for each alias.** Use *Edit…* on the alias to list them in order of preference. To check that a
-   provider answers, run `tess models --provider <name>`.
+3. **Choose models for each alias.** Use *Edit…* on the alias to list them in order of preference, then *Test* to
+   send each one a short request and see which answer (`tess models test <alias>` in the terminal).
 
 From the terminal:
 
@@ -75,6 +75,9 @@ all in one folder you can copy or put under version control.
 
 Create one with *New* in the app, start from a template, or run `tess new <dir> --type analyze`.
 
+The prompt menu next to the prompt box saves prompts, and *From the library…* fills the box with a starter prompt
+(change risk, triage, action items, status report and others; `tess prompt library` in the terminal).
+
 ### Sources
 
 Choose *Add* in the Sources pane, or open the menu next to it for more kinds:
@@ -101,12 +104,17 @@ output you can:
   memory.
 - **Run it again**, on the same model or another one (*Run again*, or `tess output rerun --model`).
 - **Compare** it with the version it revised (*Compare*, or `tess output diff`).
+- **Edit** its fields in a form and save them as a new version, without running the model again (*Edit*, or
+  `tess output data` and `tess output edit`).
 - **Export** it as Markdown, Word or PDF (`tess output export --format md|docx|pdf`).
 
 ### Agent mode
 
-Agent mode lets the model explore code and documents and call MCP tools before it writes the output. Every tool
-has a rule: *allow*, *ask* or *block*. An *ask* pauses the run until you answer in the app or with
+Agent mode lets the model explore code and documents and call MCP tools before it writes the output. Limits on
+steps, tool calls, tokens and time, and the default rule for each tool, are in **Settings → Agent mode**. Every tool
+has a rule: *allow*, *ask* or *block*. The agent can also run programs (`run_command`, without a shell); list the
+commands that may run without asking under **Agent commands** on the notebook page (`go test *`, where `*` is one
+argument), or with `tess notebook commands`. An *ask* pauses the run until you answer in the app or with
 `tess run approve|deny`, even if the run was scheduled.
 
 ### Schedules
@@ -118,8 +126,9 @@ it; the tray menu opens Tessivo again or quits it.
 
 ## Chat and research
 
-- **Chat** answers questions with optional attachments. Turn on MCP tools for a chat with the tools button; tools
-  that are not allowed by a rule ask you first. A good chat can become a notebook (*Repeat*) or a saved output.
+- **Chat** answers questions with attachments: files, folders, notebooks, outputs or web pages. Turn on MCP tools
+  for a chat with the tools button; tools that are not allowed by a rule ask you first. A good chat can become a
+  notebook (*Repeat*) or a saved output.
 - **Research notebooks** collect sources, summarize each one, and answer questions with citations. Keep the
   answers you like as notes.
 - **Search** (the box at the top, or `tess search <words>`) looks through notebooks, outputs, prompts and research
@@ -139,8 +148,9 @@ Press **Ctrl+K** (⌘K on macOS) for the command palette. Every action can also 
 
 ## Troubleshooting
 
-- **The model does not answer.** Run `tess models --provider <name>`. The error says whether the key, the URL
-  or the model name is wrong (401, 404) or whether the provider is rate-limiting you (429).
+- **The model does not answer.** Press *Test* on the alias in Settings, or run `tess models test <alias>`. The error
+  says whether the key, the URL or the model name is wrong (401, 404) or whether the provider is rate-limiting
+  you (429).
 - **A bug report.** *Settings → Save diagnostics…* or `tess diagnostics` writes a zip with versions, settings (key
   names only) and the end of the log. It contains no keys, notebook names or content.
 - **Token limits.** `tess usage` shows today's use. Set limits in Settings or with

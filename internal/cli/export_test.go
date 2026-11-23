@@ -55,3 +55,29 @@ func TestOutputDiff(t *testing.T) {
 		t.Fatalf("summary: %q", h.errOut.String())
 	}
 }
+
+func TestOutputDataAndEdit(t *testing.T) {
+	h, dir, id := outputHarness(t)
+	data := h.mustRun("output", "data", dir, id)
+	if !strings.Contains(data, `"title": "Digest"`) {
+		t.Fatalf("data: %s", data)
+	}
+	file := filepath.Join(h.dir, "edit.json")
+	if err := os.WriteFile(file, []byte(strings.Replace(data, `"Digest"`, `"Digest, fixed"`, 1)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out := h.mustRun("output", "edit", dir, id, file); !strings.Contains(out, "saved v2 as ") {
+		t.Fatalf("edit: %s", out)
+	}
+	h.env.Stdin, h.env.StdinIsTTY = strings.NewReader(`{"title":"x"}`), false
+	if code := h.run("output", "edit", dir, id, "-"); code != ExitUsage {
+		t.Fatalf("a result that does not fit: exit %d (%s)", code, h.errOut)
+	}
+	h.env.StdinIsTTY = true
+	if code := h.run("output", "edit", dir, id, "-"); code != ExitUsage {
+		t.Fatalf("stdin from a terminal: exit %d", code)
+	}
+	if code := h.run("output", "edit", dir, id, filepath.Join(h.dir, "missing.json")); code != ExitError {
+		t.Fatalf("missing file: exit %d", code)
+	}
+}

@@ -19,6 +19,8 @@ export 'checks.dart';
 export 'core_api.dart';
 export 'errors.dart';
 export 'mcp_models.dart';
+export 'model_check.dart';
+export 'prompt_library.dart';
 export 'research_models.dart';
 export 'thread_models.dart';
 
@@ -306,6 +308,14 @@ class DemoCoreClient
   }
 
   @override
+  Future<Notebook> setNotebookCommands(String notebookId, List<CommandRule> commands) async {
+    if (commands.any((c) => c.program.trim().isEmpty)) throw const CoreException(400, 'a command needs a program');
+    final updated = _find(notebookId).copyWith(commands: List.unmodifiable(commands));
+    _replace(updated);
+    return updated;
+  }
+
+  @override
   Future<Notebook> setNotebookMcp(String notebookId, List<String> servers) async {
     for (final s in servers) {
       if (!demoMcpServers.any((m) => m.name == s)) throw CoreException(400, 'mcp server "$s" is not configured');
@@ -342,7 +352,17 @@ class DemoCoreClient
       (o) => o.id == outputId && o.notebookId == notebookId,
       orElse: () => throw StateError('unknown output $outputId'),
     );
-    return OutputDetail(id: o.id, title: o.title, markdown: '# ${o.title}\n\nSample output from ${o.notebookName}.');
+    return OutputDetail(
+      id: o.id,
+      title: o.title,
+      markdown: '# ${o.title}\n\nSample output from ${o.notebookName}.',
+      data: {
+        'title': o.title,
+        'tldr': 'Sample output from ${o.notebookName}.',
+        'key_points': ['First point', 'Second point'],
+        'action_items': <Object?>[],
+      },
+    );
   }
 
   @override

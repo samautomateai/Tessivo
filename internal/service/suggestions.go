@@ -239,12 +239,14 @@ func (s *Service) applyChange(ref outputRef, sg notebook.Suggestion, list []note
 		if err != nil {
 			return "", err
 		}
-		if len(nb.Manifest.Memory) >= template.MaxMemory {
-			return "", fmt.Errorf("%w: the notebook's memory is full (%d items); remove one first",
-				ErrConflict, template.MaxMemory)
-		}
-		nb.Manifest.Memory = append(nb.Manifest.Memory, sg.Text)
-		return "", nb.Save()
+		return "", nb.Update(func(m *notebook.Manifest) error {
+			if len(m.Memory) >= template.MaxMemory {
+				return fmt.Errorf("%w: the notebook's memory is full (%d items); remove one first",
+					ErrConflict, template.MaxMemory)
+			}
+			m.Memory = append(m.Memory, sg.Text)
+			return nil
+		})
 	}
 	return s.applyPrompt(ref, sg, list)
 }

@@ -23,6 +23,16 @@ mixin _HttpMcp on _HttpChat {
     await _json('PUT', '/v1/notebooks/${Uri.encodeComponent(notebookId)}/mcp', body: {'servers': servers}),
   );
 
+  Future<Notebook> setNotebookCommands(String notebookId, List<CommandRule> commands) async => notebookFromJson(
+    await _json(
+      'PUT',
+      '/v1/notebooks/${Uri.encodeComponent(notebookId)}/agent/commands',
+      body: {
+        'commands': [for (final c in commands) c.toJson()],
+      },
+    ),
+  );
+
   Future<Notebook> addMcpContext(String notebookId, String server, String uri) async => notebookFromJson(
     await _json(
       'POST',

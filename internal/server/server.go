@@ -59,6 +59,7 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/health", s.health)
 	mux.HandleFunc("GET /v1/worktypes", s.workTypes)
+	mux.HandleFunc("GET /v1/prompt-library", s.promptLibrary)
 	mux.HandleFunc("GET /v1/notebooks", s.listNotebooks)
 	mux.HandleFunc("POST /v1/notebooks", s.createNotebook)
 	mux.HandleFunc("GET /v1/notebooks/{id}", s.getNotebook)
@@ -116,6 +117,11 @@ type workTypeJSON struct {
 	StarterPrompt    string          `json:"starterPrompt"`
 	SuggestedContext []string        `json:"suggestedContext"`
 	Schema           json.RawMessage `json:"schema"`
+}
+
+// promptLibrary lists the starter prompts, for one work type with ?workType=.
+func (s *Server) promptLibrary(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"prompts": worktype.LibraryFor(r.URL.Query().Get("workType"))})
 }
 
 func (s *Server) workTypes(w http.ResponseWriter, _ *http.Request) {

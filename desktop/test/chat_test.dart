@@ -151,6 +151,22 @@ void main() {
     tester.widget<InputChip>(find.byKey(const Key('pending-nb-1'))).onDeleted!();
     await tester.pumpAndSettle();
     expect(state.chat.pending, isEmpty);
+
+    await tester.tap(find.byKey(const Key('chat-attach')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('chat-attach-url')));
+    await tester.pumpAndSettle();
+    await answer(tester, 'ftp://files.example.com/x');
+    expect(find.textContaining('Enter an http:// or https:// address'), findsOneWidget);
+    tester.state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger)).removeCurrentSnackBar();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('chat-attach')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('chat-attach-url')));
+    await tester.pumpAndSettle();
+    await answer(tester, 'https://status.example.com/today/');
+    expect(find.text('status.example.com/today'), findsOneWidget);
+    expect(state.chat.pending.single.kind, 'url');
   });
 
   testWidgets('session menu pins, renames, archives and deletes', (tester) async {

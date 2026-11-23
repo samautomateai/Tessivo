@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
+import '../core/core_client.dart';
 import '../core/models.dart';
+import 'prompt_library_dialog.dart';
 import 'text_prompt_dialog.dart';
 
 /// The open notebook's saved prompts: use one, save the current text as one, delete one.
@@ -22,6 +24,16 @@ class PromptMenu extends StatelessWidget {
     if (name != null && name.trim().isNotEmpty) await state.savePromptAs(name.trim(), text());
   }
 
+  /// Fills the prompt box from the starter library.
+  Future<void> _library(BuildContext context) async {
+    final p = await showDialog<LibraryPrompt>(
+      context: context,
+      builder: (_) =>
+          PromptLibraryDialog(prompts: state.core.promptLibrary(), workType: state.selected?.workType.name ?? ''),
+    );
+    if (p != null) onUse(SavedPrompt(name: p.name, text: p.text));
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
@@ -29,7 +41,9 @@ class PromptMenu extends StatelessWidget {
       tooltip: 'Saved prompts',
       icon: const Icon(Icons.bookmarks_outlined),
       onSelected: (v) {
-        if (v == '+save') {
+        if (v == '+library') {
+          unawaited(_library(context));
+        } else if (v == '+save') {
           unawaited(_save(context));
         } else if (v.startsWith('-')) {
           unawaited(state.deletePrompt(v.substring(1)));
@@ -45,6 +59,7 @@ class PromptMenu extends StatelessWidget {
             child: Text(p.model.isEmpty ? p.name : '${p.name}  ·  ${p.model}'),
           ),
         if (state.prompts.isNotEmpty) const PopupMenuDivider(),
+        const PopupMenuItem(key: Key('prompt-library'), value: '+library', child: Text('From the library…')),
         const PopupMenuItem(key: Key('prompt-save'), value: '+save', child: Text('Save as prompt…')),
         for (final p in state.prompts)
           PopupMenuItem(key: Key('prompt-delete-${p.name}'), value: '-${p.name}', child: Text('Delete ${p.name}')),

@@ -1,6 +1,8 @@
 import 'errors.dart';
 import 'json_mapping.dart';
+import 'model_check.dart';
 import 'models.dart';
+import 'prompt_library.dart';
 
 /// Demo settings as the core's JSON, editable, plus which API keys are set.
 mixin DemoSettings {
@@ -24,6 +26,31 @@ mixin DemoSettings {
   final Set<String> _keys = {'TESSIVO_LITELLM_KEY'};
 
   Future<SettingsInfo> getSettings() async => settingsFromJson(_settings);
+
+  Future<List<LibraryPrompt>> promptLibrary({String? workType}) async => [
+    for (final p in demoLibrary)
+      if (workType == null || p.workType == workType) p,
+  ];
+
+  /// Demo checks: every model in the chain answers, except ones named *offline*.
+  Future<List<ModelCheck>> testModel(String model) async {
+    final aliases = (_settings['aliases'] as List? ?? const []).whereType<Map<Object?, Object?>>();
+    final alias = aliases.where((a) => a['name'] == model).firstOrNull;
+    final chain = alias == null
+        ? (model.contains('/')
+              ? [model]
+              : throw CoreException(400, 'unknown model "$model": not an alias or provider/model'))
+        : [
+            for (final m in (alias['chain'] as List? ?? const []).whereType<Map<Object?, Object?>>())
+              '${m['provider']}/${m['model']}',
+          ];
+    return [
+      for (final m in chain)
+        m.contains('offline')
+            ? ModelCheck(model: m, ok: false, millis: 5, error: 'connection refused')
+            : ModelCheck(model: m, ok: true, millis: 120, reply: 'OK'),
+    ];
+  }
 
   Future<SettingsInfo> updateSettings(Map<String, Object?> body) async {
     final defaults = body['defaults'];

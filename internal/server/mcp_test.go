@@ -89,3 +89,17 @@ func TestAddMCPContextAPI(t *testing.T) {
 		t.Fatalf("both path and server: %d", code)
 	}
 }
+
+func TestNotebookCommandsAPI(t *testing.T) {
+	ts, _ := newTestServer(t, summary)
+	call(t, ts, "POST", "/v1/notebooks", `{"name":"Build","workType":"analyze"}`)
+	code, body := call(t, ts, "PUT", "/v1/notebooks/build/agent/commands",
+		`{"commands":[{"program":"go","args":["test","*"]}]}`)
+	if code != 200 || !strings.Contains(body, `"commands":[{"program":"go","args":["test","*"]}]`) {
+		t.Fatalf("set: %d %s", code, body)
+	}
+	if code, _ := call(t, ts, "PUT", "/v1/notebooks/build/agent/commands",
+		`{"commands":[{"program":""}]}`); code != 400 {
+		t.Fatalf("empty program: %d", code)
+	}
+}

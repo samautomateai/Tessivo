@@ -12,8 +12,8 @@ import (
 )
 
 // SettingsUpdate is the part of the config the desktop edits: providers,
-// aliases, run defaults, token limits and desktop preferences. MCP servers
-// have their own routes.
+// aliases, run defaults, token limits, agent rules and limits, and desktop
+// preferences. MCP servers have their own routes.
 type SettingsUpdate struct {
 	Providers []config.Provider  `json:"providers"`
 	Aliases   []config.Alias     `json:"aliases"`
@@ -21,6 +21,8 @@ type SettingsUpdate struct {
 	Limits    config.Limits      `json:"limits"`
 	// Desktop is left unchanged when absent (older clients).
 	Desktop *config.DesktopConfig `json:"desktop,omitempty"`
+	// Agent (default tool rules and limits) is left unchanged when absent.
+	Agent *config.AgentConfig `json:"agent,omitempty"`
 }
 
 // UpdateSettings validates the change, writes it to the config file and
@@ -30,6 +32,9 @@ func (s *Service) UpdateSettings(in SettingsUpdate) (config.File, error) {
 	defer s.cfgMu.Unlock()
 	next := s.Config
 	next.Providers, next.Aliases, next.Defaults, next.Limits = in.Providers, in.Aliases, in.Defaults, in.Limits
+	if in.Agent != nil {
+		next.Agent = *in.Agent
+	}
 	if in.Desktop != nil {
 		next.Desktop = *in.Desktop
 	}
@@ -51,7 +56,7 @@ func (s *Service) UpdateSettings(in SettingsUpdate) (config.File, error) {
 			return config.File{}, fmt.Errorf("settings: read config: %w", err)
 		}
 		f.Providers, f.Aliases, f.Defaults, f.Limits = next.Providers, next.Aliases, next.Defaults, next.Limits
-		f.Desktop = next.Desktop
+		f.Desktop, f.Agent = next.Desktop, next.Agent
 		if err := f.Save(s.ConfigPath); err != nil {
 			return config.File{}, &InvalidError{err.Error()}
 		}

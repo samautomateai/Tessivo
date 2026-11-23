@@ -89,6 +89,8 @@ type Manifest struct {
 	CreatedAt     string             `json:"createdAt"`
 	Settings      config.RunSettings `json:"settings"`
 	Sources       []Source           `json:"sources"`
+	// Revision counts saves, so a save of a stale copy is refused (lock.go).
+	Revision int `json:"revision,omitempty"`
 }
 
 // Notebook is an opened research notebook folder.
@@ -164,12 +166,6 @@ func List(root string) ([]*Notebook, error) {
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Manifest.CreatedAt > out[j].Manifest.CreatedAt })
 	return out, nil
-}
-
-// Save writes the manifest.
-func (n *Notebook) Save() error {
-	n.Manifest.FormatVersion = FormatVersion
-	return writeJSON(filepath.Join(n.Dir, ManifestFile), n.Manifest)
 }
 
 // FormatVersion is the research folder format this Tessivo writes; raise it

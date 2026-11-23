@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/samautomateai/tessivo/internal/atomicfile"
 )
 
 // Fallback triggers accepted in Alias.FallbackOn.
@@ -159,12 +161,9 @@ func (f File) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create config dir: %w", err)
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, append(b, '\n'), 0o600); err != nil {
-		return fmt.Errorf("write config: %w", err)
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		return fmt.Errorf("replace config: %w", err)
+	// tess and the app's core can save the config at the same time.
+	if err := atomicfile.Write(path, append(b, '\n'), 0o600); err != nil {
+		return fmt.Errorf("config: %w", err)
 	}
 	return nil
 }

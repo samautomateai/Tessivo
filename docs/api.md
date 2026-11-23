@@ -12,6 +12,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | --- | --- | --- |
 | `GET /v1/health` | — | `{"ok": true, "version": "…"}` |
 | `GET /v1/worktypes` | — | `{"workTypes": [{id, name, question, starterPrompt, suggestedContext, schema}]}` |
+| `GET /v1/prompt-library?workType=` | — | `{prompts: [{id, name, workType, text}]}`: the starter prompts, all or for one work type |
 | `GET /v1/notebooks` | — | `{"notebooks": [Notebook]}` (no context stats) |
 | `POST /v1/notebooks` | `{name, workType}` or `{templateId, name?}` | `201 Notebook` |
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |
@@ -27,16 +28,18 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?, toolRules?}` | SSE stream |
 | `GET /v1/outputs?notebook=&workType=` | — | `{"outputs": [Output]}` (no data) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}` | — | `Output` with `data` and `markdown` |
-| `GET /v1/notebooks/{id}/outputs/{outputId}/export?format=md|docx|pdf` | — | the file (`Content-Disposition: attachment`): Markdown, or a Word document or PDF made with the standard library ||docx` | — | the file (`Content-Disposition: attachment`): Markdown, or a Word document made with the standard library |
+| `GET /v1/notebooks/{id}/outputs/{outputId}/export?format=md|docx|pdf` | — | the file (`Content-Disposition: attachment`): Markdown, or a Word document or PDF made with the standard library |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/run` | — | `{runId, prompt, promptName?, vars?, model, mode?}`: the run that made the output, to run it again (`POST …/runs` with `overrides.model` for another model) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/diff?against=` | — | `{from, to, lines: [{op, text}], counts: {added, removed}}`: the output against the version it revised (or `against`); `op` is the character code of `" "`, `"+"` or `"-"`; `400` for an original without `against` |
+| `POST /v1/notebooks/{id}/outputs/{outputId}/edits` | `{data}` (the structured result, ≤ 1 MiB) | `201` + `Output` (the new version: `parentId`, `version`): checked against the work type's schema, rendered, audited by digest; no model call; `400` when it does not fit or nothing changed |
 | `GET /v1/settings` | — | config (key references only) |
-| `PUT /v1/settings` | `{providers, aliases, defaults, limits, desktop?}` | the config after the change; validated, saved to the config file and applied at once (MCP servers have their own routes). `desktop: {close_to_tray}` holds the desktop app's own preferences; leaving it out keeps them |
+| `PUT /v1/settings` | `{providers, aliases, defaults, limits, desktop?, agent?}` | the config after the change; validated, saved to the config file and applied at once (MCP servers have their own routes). `desktop: {close_to_tray}` holds the desktop app's own preferences; leaving it out keeps them. `agent: {tools, max_steps, max_tool_calls, max_tokens, max_minutes, approval_expiry_days}` replaces the agent settings when present |
 | `GET /v1/secrets/{ref}` | — | `{set: bool}`: whether an API key is available (keychain or environment); its value never leaves the core |
 | `PUT /v1/secrets/{ref}` | `{value}` | `204`; stores the key in the OS keychain (one line, ≤ 8 KiB); `503` when the core has no keychain |
 | `DELETE /v1/secrets/{ref}` | — | `204` |
 | `GET /v1/diagnostics` | — | a zip for bug reports: `about.txt` (version, OS), `checks.txt` (setup and counts, whether each key is set), `config.json` (key references only), `core.log` (its last 2 MiB); everything redacted, no keys, notebook names or content |
 | `GET /v1/models?provider=` | — | `{"models": {"provider": ["model", …]}}` |
+| `POST /v1/models/test` | `{model}` (an alias or provider/model) | `{checks: [{model, ok, millis, reply?, error?}]}`: one tiny request (16 tokens, no retries, no fallback, 30 s) to each model in the chain; errors redacted; tokens count toward the limits |
 | `GET /v1/notebooks/{id}/schedules` | — | `{"schedules": [Schedule]}` |
 | `POST /v1/notebooks/{id}/schedules` | `{cron, prompt?, promptName?, vars?, missed?, enabled?}` | `201 Schedule` |
 | `PATCH /v1/notebooks/{id}/schedules/{scheduleId}` | `{enabled}` | `Schedule` |
@@ -52,7 +55,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/chats/{chatId}` | — | `ChatSession` with messages |
 | `PATCH /v1/chats/{chatId}` | `{title?, pinned?, archived?, model?, thinkingEffort?, mcpServers?}` | `ChatSession` (`mcpServers`: configured servers whose tools the chat may use) |
 | `DELETE /v1/chats/{chatId}` | — | `204` |
-| `POST /v1/chats/{chatId}/messages` | `{text, attachments?: [{kind, ref, label?}]}` | SSE stream (see below); with `mcpServers` set it also sends `tool` (`{kind: call|result|denied|blocked, tool, args?, summary?}`) and `approval` (`{id, tool, args}`) events |
+| `POST /v1/chats/{chatId}/messages` | `{text, attachments?: [{kind, ref, label?}]}` (kind `path`, `notebook`, `output` (`notebookID/outputID`) or `url`, an http(s) page fetched for every turn) | SSE stream (see below); with `mcpServers` set it also sends `tool` (`{kind: call|result|denied|blocked, tool, args?, summary?}`) and `approval` (`{id, tool, args}`) events |
 | `POST /v1/chats/{chatId}/approvals/{callId}` | `{allow, remember?}` | `204`: answers a tool call the reply waits on (`approval` event); `remember` keeps it as this chat's rule; `404` when none waits. A reply waits up to 5 minutes, then the call is denied |
 | `GET /v1/chats/{chatId}/repeatable` | — | `RepeatablePlan` |
 | `POST /v1/chats/{chatId}/notebook` | `{name?, workType?, templateId?\|"none", prompt?}` | `201 Notebook` |
@@ -69,7 +72,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `DELETE /v1/mcp/servers/{name}` | — | `204` (`404` unknown, `409` attached to a notebook) |
 | `POST /v1/mcp/servers/{name}/test` | — | `{tools: [{name, description}], resources: [{uri, name, mimeType}], prompts: [{name, description}]}` |
 | `PUT /v1/notebooks/{id}/mcp` | `{servers: [name]}` | `Notebook` (`400` for a server that is not configured; at most 20) |
-| `PUT /v1/notebooks/{id}/mcp` | `{servers: [name]}` | `Notebook` (`400` for a server that is not configured; at most 20) |
+| `PUT /v1/notebooks/{id}/agent/commands` | `{commands: [{program, args?}]}` (`*` in args is one free argument; at most 100) | `Notebook` (with `commands`): the `run_command` allow-list; matching calls run without asking unless a rule names `run_command` |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/thread` | — | `ChatSession` of the output's thread (empty if none yet) |
 | `PATCH …/outputs/{outputId}/thread` | `{model?, thinkingEffort?}` | `ChatSession` |
 | `POST …/outputs/{outputId}/thread/messages` | `{text, attachments?}` | SSE stream (see Output threads) |

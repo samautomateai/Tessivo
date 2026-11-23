@@ -129,6 +129,7 @@ void main() {
     await _pump(tester);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
+    await _toMcp(tester);
     await tester.tap(find.byKey(const Key('mcp-add')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('mcp-name')), 'docs');
@@ -151,6 +152,7 @@ void main() {
     await _pump(tester);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
+    await _toMcp(tester);
     await tester.tap(find.byKey(const Key('mcp-add')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('mcp-save')));
@@ -172,3 +174,10 @@ void main() {
     expect(find.textContaining('read at run time'), findsOneWidget);
   });
 }
+
+/// Scrolls Settings until the MCP servers section is on screen.
+Future<void> _toMcp(WidgetTester tester) => tester.scrollUntilVisible(
+  find.byKey(const Key('mcp-add')),
+  200,
+  scrollable: find.descendant(of: find.byKey(const Key('settings-list')), matching: find.byType(Scrollable)).first,
+);

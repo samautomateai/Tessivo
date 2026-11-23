@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -78,3 +79,19 @@ func (p Policy) Check() error {
 
 // finishTool lets the model end the loop early.
 const finishTool = "finish"
+
+// Ruled reports whether a run, notebook or app rule names tool, so a tool's
+// own preapproval (run_command's allow-list) applies only where no one chose.
+func (p Policy) Ruled(tool string) bool {
+	for _, layer := range []map[string]string{p.Run, p.Notebook, p.App} {
+		if _, ok := lookup(layer, tool); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// Preapprover is a tool that can approve some calls by their arguments.
+type Preapprover interface {
+	Preapproved(args json.RawMessage) bool
+}

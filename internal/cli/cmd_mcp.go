@@ -24,7 +24,7 @@ func cmdMCP(ctx context.Context, args []string, env Env) error {
 	}
 	sub, rest := args[0], args[1:]
 	run, ok := map[string]func(context.Context, *service.Service, []string, Env) error{
-		subAdd: mcpAdd, subList: mcpList, "test": mcpTest, subRemove: mcpRemove,
+		subAdd: mcpAdd, subList: mcpList, subTest: mcpTest, subRemove: mcpRemove,
 		subAttach: mcpAttach, subDetach: mcpAttach,
 	}[sub]
 	if !ok {

@@ -1,8 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/samautomateai/tessivo/internal/notebook"
 )
 
 func TestRenameArchiveDeleteNotebookAPI(t *testing.T) {
@@ -42,5 +45,12 @@ func TestAddURLAndTextContextAPI(t *testing.T) {
 	}
 	if code, _ := call(t, ts, "POST", ctx, `{"url":"ftp://x/y"}`); code != 400 {
 		t.Fatalf("bad url: %d", code)
+	}
+}
+
+func TestChangedElsewhereIsAConflict(t *testing.T) {
+	wrapped := fmt.Errorf("rename: %w", notebook.ErrChanged)
+	if code, msg := classify(wrapped); code != 409 || !strings.Contains(msg, "changed elsewhere") {
+		t.Fatalf("%d %s", code, msg)
 	}
 }

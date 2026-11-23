@@ -334,6 +334,16 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   Future<SettingsInfo> getSettings() async => settingsFromJson(await _json('GET', '/v1/settings'));
 
   @override
+  Future<List<LibraryPrompt>> promptLibrary({String? workType}) async {
+    final q = workType == null ? '' : '?workType=${Uri.encodeQueryComponent(workType)}';
+    return libraryFromJson(await _json('GET', '/v1/prompt-library$q'));
+  }
+
+  @override
+  Future<List<ModelCheck>> testModel(String model) async =>
+      modelChecksFromJson(await _json('POST', '/v1/models/test', body: {'model': model}));
+
+  @override
   Future<SettingsInfo> updateSettings(Map<String, Object?> body) async =>
       settingsFromJson(await _json('PUT', '/v1/settings', body: body));
 

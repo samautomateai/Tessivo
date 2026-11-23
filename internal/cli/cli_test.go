@@ -287,3 +287,64 @@ func TestDefaults(t *testing.T) {
 		t.Fatal("want transport error")
 	}
 }
+
+func TestModelsTest(t *testing.T) {
+	h := newHarness(t)
+	h.initConfig()
+	out := h.mustRun("models", "test", "litellm/m")
+	if !strings.Contains(out, "litellm/m") || !strings.Contains(out, "ok") {
+		t.Fatalf("models test: %s", out)
+	}
+	h.model.err = errors.New("401 unauthorized")
+	if code := h.run("models", "test", "litellm/m"); code != ExitError ||
+		!strings.Contains(h.out.String(), "failed: ") {
+		t.Fatalf("a failing model must exit 1: %d %s", code, h.out)
+	}
+	if code := h.run("models", "test"); code != ExitUsage {
+		t.Fatalf("missing name: %d", code)
+	}
+	if code := h.run("models", "test", "nope"); code != ExitError {
+		t.Fatalf("unknown model: %d", code)
+	}
+}
+
+func TestPromptLibrary(t *testing.T) {
+	h := newHarness(t)
+	out := h.mustRun("prompt", "library", "--type", "summarize")
+	if !strings.Contains(out, "action-items") || strings.Contains(out, "triage-issue") {
+		t.Fatalf("library: %s", out)
+	}
+	if out := h.mustRun("prompt", "library", "show", "triage-issue"); !strings.Contains(out, "Triage the issue") {
+		t.Fatalf("show: %s", out)
+	}
+	for _, args := range [][]string{{"prompt", "library", "show", "nope"}, {"prompt", "library", "extra"}} {
+		if code := h.run(args...); code != ExitUsage {
+			t.Fatalf("%v: exit %d", args, code)
+		}
+	}
+}
+
+func TestNotebookCommandsCLI(t *testing.T) {
+	h := newHarness(t)
+	dir := filepath.Join(h.dir, "build")
+	h.mustRun("new", dir, "--type", "analyze")
+	h.mustRun("notebook", "commands", dir, "add", "go", "test", "*")
+	h.mustRun("notebook", "commands", dir, "add", "make", "lint")
+	if out := h.mustRun("notebook", "commands", dir); out != "1. go test *\n2. make lint\n" {
+		t.Fatalf("list: %q", out)
+	}
+	h.mustRun("notebook", "commands", dir, "remove", "1")
+	if out := h.mustRun("notebook", "commands", dir); out != "1. make lint\n" {
+		t.Fatalf("after remove: %q", out)
+	}
+	for _, args := range [][]string{
+		{"notebook", "commands", dir, "remove", "9"},
+		{"notebook", "commands", dir, "add"},
+		{"notebook", "commands", dir, "add", " "},
+		{"notebook", "commands"},
+	} {
+		if code := h.run(args...); code != ExitUsage {
+			t.Fatalf("%v: exit %d (%s)", args, code, h.errOut)
+		}
+	}
+}

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"mime"
 	"net/http"
 
@@ -13,6 +14,7 @@ func (s *Server) notebookManageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/export", s.exportOutput)
 	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/run", s.outputRun)
 	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/diff", s.diffOutput)
+	mux.HandleFunc("POST /v1/notebooks/{id}/outputs/{out}/edits", s.editOutput)
 }
 
 func (s *Server) updateNotebook(w http.ResponseWriter, r *http.Request) {
@@ -66,4 +68,21 @@ func (s *Server) diffOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, d)
+}
+
+// editOutput saves the edited structured result as a new version.
+func (s *Server) editOutput(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := decode(w, r, &body); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	info, err := s.svc.EditOutput(r.PathValue("id"), r.PathValue("out"), body.Data)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, info)
 }

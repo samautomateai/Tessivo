@@ -209,7 +209,8 @@ func (s *Service) buildAgent(ctx context.Context, nb *notebook.Notebook, st *sto
 		if err != nil {
 			return nil, nil, fmt.Errorf("agent folders: %w", err)
 		}
-		tools = agenttools.CodeTools(roots)
+		tools = append(agenttools.CodeTools(roots),
+			agenttools.RunCommandTool(roots, nb.Manifest.Agent.Commands, s.commandEnv()))
 	}
 	remote, closeTools, err := s.mcpTools(ctx, nb)
 	if err != nil {
@@ -221,6 +222,7 @@ func (s *Service) buildAgent(ctx context.Context, nb *notebook.Notebook, st *sto
 		Model: model, Tools: agenttools.NewRegistry(tools...), Policy: pol, Now: s.now,
 		Limits: agent.Limits{
 			MaxSteps: lim.MaxSteps, MaxTokens: lim.MaxTokens, MaxWall: time.Duration(lim.MaxMinutes) * time.Minute,
+			MaxToolCalls: lim.MaxToolCalls,
 		},
 		Save:   func(*agent.Checkpoint) error { return nb.SaveCheckpoint(st.Check.RunID, st) },
 		Redact: s.redactor(),

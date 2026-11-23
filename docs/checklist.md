@@ -10,6 +10,10 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Layered settings with source tracking | SET-5 | ☑ |
 | Secrets from environment (keychain next) | SET-1 | ☑ |
 | OpenAI-compatible client: models, chat, streaming, structured output, reasoning effort | SET-2, SET-3 | ☑ |
+| Test a model: `tess models test <alias|provider/model>`, `POST /v1/models/test`, desktop Test on each alias; one tiny request per model, no retries or fallback, redacted errors | SET-3 | ☑ |
+| Agent-mode settings in the desktop app: max steps, tool calls (new limit, default 200), tokens, minutes, approval expiry, and the app-wide rule for each tool (Settings → Agent mode; `tess config set agent.max_tool_calls N`) | SET-7 | ☑ |
+| Starter prompt library (10 prompts across the work types: change risk, triage, security review, summarize, action items, meeting notes, documentation, how-to, status and incident reports): `tess prompt library`, `GET /v1/prompt-library`, desktop prompt menu → From the library | PR-3 | ☑ |
+| The CLI and the desktop app can change the same notebook at the same time: job and research notebook manifests change under a lock and are re-read before each change (a stale save gets `409`), and every file is replaced through its own temporary file, so nothing is lost or half-written | CLI-4 | ☑ |
 | Aliases and fallback chains with retry/backoff | SET-4 | ☑ |
 | Built-in work types with output schemas + validation and retry | WT-1, WT-2, WT-3 | ☑ |
 | Extractors: text, Markdown, CSV, JSON, code base | SRC-1, SRC-3 | ☑ |
@@ -53,10 +57,11 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Accessibility: every main screen passes Flutter's labeled-tap-target and text-contrast guidelines (tested); the sidebar and work-type cards announce selection and the work type; diff lines, tool approvals and the search box carry labels | NFR Look and feel | ☑ |
 | Keyboard: command palette (Ctrl/Cmd+K: sections, new notebook or chat, open any notebook, search), Ctrl/Cmd+N new notebook, Ctrl/Cmd+, settings; each shortcut binds both keys, so no OS checks | NFR Look and feel | ☑ |
 | Compare a version with the one it revised, line by line (`tess output diff`, `…/outputs/{id}/diff`, desktop Compare) | REP-3 | ☑ |
+| Edit an output's structured result in a form (text, one-item-per-line lists, JSON for nested fields) and save it as a new version without re-running (`tess output data`/`edit`, `…/outputs/{id}/edits`, desktop Edit) | WT-4 | ☑ |
 | Run an output again, optionally on another model (`tess output rerun --model`, `GET …/outputs/{id}/run` then `POST …/runs`, desktop Run again) | RUN-3 | ☑ |
 | Search across notebooks, outputs, prompts, research notebooks and notes (`tess search`, `GET /v1/search`, desktop sidebar search); scans the folders with bounded reads. A SQLite index can come later for large workspaces | NB-3 | ☑ |
 | Agent mode phase 1 (ADR 0005): our own loop with LLM tool calling, rooted read-only code tools, allow/ask/block rules, durable pause and resume across restarts, runs as jobs, `tess run` approve, deny, resume, cancel and pending, approval endpoints and events, desktop approvals | WT/E11 | ☑ |
-| Agent mode phase 2: commands from a per-notebook allow-list (no shell) | WT/E11 | ☐ |
+| Agent mode phase 2: `run_command` runs programs without a shell, in a context folder, with secret-looking variables removed, 5 min timeout (whole process tree stopped), 256 KiB of output; calls matching the notebook allow-list run without asking, others ask (`tess notebook commands`, `PUT …/agent/commands`, desktop Agent commands card) | WT/E11 | ☑ |
 | MCP client: stdio and Streamable HTTP servers in settings (`tess mcp`, `/v1/mcp/servers`, desktop Settings), test lists tools, resources and prompts | MCP-1 | ☑ |
 | MCP servers attached to notebooks; their tools in agent runs as `mcp__<server>__<tool>` (ask by default) | MCP-2 | ☑ |
 | MCP resources as notebook sources, read on every run | MCP-3 | ☑ |
@@ -84,7 +89,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Desktop template gallery: filter by work type, use, save notebook as template, remove user templates | TPL-1, TPL-4 | ☑ |
 | Desktop: live settings and models, add context by path, memory, open outputs | SET-1, NB-1, REP-1 | ☑ |
 | Chat core: sessions (new, rename, pin, search, archive, delete), streaming replies with stop, model and thinking per session | CHAT-1, CHAT-2 | ☑ |
-| Chat attachments: files, folders, notebooks, outputs; kept for later turns | CHAT-3 | ◐ (files, folders, notebooks ☑; URLs ☐) |
+| Chat attachments: files, folders, notebooks, outputs and web pages (fetched again for every turn; carried over as web page sources when a chat becomes a notebook); kept for later turns (`tess chat --attach PATH|URL`, desktop Attach → Web page) | CHAT-3 | ☑ |
 | Chat uses MCP tools the chat enables, with the agent rules (per-chat remembered answers, then app rules; ask by default): up to 8 tool turns, results ≤ 32 KiB and redacted, calls audited by digest, a note of the tools used; the desktop asks with an approval card, `tess chat --mcp` asks on the terminal (denies when piped) | CHAT-4 | ☑ |
 | Global chat memory, separate from notebook memory | CHAT-5 | ☑ |
 | Make a chat repeatable as a notebook (suggested work type, template, prompt, context) | CHAT-6 | ☑ |

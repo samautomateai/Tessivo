@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/samautomateai/tessivo/internal/atomicfile"
 )
 
 // sseWriter writes server-sent events and flushes each one.
@@ -133,12 +135,8 @@ func WriteEndpoint(path string, ep Endpoint) error {
 	if err != nil {
 		return fmt.Errorf("encode endpoint: %w", err)
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o600); err != nil {
-		return fmt.Errorf("write endpoint: %w", err)
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		return fmt.Errorf("replace endpoint: %w", err)
+	if err := atomicfile.Write(path, b, 0o600); err != nil {
+		return fmt.Errorf("endpoint: %w", err)
 	}
 	return nil
 }

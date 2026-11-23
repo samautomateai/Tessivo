@@ -11,6 +11,9 @@ import (
 
 // cmdPrompt manages a notebook's saved prompts.
 func cmdPrompt(args []string, env Env) error {
+	if len(args) > 0 && args[0] == "library" {
+		return promptLibrary(args[1:], env)
+	}
 	if len(args) < 2 {
 		return usagef("prompt: want list|show|save|rm <notebook> [name]")
 	}

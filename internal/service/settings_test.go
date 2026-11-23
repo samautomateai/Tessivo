@@ -106,3 +106,29 @@ func TestUpdateSettingsDesktopBlock(t *testing.T) {
 		t.Fatalf("not saved: %v %+v", err, saved.Desktop)
 	}
 }
+
+func TestUpdateSettingsAgentBlock(t *testing.T) {
+	s := newSvc(t, summary)
+	cur := s.Settings()
+	in := SettingsUpdate{Providers: cur.Providers, Aliases: cur.Aliases, Defaults: cur.Defaults, Limits: cur.Limits}
+	in.Agent = &config.AgentConfig{MaxSteps: 12, MaxToolCalls: 30, Tools: map[string]string{"read_file": "allow"}}
+	got, err := s.UpdateSettings(in)
+	if err != nil || got.Agent.MaxToolCalls != 30 || got.Agent.Tools["read_file"] != "allow" {
+		t.Fatalf("%v %+v", err, got.Agent)
+	}
+	in.Agent = nil // an older client leaves the agent settings alone
+	if got, _ := s.UpdateSettings(in); got.Agent.MaxSteps != 12 {
+		t.Fatalf("kept: %+v", got.Agent)
+	}
+	in.Agent = &config.AgentConfig{MaxToolCalls: 99999}
+	if _, err := s.UpdateSettings(in); !IsInvalid(err) {
+		t.Fatalf("out of range: %v", err)
+	}
+	in.Agent = &config.AgentConfig{Tools: map[string]string{"read_file": "maybe"}}
+	if _, err := s.UpdateSettings(in); !IsInvalid(err) {
+		t.Fatalf("bad rule: %v", err)
+	}
+	if s.cfg().Agent.MaxSteps != 12 {
+		t.Fatal("refused settings were applied")
+	}
+}

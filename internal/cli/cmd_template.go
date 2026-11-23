@@ -216,8 +216,13 @@ func cmdMemory(args []string, env Env) error {
 			return usagef("memory add: want 1-%d characters and at most %d items", service.MaxMemoryItem,
 				template.MaxMemory)
 		}
-		next := make([]string, 0, len(mem)+1)
-		nb.Manifest.Memory = append(append(next, mem...), text)
+		return nb.Update(func(m *notebook.Manifest) error { // keeps facts added meanwhile by the app
+			if len(m.Memory) >= template.MaxMemory {
+				return usagef("memory add: at most %d items", template.MaxMemory)
+			}
+			m.Memory = append(m.Memory, text)
+			return nil
+		})
 	case "remove":
 		n, err := strconv.Atoi(strings.Join(args[2:], ""))
 		if err != nil || n < 1 || n > len(mem) {
@@ -228,5 +233,5 @@ func cmdMemory(args []string, env Env) error {
 	default:
 		return usagef("memory: unknown subcommand %q", args[0])
 	}
-	return nb.Save()
+	return nb.Save() // a stale list is refused (notebook.ErrChanged): numbers must match what was listed
 }

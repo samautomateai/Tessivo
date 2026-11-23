@@ -8,6 +8,7 @@ import '../widgets/memory_card.dart';
 import '../widgets/paste_text_dialog.dart';
 import '../widgets/text_prompt_dialog.dart';
 import '../widgets/work_type_badge.dart';
+import 'notebook_commands_card.dart';
 import 'notebook_mcp_card.dart';
 
 /// Left pane of a notebook: its name, sources and pinned memory.
@@ -42,6 +43,8 @@ class NotebookSourcesPane extends StatelessWidget {
           MemoryCard(notebook: notebook, onChanged: state.setMemory),
           const SizedBox(height: 16),
           NotebookMcpCard(state: state, notebook: notebook),
+          const SizedBox(height: 16),
+          NotebookCommandsCard(state: state, notebook: notebook),
         ],
       ),
     );

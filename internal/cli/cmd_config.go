@@ -88,6 +88,9 @@ func listModels(ctx context.Context, p config.Provider, sec secrets.Resolver) ([
 }
 
 func cmdModels(ctx context.Context, args []string, env Env) error {
+	if len(args) > 0 && args[0] == subTest {
+		return modelsTest(ctx, args[1:], env)
+	}
 	fs := newFlags("models", env)
 	only := fs.String("provider", "", "only this provider")
 	if _, err := parse(fs, args); err != nil {

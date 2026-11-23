@@ -59,6 +59,8 @@ const usage = `tess — analyze, summarize, document and report with self-hosted
 Usage:
   tess new <dir> --type analyze|summarize|document|report [--name NAME]
   tess notebook rename|archive|unarchive <notebook> [name]   tess notebook delete --yes <notebook>
+  tess notebook commands <notebook> [add <program> [arg|*]... | remove N]   agent commands that run unasked
+  tess prompt library [--type T] | show <id>   starter prompts (pipe one into tess prompt save)
   tess prompt list|show|rm <notebook> [name]   tess prompt save <notebook> <name> [--model M] [text|stdin]
   tess usage                                today's token use and limits
   tess search <words> [--limit N]           search notebooks, outputs, prompts and research notes
@@ -72,11 +74,12 @@ Usage:
   tess run [<notebook>] [flags]             run a notebook, or pipe text: cat x | tess run --type summarize
   tess run pending|approve|deny|resume|cancel ...   agent runs waiting for approval (see 'tess run -h')
   tess outputs <notebook>                   list saved outputs, newest first
-  tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff <notebook> <output-id> ...
+  tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff|data|edit <notebook> <output-id> ...
                                             talk to an output, refine, export, run again, compare
   tess mcp add|list|test|remove ...        MCP servers notebooks can attach (see 'tess mcp -h')
   tess research new|list|show|delete|source|ask|note ...   research notebooks: summaries, cited answers
   tess models [--provider NAME]             list models from configured providers
+  tess models test <alias|provider/model>   send each model one tiny request: does it answer?
   tess worktypes                            list work types
   tess audit verify|show [<notebook-or-file>] [--last N]   check or read the tamper-evident audit log
   tess serve [--network unix|tcp] [--addr A] [--notify]   run the local API (--notify: OS notifications)
@@ -86,7 +89,7 @@ Usage:
   tess template list [--type T] | show <id> | use <id> <dir> | save <notebook> --name N
   tess template extend <id> --name N | delete <id>
   tess memory list|add|remove <notebook> [text|number]   pinned facts included in every run
-  tess chat [--session ID] [--attach PATH]... [--mcp S,...] [message]   chat (interactive without a message)
+  tess chat [--session ID] [--attach PATH|URL]... [--mcp S,...] [message]   chat (interactive without a message)
   tess chat list|show|rename|pin|archive|delete|memory|repeat|save ...   see 'tess chat -h'
   tess secret set|delete|check <ref>          store API keys in the OS keychain (value read from stdin)
   tess config init|show|path
@@ -144,6 +147,7 @@ const (
 	subSave   = "save"
 	subSet    = "set"
 	subExport = "export"
+	subTest   = "test"
 	subRemove = "remove"
 	subDelete = "delete"
 )

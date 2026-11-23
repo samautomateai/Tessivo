@@ -84,6 +84,7 @@ Notebook notebookFromJson(Map<String, Object?> j) => Notebook(
   context: jsonList(j['context']).map(contextFromJson).toList(),
   memory: _strings(j['memory']),
   mcpServers: _strings(j['mcpServers']),
+  commands: commandRulesFromJson(j['commands']),
   archived: j['archived'] as bool? ?? false,
 );
 
@@ -143,6 +144,7 @@ OutputDetail outputDetailFromJson(Map<String, Object?> j) => OutputDetail(
   id: j['id'] as String? ?? '',
   title: j['title'] as String? ?? '',
   markdown: j['markdown'] as String? ?? '',
+  data: jsonObject(j['data']),
 );
 
 /// Reads only the fields the UI shows: provider headers are skipped entirely.

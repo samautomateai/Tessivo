@@ -47,3 +47,23 @@ func TestExportOutputAPI(t *testing.T) {
 		t.Fatalf("rtf: %d", code)
 	}
 }
+
+func TestEditOutputAPI(t *testing.T) {
+	ts, s := newTestServer(t, summary)
+	call(t, ts, "POST", "/v1/notebooks", `{"name":"Ops","workType":"summarize"}`)
+	nb, _ := s.svc.OpenNotebook("ops")
+	out, err := s.svc.Run(context.Background(), service.RunRequest{Notebook: nb, Prompt: "Summarize", Save: true}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := "/v1/notebooks/ops/outputs/" + out.OutputID + "/edits"
+	edited := `{"data":{"title":"Fixed","tldr":"t","key_points":["k"],"per_source":[],"action_items":[]}}`
+	code, body := call(t, ts, "POST", path, edited)
+	if code != 201 || !strings.Contains(body, `"parentId":"`+out.OutputID+`"`) ||
+		!strings.Contains(body, `"version":2`) {
+		t.Fatalf("edit: %d %s", code, body)
+	}
+	if code, _ := call(t, ts, "POST", path, `{"data":{"title":"x"}}`); code != 400 {
+		t.Fatalf("a result that does not fit the work type: %d", code)
+	}
+}

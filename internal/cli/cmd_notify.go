@@ -12,7 +12,7 @@ import (
 
 // cmdNotify sends a test notification so users can check their system.
 func cmdNotify(ctx context.Context, args []string, env Env) error {
-	if len(args) != 1 || args[0] != "test" {
+	if len(args) != 1 || args[0] != subTest {
 		return usagef("notify: want 'tess notify test'")
 	}
 	n := env.Notifier
