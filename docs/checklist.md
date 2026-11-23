@@ -27,6 +27,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Downloadable builds: `tools/release` (Go) cross-compiles `tess` for Linux, macOS and Windows (amd64, arm64), packages each desktop bundle with `tess` beside the app, writes `SHA256SUMS`; every archive carries `LICENSE` and `THIRD_PARTY.md`; `release` workflow keeps artifacts for `main` and publishes a GitHub Release for `v*` tags | NFR Quality | ☑ |
 | Installers: Debian package (pure Go) and AppImage for Linux, Inno Setup `Setup.exe` (per-user, no admin) for Windows, `.dmg` for macOS (`tools/release installer`, ADR 0008) | NFR Quality | ☑ |
 | Signing: Windows Authenticode for the app and installer, macOS Developer ID with hardened runtime, notarization and stapling; runs only when the secrets are set (ADR 0008) | NFR Security | ☑ |
+| User guide (install, models, notebooks, sources, agent mode, schedules, chat, research, privacy, troubleshooting) and README refreshed; `tess` usage lists every source and output command | NFR Docs | ☑ |
 | MIT license (`LICENSE`) and third-party notices (`THIRD_PARTY.md`: Zero for `internal/mcp`; Flutter `NOTICES` for the desktop) | NFR Legal | ☑ |
 | Hardened HTTP: TLS 1.2+, no redirects, bounded timeouts, idle-stream timeout; plaintext to remote hosts refused | NFR Security | ☑ |
 | Parallel code-base extraction (bounded pool); benchmarks; fuzz targets for schema, CSV/JSON, Office, audit | NFR Performance | ☑ |
