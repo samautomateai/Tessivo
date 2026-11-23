@@ -36,6 +36,7 @@ type Server struct {
 	token   string
 	version string
 	runs    chan struct{}
+	chatAsk chatApprovals // tool calls chat replies wait on
 	log     *slog.Logger
 }
 
@@ -84,6 +85,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PATCH /v1/chats/{cid}", s.updateChat)
 	mux.HandleFunc("DELETE /v1/chats/{cid}", s.deleteChat)
 	mux.HandleFunc("POST /v1/chats/{cid}/messages", s.sendChat)
+	mux.HandleFunc("POST /v1/chats/{cid}/approvals/{aid}", s.answerChatTool)
 	mux.HandleFunc("GET /v1/chats/{cid}/repeatable", s.planRepeatable)
 	mux.HandleFunc("POST /v1/chats/{cid}/notebook", s.makeRepeatable)
 	mux.HandleFunc("POST /v1/chats/{cid}/messages/{mid}/output", s.saveReply)

@@ -50,9 +50,10 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/chats?q=&archived=` | — | `{"sessions": [ChatSummary]}` (pinned first, then newest) |
 | `POST /v1/chats` | `{title?, model?, thinkingEffort?}` | `201 ChatSession` |
 | `GET /v1/chats/{chatId}` | — | `ChatSession` with messages |
-| `PATCH /v1/chats/{chatId}` | `{title?, pinned?, archived?, model?, thinkingEffort?}` | `ChatSession` |
+| `PATCH /v1/chats/{chatId}` | `{title?, pinned?, archived?, model?, thinkingEffort?, mcpServers?}` | `ChatSession` (`mcpServers`: configured servers whose tools the chat may use) |
 | `DELETE /v1/chats/{chatId}` | — | `204` |
-| `POST /v1/chats/{chatId}/messages` | `{text, attachments?: [{kind, ref, label?}]}` | SSE stream (see below) |
+| `POST /v1/chats/{chatId}/messages` | `{text, attachments?: [{kind, ref, label?}]}` | SSE stream (see below); with `mcpServers` set it also sends `tool` (`{kind: call|result|denied|blocked, tool, args?, summary?}`) and `approval` (`{id, tool, args}`) events |
+| `POST /v1/chats/{chatId}/approvals/{callId}` | `{allow, remember?}` | `204`: answers a tool call the reply waits on (`approval` event); `remember` keeps it as this chat's rule; `404` when none waits. A reply waits up to 5 minutes, then the call is denied |
 | `GET /v1/chats/{chatId}/repeatable` | — | `RepeatablePlan` |
 | `POST /v1/chats/{chatId}/notebook` | `{name?, workType?, templateId?\|"none", prompt?}` | `201 Notebook` |
 | `POST /v1/chats/{chatId}/messages/{messageId}/output` | `{workType}` | `201 {notebookId, outputId, runId, title, markdown}` |

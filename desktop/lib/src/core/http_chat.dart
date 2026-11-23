@@ -27,6 +27,7 @@ mixin _HttpChat {
     bool? archived,
     String? model,
     String? thinkingEffort,
+    List<String>? mcpServers,
   }) async {
     final body = {
       'title': ?title,
@@ -34,6 +35,7 @@ mixin _HttpChat {
       'archived': ?archived,
       'model': ?model,
       'thinkingEffort': ?thinkingEffort,
+      'mcpServers': ?mcpServers,
     };
     return chatSessionFromJson(await _json('PATCH', _chatPath(chatId), body: body));
   }
@@ -69,10 +71,31 @@ mixin _HttpChat {
         case 'finished':
           final user = chatMessageFromJson(jsonObject(map['user']));
           yield ChatFinished(user, chatMessageFromJson(jsonObject(map['assistant'])));
+        case 'tool':
+          yield ChatToolActivity(
+            kind: map['kind'] as String? ?? '',
+            tool: map['tool'] as String? ?? '',
+            args: map['args'] as String? ?? '',
+            summary: map['summary'] as String? ?? '',
+          );
+        case 'approval':
+          yield ChatApprovalNeeded(
+            id: map['id'] as String? ?? '',
+            tool: map['tool'] as String? ?? '',
+            args: map['args'] as String? ?? '',
+          );
         case 'error':
           throw CoreException((map['status'] as num?)?.toInt() ?? 500, map['error'] as String? ?? 'chat failed');
       }
     }
+  }
+
+  Future<void> answerChatTool(String chatId, String callId, {required bool allow, bool remember = false}) async {
+    await _json(
+      'POST',
+      '${_chatPath(chatId)}/approvals/${Uri.encodeComponent(callId)}',
+      body: {'allow': allow, 'remember': remember},
+    );
   }
 
   Future<List<String>> chatMemory() async {

@@ -87,7 +87,11 @@ abstract interface class CoreClient {
     bool? archived,
     String? model,
     String? thinkingEffort,
+    List<String>? mcpServers,
   });
+
+  /// Answers a tool call a chat reply is waiting on ([ChatApprovalNeeded]).
+  Future<void> answerChatTool(String chatId, String callId, {required bool allow, bool remember});
   Future<void> deleteChat(String chatId);
 
   /// Streams a reply. Cancelling the subscription stops it; the core keeps the partial reply.

@@ -2,11 +2,20 @@ import 'dart:async';
 
 import 'chat_models.dart';
 import 'checks.dart';
+import 'errors.dart';
 import 'models.dart';
 
 /// In-memory chat for the demo core: sessions, streamed sample replies, memory,
 /// "make repeatable" and saving replies. Mixed into `DemoCoreClient`.
 mixin DemoChat {
+  final Map<String, Completer<bool>> _toolAnswers = {};
+
+  Future<void> answerChatTool(String chatId, String callId, {required bool allow, bool remember = false}) async {
+    final c = _toolAnswers.remove(callId);
+    if (c == null) throw const CoreException(404, 'no tool call is waiting for that answer');
+    c.complete(allow);
+  }
+
   /// Delay between streamed words.
   Duration get chatTick;
 
@@ -76,6 +85,7 @@ mixin DemoChat {
     bool? archived,
     String? model,
     String? thinkingEffort,
+    List<String>? mcpServers,
   }) async {
     final s = _chat(chatId);
     if (title != null && (title.contains('\n') || title.length > maxChatTitle)) {
@@ -91,6 +101,7 @@ mixin DemoChat {
       model: model ?? s.model,
       thinkingEffort: thinkingEffort ?? s.thinkingEffort,
       messages: s.messages,
+      mcpServers: mcpServers ?? s.mcpServers,
     );
     _chats[chatId] = updated;
     return updated;
@@ -104,6 +115,7 @@ mixin DemoChat {
   Stream<ChatEvent> sendChat(String chatId, String text, {List<ChatAttachment> attachments = const []}) async* {
     checkChatMessage(text, attachments);
     final s = _chat(chatId);
+    if (s.mcpServers.isNotEmpty) yield* _demoTool(s.mcpServers.first);
     final user = ChatMessage(id: 'm${_chatSeq++}', role: 'user', content: text, attachments: attachments);
     final title = s.title.isEmpty ? _autoTitle(text) : s.title;
     _chats[chatId] = s.copyWith(title: title, messages: [...s.messages, user]);
@@ -179,5 +191,16 @@ mixin DemoChat {
     }
     final title = _autoTitle(m.content.split('\n').first.replaceAll('#', ''));
     return ChatOutput(notebookId: 'chat-${workType.name}', outputId: 'o-${_chatSeq++}', title: title);
+  }
+}
+
+/// The demo's one tool call: it waits for the user's answer, then reports.
+extension on DemoChat {
+  Stream<ChatEvent> _demoTool(String server) async* {
+    final tool = 'mcp__${server}__list_issues';
+    final answer = _toolAnswers['demo-call'] = Completer<bool>();
+    yield ChatApprovalNeeded(id: 'demo-call', tool: tool, args: '{"state":"open"}');
+    final allowed = await answer.future;
+    yield ChatToolActivity(kind: allowed ? 'result' : 'denied', tool: tool, summary: allowed ? '3 open issues' : '');
   }
 }

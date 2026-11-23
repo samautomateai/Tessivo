@@ -6,6 +6,7 @@ import '../app_state.dart';
 import '../chat_state.dart';
 import '../core/core_client.dart';
 import '../theme.dart';
+import '../widgets/chat_tools.dart';
 import '../widgets/chat_widgets.dart';
 import '../widgets/text_prompt_dialog.dart';
 import 'chat_dialogs.dart';
@@ -244,6 +245,8 @@ class _Conversation extends StatelessWidget {
                 onChanged: chat.sending ? null : (t) => chat.setThinking(t ?? ''),
               ),
               const SizedBox(width: 12),
+              ChatToolsButton(state: state),
+              const SizedBox(width: 12),
               OutlinedButton.icon(
                 key: const Key('chat-repeat'),
                 onPressed: chat.sending || s.messages.isEmpty ? null : () => showRepeatDialog(context, state),
@@ -267,6 +270,7 @@ class _Conversation extends StatelessWidget {
             onSave: chat.sending ? null : (m) => showSaveReplyDialog(context, chat, m),
           ),
         ),
+        ChatToolPanel(chat: chat),
         const Divider(height: 1),
         Composer(state: state),
       ],

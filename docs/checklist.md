@@ -77,7 +77,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Desktop: live settings and models, add context by path, memory, open outputs | SET-1, NB-1, REP-1 | ☑ |
 | Chat core: sessions (new, rename, pin, search, archive, delete), streaming replies with stop, model and thinking per session | CHAT-1, CHAT-2 | ☑ |
 | Chat attachments: files, folders, notebooks, outputs; kept for later turns | CHAT-3 | ◐ (files, folders, notebooks ☑; URLs ☐) |
-| Chat uses enabled MCP tools | CHAT-4 | ☐ (needs MCP) |
+| Chat uses MCP tools the chat enables, with the agent rules (per-chat remembered answers, then app rules; ask by default): up to 8 tool turns, results ≤ 32 KiB and redacted, calls audited by digest, a note of the tools used; the desktop asks with an approval card, `tess chat --mcp` asks on the terminal (denies when piped) | CHAT-4 | ☑ |
 | Global chat memory, separate from notebook memory | CHAT-5 | ☑ |
 | Make a chat repeatable as a notebook (suggested work type, template, prompt, context) | CHAT-6 | ☑ |
 | Save a chat reply as a validated output in the library | CHAT-7 | ☑ |

@@ -81,15 +81,17 @@ type Message struct {
 
 // Session is a conversation with its settings.
 type Session struct {
-	ID             string    `json:"id"`
-	Title          string    `json:"title"`
-	Pinned         bool      `json:"pinned,omitempty"`
-	Archived       bool      `json:"archived,omitempty"`
-	Model          string    `json:"model,omitempty"`          // alias or provider/model; "" uses the default
-	ThinkingEffort string    `json:"thinkingEffort,omitempty"` // off, low, medium, high; "" uses the default
-	CreatedAt      string    `json:"createdAt"`
-	UpdatedAt      string    `json:"updatedAt"`
-	Messages       []Message `json:"messages"`
+	ID             string            `json:"id"`
+	Title          string            `json:"title"`
+	Pinned         bool              `json:"pinned,omitempty"`
+	Archived       bool              `json:"archived,omitempty"`
+	Model          string            `json:"model,omitempty"`          // alias or provider/model; "" uses the default
+	ThinkingEffort string            `json:"thinkingEffort,omitempty"` // off, low, medium, high; "" uses the default
+	MCPServers     []string          `json:"mcpServers,omitempty"`     // MCP servers whose tools this chat may use
+	ToolRules      map[string]string `json:"toolRules,omitempty"`      // tool → allow or block, remembered in this chat
+	CreatedAt      string            `json:"createdAt"`
+	UpdatedAt      string            `json:"updatedAt"`
+	Messages       []Message         `json:"messages"`
 }
 
 // Summary is a session without its messages, for lists.

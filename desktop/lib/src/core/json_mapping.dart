@@ -225,6 +225,7 @@ ChatSession chatSessionFromJson(Map<String, Object?> j) => ChatSession(
   model: j['model'] as String? ?? '',
   thinkingEffort: j['thinkingEffort'] as String? ?? '',
   messages: jsonList(j['messages']).map(chatMessageFromJson).toList(),
+  mcpServers: _strings(j['mcpServers']),
 );
 
 RepeatablePlan repeatablePlanFromJson(Map<String, Object?> j) => RepeatablePlan(

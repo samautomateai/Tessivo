@@ -129,6 +129,8 @@ class ChatState extends ChangeNotifier {
     pending = const [];
     sending = true;
     streaming = '';
+    toolLog = const [];
+    approval = null;
     _changed();
     final done = _done = Completer<void>();
     _reply = core
@@ -138,6 +140,10 @@ class ChatState extends ChangeNotifier {
             switch (e) {
               case ChatDelta(text: final piece):
                 streaming += piece;
+              case ChatToolActivity():
+                toolLog = [...toolLog, e];
+              case ChatApprovalNeeded():
+                approval = e;
               case ChatFinished():
                 break;
             }
@@ -188,6 +194,28 @@ class ChatState extends ChangeNotifier {
   Future<void> setArchived(String id, bool archived) => _update(id, archived: archived);
   Future<void> setModel(String model) => _update(open!.id, model: model);
   Future<void> setThinking(String effort) => _update(open!.id, thinkingEffort: effort);
+
+  /// Sets the MCP servers this chat may use.
+  Future<void> setMcpServers(List<String> servers) => _guard(() async {
+    final s = await core.updateChat(open!.id, mcpServers: servers);
+    if (open?.id == s.id) open = s;
+  });
+
+  /// Tool activity of the reply in progress.
+  List<ChatToolActivity> toolLog = const [];
+
+  /// A tool call the reply waits on, or null.
+  ChatApprovalNeeded? approval;
+
+  /// Answers [approval]; [remember] keeps the answer for this chat.
+  Future<void> answerTool({required bool allow, bool remember = false}) async {
+    final a = approval;
+    final chatId = open?.id;
+    if (a == null || chatId == null) return;
+    approval = null;
+    _changed();
+    await _guard(() => core.answerChatTool(chatId, a.id, allow: allow, remember: remember));
+  }
 
   Future<void> _update(
     String id, {
