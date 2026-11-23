@@ -90,7 +90,7 @@ func attachmentName(a chat.Attachment) string {
 // contextPaths turns an attachment into notebook context paths, or says why not.
 func (s *Service) contextPaths(a chat.Attachment, labels map[string]string) ([]string, string) {
 	switch a.Kind {
-	case chat.AttachPath:
+	case chat.AttachPath, chat.AttachURL: // a URL becomes a web page source
 		return []string{a.Ref}, ""
 	case chat.AttachNotebook:
 		nb, err := s.OpenNotebook(a.Ref)
@@ -164,6 +164,12 @@ func (s *Service) MakeRepeatable(chatID string, in RepeatableInput) (NotebookInf
 		return NotebookInfo{}, err
 	}
 	for _, p := range plan.Context {
+		if isWebURL(p) {
+			if _, err := nb.AddURL(p, plan.labels[p]); err != nil {
+				return NotebookInfo{}, &InvalidError{fmt.Sprintf("context %s: %v", p, err)}
+			}
+			continue
+		}
 		if _, err := nb.AddContext(p); err != nil {
 			return NotebookInfo{}, &InvalidError{fmt.Sprintf("context %s: %v", filepath.Base(p), err)}
 		}
@@ -293,4 +299,9 @@ func (s *Service) SaveChatReply(ctx context.Context, chatID, messageID, workType
 		NotebookID: filepath.Base(nb.Dir), OutputID: out.OutputID, RunID: out.RunID,
 		Title: titleOf(out.Result.Data), Markdown: out.Markdown,
 	}, nil
+}
+
+// isWebURL tells a web page from a path in a plan's context.
+func isWebURL(p string) bool {
+	return strings.HasPrefix(p, "http://") || strings.HasPrefix(p, "https://")
 }

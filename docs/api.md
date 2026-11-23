@@ -28,7 +28,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `POST /v1/notebooks/{id}/runs` | `{prompt?, promptName?, vars?, overrides?, save?, toolRules?}` | SSE stream |
 | `GET /v1/outputs?notebook=&workType=` | — | `{"outputs": [Output]}` (no data) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}` | — | `Output` with `data` and `markdown` |
-| `GET /v1/notebooks/{id}/outputs/{outputId}/export?format=md|docx|pdf` | — | the file (`Content-Disposition: attachment`): Markdown, or a Word document or PDF made with the standard library ||docx` | — | the file (`Content-Disposition: attachment`): Markdown, or a Word document made with the standard library |
+| `GET /v1/notebooks/{id}/outputs/{outputId}/export?format=md|docx|pdf` | — | the file (`Content-Disposition: attachment`): Markdown, or a Word document or PDF made with the standard library |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/run` | — | `{runId, prompt, promptName?, vars?, model, mode?}`: the run that made the output, to run it again (`POST …/runs` with `overrides.model` for another model) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/diff?against=` | — | `{from, to, lines: [{op, text}], counts: {added, removed}}`: the output against the version it revised (or `against`); `op` is the character code of `" "`, `"+"` or `"-"`; `400` for an original without `against` |
 | `POST /v1/notebooks/{id}/outputs/{outputId}/edits` | `{data}` (the structured result, ≤ 1 MiB) | `201` + `Output` (the new version: `parentId`, `version`): checked against the work type's schema, rendered, audited by digest; no model call; `400` when it does not fit or nothing changed |
@@ -55,7 +55,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/chats/{chatId}` | — | `ChatSession` with messages |
 | `PATCH /v1/chats/{chatId}` | `{title?, pinned?, archived?, model?, thinkingEffort?, mcpServers?}` | `ChatSession` (`mcpServers`: configured servers whose tools the chat may use) |
 | `DELETE /v1/chats/{chatId}` | — | `204` |
-| `POST /v1/chats/{chatId}/messages` | `{text, attachments?: [{kind, ref, label?}]}` | SSE stream (see below); with `mcpServers` set it also sends `tool` (`{kind: call|result|denied|blocked, tool, args?, summary?}`) and `approval` (`{id, tool, args}`) events |
+| `POST /v1/chats/{chatId}/messages` | `{text, attachments?: [{kind, ref, label?}]}` (kind `path`, `notebook`, `output` (`notebookID/outputID`) or `url`, an http(s) page fetched for every turn) | SSE stream (see below); with `mcpServers` set it also sends `tool` (`{kind: call|result|denied|blocked, tool, args?, summary?}`) and `approval` (`{id, tool, args}`) events |
 | `POST /v1/chats/{chatId}/approvals/{callId}` | `{allow, remember?}` | `204`: answers a tool call the reply waits on (`approval` event); `remember` keeps it as this chat's rule; `404` when none waits. A reply waits up to 5 minutes, then the call is denied |
 | `GET /v1/chats/{chatId}/repeatable` | — | `RepeatablePlan` |
 | `POST /v1/chats/{chatId}/notebook` | `{name?, workType?, templateId?\|"none", prompt?}` | `201 Notebook` |

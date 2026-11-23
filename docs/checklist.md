@@ -88,7 +88,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Desktop template gallery: filter by work type, use, save notebook as template, remove user templates | TPL-1, TPL-4 | ☑ |
 | Desktop: live settings and models, add context by path, memory, open outputs | SET-1, NB-1, REP-1 | ☑ |
 | Chat core: sessions (new, rename, pin, search, archive, delete), streaming replies with stop, model and thinking per session | CHAT-1, CHAT-2 | ☑ |
-| Chat attachments: files, folders, notebooks, outputs; kept for later turns | CHAT-3 | ◐ (files, folders, notebooks ☑; URLs ☐) |
+| Chat attachments: files, folders, notebooks, outputs and web pages (fetched again for every turn; carried over as web page sources when a chat becomes a notebook); kept for later turns (`tess chat --attach PATH|URL`, desktop Attach → Web page) | CHAT-3 | ☑ |
 | Chat uses MCP tools the chat enables, with the agent rules (per-chat remembered answers, then app rules; ask by default): up to 8 tool turns, results ≤ 32 KiB and redacted, calls audited by digest, a note of the tools used; the desktop asks with an approval card, `tess chat --mcp` asks on the terminal (denies when piped) | CHAT-4 | ☑ |
 | Global chat memory, separate from notebook memory | CHAT-5 | ☑ |
 | Make a chat repeatable as a notebook (suggested work type, template, prompt, context) | CHAT-6 | ☑ |

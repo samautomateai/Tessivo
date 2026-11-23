@@ -172,7 +172,7 @@ mixin DemoChat {
       context: [
         for (final m in s.messages)
           for (final a in m.attachments)
-            if (a.kind == 'path') a.ref,
+            if (a.kind == 'path' || a.kind == 'url') a.ref,
       ],
     );
   }

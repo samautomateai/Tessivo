@@ -29,3 +29,13 @@ void checkChatMessage(String text, List<ChatAttachment> attachments) {
     throw const FormatException('At most $maxChatAttachments attachments per message');
   }
 }
+
+/// Throws a [FormatException] unless [url] is an http(s) address without
+/// credentials, the web pages the core will fetch.
+void checkWebUrl(String url) {
+  final u = Uri.tryParse(url.trim());
+  if (u == null || !(u.isScheme('http') || u.isScheme('https')) || u.host.isEmpty || u.userInfo.isNotEmpty) {
+    throw const FormatException('Enter an http:// or https:// address without a user name or password');
+  }
+  if (url.length > 2048) throw const FormatException('The address is longer than 2048 characters');
+}

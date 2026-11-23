@@ -124,8 +124,9 @@ it; the tray menu opens Tessivo again or quits it.
 
 ## Chat and research
 
-- **Chat** answers questions with optional attachments. Turn on MCP tools for a chat with the tools button; tools
-  that are not allowed by a rule ask you first. A good chat can become a notebook (*Repeat*) or a saved output.
+- **Chat** answers questions with attachments: files, folders, notebooks, outputs or web pages. Turn on MCP tools
+  for a chat with the tools button; tools that are not allowed by a rule ask you first. A good chat can become a
+  notebook (*Repeat*) or a saved output.
 - **Research notebooks** collect sources, summarize each one, and answer questions with citations. Keep the
   answers you like as notes.
 - **Search** (the box at the top, or `tess search <words>`) looks through notebooks, outputs, prompts and research

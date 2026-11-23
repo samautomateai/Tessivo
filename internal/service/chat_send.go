@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/samautomateai/tessivo/internal/executor"
 	"github.com/samautomateai/tessivo/internal/extract"
 	"github.com/samautomateai/tessivo/internal/llm"
+	"github.com/samautomateai/tessivo/internal/webfetch"
 )
 
 // KindChatMessage is the audit entry for one chat reply.
@@ -275,6 +277,12 @@ func (s *Service) attachmentDocs(ctx context.Context, a chat.Attachment) ([]extr
 		}
 		d, err := s.notebookDocs(ctx, nb)
 		return d, nb.Manifest.Name, err
+	case chat.AttachURL:
+		d, err := webfetch.Fetch(ctx, a.Ref)
+		if err != nil {
+			return nil, "", &InvalidError{fmt.Sprintf("attachment %s: %v", a.Ref, err)}
+		}
+		return []extract.Document{d}, pageLabel(a.Ref), nil
 	default: // chat.AttachOutput; CheckMessage rejects other kinds
 		nbID, outID, ok := strings.Cut(a.Ref, "/")
 		if !ok {
@@ -313,3 +321,12 @@ func (s *Service) sessionDocs(ctx context.Context, sess chat.Session, skipID str
 
 // errModelSetup is stored on a reply when the model client could not be built.
 const errModelSetup = "model setup failed"
+
+// pageLabel names a web page attachment by host and path, cut to 80 bytes.
+func pageLabel(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return truncateBytes(raw, 80)
+	}
+	return truncateBytes(u.Host+strings.TrimSuffix(u.Path, "/"), 80)
+}

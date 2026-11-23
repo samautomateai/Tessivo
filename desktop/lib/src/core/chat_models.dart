@@ -17,6 +17,13 @@ class ChatAttachment {
 
   String get display {
     if (label.isNotEmpty) return label;
+    if (kind == 'url') {
+      final u = Uri.tryParse(ref);
+      if (u != null && u.host.isNotEmpty) {
+        final path = u.path.endsWith('/') ? u.path.substring(0, u.path.length - 1) : u.path;
+        return '${u.host}$path';
+      }
+    }
     return ref.split(RegExp(r'[/\\]')).lastWhere((p) => p.isNotEmpty, orElse: () => ref);
   }
 

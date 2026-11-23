@@ -14,7 +14,7 @@ import (
 )
 
 // chatHelp is the chat section of 'tess chat -h'.
-const chatHelp = `tess chat [--session ID] [--model M] [--thinking E] [--attach PATH]... [message]
+const chatHelp = `tess chat [--session ID] [--model M] [--thinking E] [--attach PATH|URL]... [message]
     one message, piped text, or an interactive session when neither is given (/quit to leave)
 tess chat list [--archived] [--search TEXT] | show <id> | rename <id> <title> | pin|unpin|archive|unarchive <id>
 tess chat delete <id>
@@ -61,7 +61,7 @@ func chatSend(ctx context.Context, svc *service.Service, args []string, env Env)
 	thinking := fs.String("thinking", "", "thinking effort for a new session: off, low, medium, high")
 	mcp := fs.String("mcp", "", "comma-separated MCP servers this chat may use (tools that ask need your yes)")
 	var attach multiFlag
-	fs.Var(&attach, "attach", "absolute path to a file or folder (repeatable)")
+	fs.Var(&attach, "attach", "a file, a folder or an http(s) web page (repeatable)")
 	rest, err := parse(fs, args)
 	if err != nil {
 		return err
@@ -108,6 +108,10 @@ func chatSend(ctx context.Context, svc *service.Service, args []string, env Env)
 func attachments(paths []string) ([]chat.Attachment, error) {
 	out := make([]chat.Attachment, 0, len(paths))
 	for _, p := range paths {
+		if strings.HasPrefix(p, "http://") || strings.HasPrefix(p, "https://") {
+			out = append(out, chat.Attachment{Kind: chat.AttachURL, Ref: p})
+			continue
+		}
 		abs, err := filepath.Abs(p)
 		if err != nil {
 			return nil, usagef("attach %s: %v", p, err)

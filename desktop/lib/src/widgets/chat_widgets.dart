@@ -160,6 +160,17 @@ class _ComposerState extends State<Composer> {
     if (!sent && mounted && _text.text.isEmpty) _text.text = text; // give it back to fix and resend
   }
 
+  Future<void> _attachUrl() async {
+    final url = await askText(context, title: 'Attach a web page', label: 'URL (http or https)', maxLength: 2048);
+    if (url == null) return;
+    try {
+      checkWebUrl(url);
+      widget.state.chat.attach(ChatAttachment(kind: 'url', ref: url.trim()));
+    } on FormatException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   Future<void> _attachPath() async {
     final path = await askText(context, title: 'Attach a file or folder', label: 'Absolute path', maxLength: 4096);
     if (path == null) return;
@@ -195,7 +206,9 @@ class _ComposerState extends State<Composer> {
                 tooltip: 'Attach',
                 icon: const Icon(Icons.attach_file),
                 onSelected: (v) {
-                  if (v == 'path') {
+                  if (v == 'url') {
+                    unawaited(_attachUrl());
+                  } else if (v == 'path') {
                     unawaited(_attachPath());
                   } else {
                     final nb = widget.state.notebooks.firstWhere((n) => n.id == v);
@@ -204,6 +217,7 @@ class _ComposerState extends State<Composer> {
                 },
                 itemBuilder: (_) => [
                   const PopupMenuItem(value: 'path', child: Text('File or folder…')),
+                  const PopupMenuItem(key: Key('chat-attach-url'), value: 'url', child: Text('Web page…')),
                   for (final nb in widget.state.notebooks)
                     PopupMenuItem(value: nb.id, child: Text('Notebook: ${nb.name}')),
                 ],

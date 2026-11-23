@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/samautomateai/tessivo/internal/chat"
 	"github.com/samautomateai/tessivo/internal/config"
 )
 
@@ -167,3 +168,16 @@ var errFake = fakeErr("provider down")
 type fakeErr string
 
 func (e fakeErr) Error() string { return string(e) }
+
+func TestChatAttachTellsURLsFromPaths(t *testing.T) {
+	got, err := attachments([]string{"https://status.example.com/", "notes.md"})
+	if err != nil || len(got) != 2 {
+		t.Fatalf("%v %+v", err, got)
+	}
+	if got[0].Kind != chat.AttachURL || got[0].Ref != "https://status.example.com/" {
+		t.Fatalf("url: %+v", got[0])
+	}
+	if got[1].Kind != chat.AttachPath || !filepath.IsAbs(got[1].Ref) {
+		t.Fatalf("path: %+v", got[1])
+	}
+}
