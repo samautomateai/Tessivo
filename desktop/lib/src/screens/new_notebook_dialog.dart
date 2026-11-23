@@ -134,15 +134,18 @@ class _NewNotebookDialogState extends State<NewNotebookDialog> {
           key: Key('type-${w.id.name}'),
           borderRadius: BorderRadius.circular(12),
           onTap: () => setState(() => _type = w.id),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                WorkTypeBadge(workType: w.id),
-                const SizedBox(height: 8),
-                Text(w.question),
-              ],
+          child: Semantics(
+            selected: isSelected,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  WorkTypeBadge(workType: w.id),
+                  const SizedBox(height: 8),
+                  Text(w.question),
+                ],
+              ),
             ),
           ),
         ),

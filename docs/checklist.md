@@ -46,6 +46,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Core log (rotated, redacted) and a diagnostics bundle for bug reports (`tess diagnostics`, `GET /v1/diagnostics`, desktop Settings › Save diagnostics) | NFR Operations | ☑ |
 | Native Anthropic and Gemini providers (`kind` in the config; caching, thinking, tools, structured output) and provider presets in the desktop (LiteLLM, OpenAI, Anthropic, Gemini, Ollama, LM Studio, vLLM, OpenRouter, Groq, DeepSeek, Mistral, xAI, Together) | SET-1, SET-2 | ☑ |
 | Rate limits and provider failures: 2 retries by default, `Retry-After` honoured, jitter, long waits fall back at once, context overflow recognised for every provider, `max_concurrent` per provider, plain hints for 401/403/404/429 | SET-4 | ☑ |
+| Accessibility: every main screen passes Flutter's labeled-tap-target and text-contrast guidelines (tested); the sidebar and work-type cards announce selection and the work type; diff lines, tool approvals and the search box carry labels | NFR Look and feel | ☑ |
 | Keyboard: command palette (Ctrl/Cmd+K: sections, new notebook or chat, open any notebook, search), Ctrl/Cmd+N new notebook, Ctrl/Cmd+, settings; each shortcut binds both keys, so no OS checks | NFR Look and feel | ☑ |
 | Compare a version with the one it revised, line by line (`tess output diff`, `…/outputs/{id}/diff`, desktop Compare) | REP-3 | ☑ |
 | Run an output again, optionally on another model (`tess output rerun --model`, `GET …/outputs/{id}/run` then `POST …/runs`, desktop Run again) | RUN-3 | ☑ |
