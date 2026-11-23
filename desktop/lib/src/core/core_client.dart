@@ -343,7 +343,17 @@ class DemoCoreClient
       (o) => o.id == outputId && o.notebookId == notebookId,
       orElse: () => throw StateError('unknown output $outputId'),
     );
-    return OutputDetail(id: o.id, title: o.title, markdown: '# ${o.title}\n\nSample output from ${o.notebookName}.');
+    return OutputDetail(
+      id: o.id,
+      title: o.title,
+      markdown: '# ${o.title}\n\nSample output from ${o.notebookName}.',
+      data: {
+        'title': o.title,
+        'tldr': 'Sample output from ${o.notebookName}.',
+        'key_points': ['First point', 'Second point'],
+        'action_items': <Object?>[],
+      },
+    );
   }
 
   @override

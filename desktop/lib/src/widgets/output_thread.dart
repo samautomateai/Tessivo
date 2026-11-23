@@ -10,6 +10,7 @@ import 'chat_widgets.dart';
 import 'compare_button.dart';
 import 'export_menu.dart';
 import 'markdown_view.dart';
+import 'output_edit_form.dart';
 import 'rerun_button.dart';
 
 /// The open output, its conversation, the suggestions it produced and the
@@ -108,6 +109,7 @@ class _Header extends StatelessWidget {
           ),
           if (thread.busy) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
           RerunButton(state: state, outputId: thread.outputId, enabled: idle && !state.running),
+          EditOutputButton(state: state, enabled: idle && !state.running),
           if (state.outputs.where((o) => o.id == thread.outputId).firstOrNull?.parentId != null)
             CompareButton(core: state.core, notebookId: thread.notebookId, outputId: thread.outputId),
           TextButton.icon(

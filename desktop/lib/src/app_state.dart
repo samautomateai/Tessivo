@@ -477,4 +477,12 @@ class AppState extends ChangeNotifier {
     final v = await thread?.newVersion();
     if (v != null) await loadOutputs(open: v.id);
   }
+
+  /// Saves the open output's structured result as edited, as a new version, and opens it.
+  Future<void> editOutput(Map<String, Object?> data) async {
+    final t = thread;
+    if (t == null) return;
+    final v = await core.editOutput(t.notebookId, t.outputId, data);
+    await loadOutputs(open: v.id);
+  }
 }

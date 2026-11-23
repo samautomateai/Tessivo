@@ -139,6 +139,9 @@ abstract interface class CoreClient {
   Future<Suggestion> dismissSuggestion(String notebookId, String outputId, String suggestionId);
   Future<OutputSummary> newVersion(String notebookId, String outputId, {String? fromMessageId});
 
+  /// Saves [data], the output's structured result as edited, as a new version (no model call).
+  Future<OutputSummary> editOutput(String notebookId, String outputId, Map<String, Object?> data);
+
   // MCP servers (docs/api.md, "MCP servers").
   Future<List<McpServer>> listMcpServers();
   Future<McpServer> addMcpServer(McpServer server);

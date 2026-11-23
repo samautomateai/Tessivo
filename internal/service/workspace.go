@@ -235,7 +235,7 @@ func (s *Service) ListOutputs(notebookID, workType string) ([]OutputInfo, error)
 
 // GetOutput returns one output with data and Markdown.
 func (s *Service) GetOutput(notebookID, outputID string) (OutputInfo, error) {
-	nb, err := s.OpenNotebook(notebookID)
+	nb, err := s.openNotebookRef(notebookID) // an ID, or a folder the CLI opened
 	if err != nil {
 		return OutputInfo{}, err
 	}

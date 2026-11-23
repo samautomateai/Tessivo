@@ -143,6 +143,7 @@ OutputDetail outputDetailFromJson(Map<String, Object?> j) => OutputDetail(
   id: j['id'] as String? ?? '',
   title: j['title'] as String? ?? '',
   markdown: j['markdown'] as String? ?? '',
+  data: jsonObject(j['data']),
 );
 
 /// Reads only the fields the UI shows: provider headers are skipped entirely.

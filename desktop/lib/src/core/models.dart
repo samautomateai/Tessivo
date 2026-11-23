@@ -3,6 +3,8 @@
 /// widgets never depend on generated code.
 library;
 
+export 'output_detail.dart';
+
 enum WorkTypeId { analyze, summarize, document, report }
 
 class WorkType {
@@ -330,14 +332,6 @@ class TemplateInfo {
   final String? scheduleCron;
 
   bool get isUser => source == 'user';
-}
-
-/// A saved output with its rendered Markdown.
-class OutputDetail {
-  const OutputDetail({required this.id, required this.title, required this.markdown});
-  final String id;
-  final String title;
-  final String markdown;
 }
 
 /// A model provider as configured; the key is a reference, never a value.

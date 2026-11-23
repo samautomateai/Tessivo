@@ -19,7 +19,9 @@ tess output apply|dismiss <notebook> <output-id> <suggestion-id>
 tess output refine <notebook> <output-id> [--from MESSAGE_ID]   save a revised version
 tess output export <notebook> <output-id> [--format md|docx|pdf] [--out FILE]   save as Markdown, Word or PDF
 tess output rerun <notebook> <output-id> [--model M]   run it again, optionally on another model
-tess output diff <notebook> <output-id> [--against ID]   lines changed since the version it revised`
+tess output diff <notebook> <output-id> [--against ID]   lines changed since the version it revised
+tess output data <notebook> <output-id>                  print the structured result as JSON
+tess output edit <notebook> <output-id> FILE|-           save edited JSON as a new version (no model call)`
 
 // outputCommands maps each subcommand to its handler and the positional
 // arguments it needs after the notebook and output (-1: one or more).
@@ -32,6 +34,8 @@ var outputCommands = map[string]struct {
 	subExport: {outputExport, 0},
 	"rerun":   {outputRerun, 0},
 	"diff":    {outputDiff, 0},
+	"data":    {outputData, 0},
+	"edit":    {outputEdit, 1},
 }
 
 type outputArgs struct {

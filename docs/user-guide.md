@@ -101,6 +101,8 @@ output you can:
   memory.
 - **Run it again**, on the same model or another one (*Run again*, or `tess output rerun --model`).
 - **Compare** it with the version it revised (*Compare*, or `tess output diff`).
+- **Edit** its fields in a form and save them as a new version, without running the model again (*Edit*, or
+  `tess output data` and `tess output edit`).
 - **Export** it as Markdown, Word or PDF (`tess output export --format md|docx|pdf`).
 
 ### Agent mode

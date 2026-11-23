@@ -180,4 +180,23 @@ mixin DemoThreads {
     _threads[outputId] = t.copyWith(messages: [...t.messages, note]);
     return v;
   }
+
+  Future<OutputSummary> editOutput(String notebookId, String outputId, Map<String, Object?> data) async {
+    final parent = _output(notebookId, outputId);
+    final title = data['title'];
+    if (title is! String || title.trim().isEmpty) throw const CoreException(400, 'the edited output needs a title');
+    final v = OutputSummary(
+      id: '${parent.id}-e${parent.version + 1}',
+      notebookId: parent.notebookId,
+      title: title,
+      workType: parent.workType,
+      notebookName: parent.notebookName,
+      trigger: 'Edited',
+      createdAt: 'Just now',
+      version: parent.version + 1,
+      parentId: parent.id,
+    );
+    demoOutputs.add(v);
+    return v;
+  }
 }

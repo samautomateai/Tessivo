@@ -72,7 +72,7 @@ Usage:
   tess run [<notebook>] [flags]             run a notebook, or pipe text: cat x | tess run --type summarize
   tess run pending|approve|deny|resume|cancel ...   agent runs waiting for approval (see 'tess run -h')
   tess outputs <notebook>                   list saved outputs, newest first
-  tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff <notebook> <output-id> ...
+  tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff|data|edit <notebook> <output-id> ...
                                             talk to an output, refine, export, run again, compare
   tess mcp add|list|test|remove ...        MCP servers notebooks can attach (see 'tess mcp -h')
   tess research new|list|show|delete|source|ask|note ...   research notebooks: summaries, cited answers
