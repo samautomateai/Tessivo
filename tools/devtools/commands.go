@@ -76,7 +76,7 @@ func (a *app) doctor(ctx context.Context, fix bool) int {
 			hooks = a.checkHooks(ctx)
 		}
 	}
-	results = append(results, hooks, a.checkFlutter(ctx))
+	results = append(results, hooks, a.checkFlutter(ctx), a.checkSymlinks(), a.checkBuildCache(fix))
 	return a.report(results)
 }
 
