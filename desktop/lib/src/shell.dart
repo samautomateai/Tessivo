@@ -14,6 +14,7 @@ import 'screens/templates_screen.dart';
 import 'screens/workspace_screen.dart';
 import 'theme.dart';
 import 'widgets/approvals_sheet.dart';
+import 'widgets/command_palette.dart';
 import 'widgets/search_box.dart';
 
 /// Window layout: graphite sidebar plus the active section.
@@ -31,21 +32,24 @@ class AppShell extends StatelessWidget {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         return Scaffold(
-          body: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Sidebar(state: state),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (state.setupMessage != null) _SetupBanner(state: state),
-                    if (state.notices.isNotEmpty) _NoticeBanner(state: state),
-                    Expanded(child: _content()),
-                  ],
+          body: AppShortcuts(
+            state: state,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Sidebar(state: state),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (state.setupMessage != null) _SetupBanner(state: state),
+                      if (state.notices.isNotEmpty) _NoticeBanner(state: state),
+                      Expanded(child: _content()),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

@@ -27,22 +27,7 @@ class _SearchBoxState extends State<SearchBox> {
     super.dispose();
   }
 
-  Future<void> _search(String q) async {
-    if (q.trim().isEmpty) return;
-    final List<SearchHit> hits;
-    try {
-      hits = await widget.state.core.search(q.trim());
-    } on CoreException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-      return;
-    }
-    if (!mounted) return;
-    final chosen = await showDialog<SearchHit>(
-      context: context,
-      builder: (ctx) => _Results(query: q.trim(), hits: hits),
-    );
-    if (chosen != null) await widget.state.openHit(chosen);
-  }
+  Future<void> _search(String q) => runSearch(context, widget.state, q);
 
   @override
   Widget build(BuildContext context) {
@@ -105,4 +90,23 @@ class _Results extends StatelessWidget {
     ),
     actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
   );
+}
+
+/// Searches for [q], shows the matches and opens the one chosen.
+Future<void> runSearch(BuildContext context, AppState state, String q) async {
+  if (q.trim().isEmpty) return;
+  final messenger = ScaffoldMessenger.of(context);
+  final List<SearchHit> hits;
+  try {
+    hits = await state.core.search(q.trim());
+  } on CoreException catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    return;
+  }
+  if (!context.mounted) return;
+  final chosen = await showDialog<SearchHit>(
+    context: context,
+    builder: (ctx) => _Results(query: q.trim(), hits: hits),
+  );
+  if (chosen != null) await state.openHit(chosen);
 }
