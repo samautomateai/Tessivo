@@ -30,7 +30,7 @@ jobs:
           check-latest: true
       # cgo off: every OS and architecture cross-compiles from one runner.
       - run: go run ./tools/release cli -version "$VERSION" -out dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tess-cli
           path: dist/*
@@ -182,7 +182,7 @@ jobs:
             xcrun stapler staple "$dmg"
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tessivo-desktop-${{ matrix.platform }}-${{ matrix.arch }}
           path: dist/*
