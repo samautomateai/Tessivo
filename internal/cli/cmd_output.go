@@ -17,7 +17,7 @@ tess output suggest <notebook> <output-id>               ask for improvements fr
 tess output suggestions <notebook> <output-id>           list suggestions
 tess output apply|dismiss <notebook> <output-id> <suggestion-id>
 tess output refine <notebook> <output-id> [--from MESSAGE_ID]   save a revised version
-tess output export <notebook> <output-id> [--format md|docx] [--out FILE]   save as Markdown or Word`
+tess output export <notebook> <output-id> [--format md|docx|pdf] [--out FILE]   save as Markdown, Word or PDF`
 
 // outputCommands maps each subcommand to its handler and the positional
 // arguments it needs after the notebook and output (-1: one or more).
@@ -49,7 +49,7 @@ func cmdOutput(ctx context.Context, args []string, env Env) error {
 	fs := newFlags("output "+args[0], env)
 	fs.Usage = func() { _, _ = fmt.Fprintln(env.Stderr, outputHelp) }
 	from := fs.String("from", "", "refine: revise from this thread reply (default: the latest)")
-	format := fs.String("format", service.FormatMarkdown, "export: md or docx")
+	format := fs.String("format", service.FormatMarkdown, "export: md, docx or pdf")
 	out := fs.String("out", "", "export: file to write (default: the output's title in this folder)")
 	pos, err := parse(fs, args[1:])
 	if err != nil {

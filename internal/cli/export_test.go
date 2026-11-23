@@ -20,7 +20,12 @@ func TestOutputExport(t *testing.T) {
 	if b, _ := os.ReadFile(md); !strings.Contains(string(b), "Digest") {
 		t.Fatalf("markdown: %q", b)
 	}
-	if code := h.run("output", "export", dir, id, "--format", "pdf"); code != ExitUsage {
-		t.Fatalf("pdf: exit %d", code)
+	pdf := filepath.Join(h.dir, "digest.pdf")
+	h.mustRun("output", "export", dir, id, "--format", "pdf", "--out", pdf)
+	if b, _ := os.ReadFile(pdf); !strings.HasPrefix(string(b), "%PDF-") {
+		t.Fatal("not a PDF")
+	}
+	if code := h.run("output", "export", dir, id, "--format", "rtf"); code != ExitUsage {
+		t.Fatalf("rtf: exit %d", code)
 	}
 }

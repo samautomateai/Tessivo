@@ -358,9 +358,16 @@ class DemoCoreClient
 
   @override
   Future<Uint8List> exportOutput(String notebookId, String outputId, String format) async {
-    if (format != 'md' && format != 'docx') throw CoreException(400, 'format "$format": want md or docx');
+    if (!const ['md', 'docx', 'pdf'].contains(format)) {
+      throw CoreException(400, 'format "$format": want md, docx or pdf');
+    }
     final o = await getOutput(notebookId, outputId);
-    return Uint8List.fromList(utf8.encode(format == 'md' ? o.markdown : 'PK demo docx of ${o.title}'));
+    final body = switch (format) {
+      'md' => o.markdown,
+      'pdf' => '%PDF-1.4 demo of ${o.title}',
+      _ => 'PK demo docx of ${o.title}',
+    };
+    return Uint8List.fromList(utf8.encode(body));
   }
 
   @override
