@@ -18,11 +18,13 @@ const (
 	DefaultAgentMaxSteps       = 40
 	DefaultAgentMaxTokens      = 400000
 	DefaultAgentMaxMinutes     = 30
+	DefaultAgentMaxToolCalls   = 200
 	DefaultApprovalExpiryDays  = 7
 	maxToolRules               = 500
 	maxToolRuleNameLen         = 200
 	maxAgentLimitSteps         = 1000
 	maxAgentLimitMinutes       = 24 * 60
+	maxAgentLimitToolCalls     = 10000
 	maxApprovalExpiryDaysLimit = 365
 )
 
@@ -32,6 +34,7 @@ type AgentConfig struct {
 	MaxSteps           int               `json:"max_steps,omitempty"`
 	MaxTokens          int               `json:"max_tokens,omitempty"`
 	MaxMinutes         int               `json:"max_minutes,omitempty"`
+	MaxToolCalls       int               `json:"max_tool_calls,omitempty"`
 	ApprovalExpiryDays int               `json:"approval_expiry_days,omitempty"`
 }
 
@@ -45,6 +48,9 @@ func (c AgentConfig) WithDefaults() AgentConfig {
 	}
 	if c.MaxMinutes == 0 {
 		c.MaxMinutes = DefaultAgentMaxMinutes
+	}
+	if c.MaxToolCalls == 0 {
+		c.MaxToolCalls = DefaultAgentMaxToolCalls
 	}
 	if c.ApprovalExpiryDays == 0 {
 		c.ApprovalExpiryDays = DefaultApprovalExpiryDays
@@ -63,6 +69,7 @@ func (c AgentConfig) Validate() error {
 	check("max_steps", c.MaxSteps, maxAgentLimitSteps)
 	check("max_tokens", c.MaxTokens, 100_000_000)
 	check("max_minutes", c.MaxMinutes, maxAgentLimitMinutes)
+	check("max_tool_calls", c.MaxToolCalls, maxAgentLimitToolCalls)
 	check("approval_expiry_days", c.ApprovalExpiryDays, maxApprovalExpiryDaysLimit)
 	return errors.Join(errs...)
 }

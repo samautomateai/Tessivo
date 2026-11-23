@@ -8,6 +8,7 @@ import '../core/models.dart';
 import '../core/settings_draft.dart';
 import '../theme.dart';
 import '../widgets/export_menu.dart';
+import '../widgets/settings_agent.dart';
 import '../widgets/settings_defaults.dart';
 import '../widgets/settings_providers.dart';
 import '../widgets/text_prompt_dialog.dart';
@@ -95,6 +96,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 20),
             for (final a in s.aliases) AliasCard(alias: a, settings: s, onSave: _save, onTest: widget.core.testModel),
             DefaultsEditor(key: const Key('defaults-editor'), settings: s, onSave: _save),
+            const SizedBox(height: 16),
+            AgentEditor(key: const Key('agent-editor'), settings: s, onSave: _save),
             const SizedBox(height: 16),
             Row(
               children: [

@@ -362,3 +362,19 @@ func TestAgentFillsMissingToolCallIDs(t *testing.T) {
 		t.Fatalf("a call without an id must get one, used by its result: call %q result %q", callID, resultID)
 	}
 }
+
+func TestAgentToolCallLimit(t *testing.T) {
+	two := calls(call("a", "read_file", `{}`), call("b", "read_file", `{}`))
+	h := newHarness(two, two, llm.Response{Content: goodSummary})
+	h.agent.Limits.MaxToolCalls = 3
+	h.model.replies = []llm.Response{two, two, two, {Content: goodSummary}}
+	cp := &Checkpoint{RunID: "r1"}
+	res, err := h.agent.Start(context.Background(), spec(t), cp, nil)
+	if err != nil || !res.Valid || len(cp.ToolCalls) != 4 {
+		t.Fatalf("res %+v err %v calls %d", res, err, len(cp.ToolCalls))
+	}
+	final := h.model.reqs[len(h.model.reqs)-1]
+	if !strings.Contains(final.Messages[1].Content, "limit reached: tool calls") {
+		t.Fatal("the final step must say the tool-call limit stopped the loop")
+	}
+}

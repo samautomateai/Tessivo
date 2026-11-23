@@ -32,7 +32,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks/{id}/outputs/{outputId}/diff?against=` | — | `{from, to, lines: [{op, text}], counts: {added, removed}}`: the output against the version it revised (or `against`); `op` is the character code of `" "`, `"+"` or `"-"`; `400` for an original without `against` |
 | `POST /v1/notebooks/{id}/outputs/{outputId}/edits` | `{data}` (the structured result, ≤ 1 MiB) | `201` + `Output` (the new version: `parentId`, `version`): checked against the work type's schema, rendered, audited by digest; no model call; `400` when it does not fit or nothing changed |
 | `GET /v1/settings` | — | config (key references only) |
-| `PUT /v1/settings` | `{providers, aliases, defaults, limits, desktop?}` | the config after the change; validated, saved to the config file and applied at once (MCP servers have their own routes). `desktop: {close_to_tray}` holds the desktop app's own preferences; leaving it out keeps them |
+| `PUT /v1/settings` | `{providers, aliases, defaults, limits, desktop?, agent?}` | the config after the change; validated, saved to the config file and applied at once (MCP servers have their own routes). `desktop: {close_to_tray}` holds the desktop app's own preferences; leaving it out keeps them. `agent: {tools, max_steps, max_tool_calls, max_tokens, max_minutes, approval_expiry_days}` replaces the agent settings when present |
 | `GET /v1/secrets/{ref}` | — | `{set: bool}`: whether an API key is available (keychain or environment); its value never leaves the core |
 | `PUT /v1/secrets/{ref}` | `{value}` | `204`; stores the key in the OS keychain (one line, ≤ 8 KiB); `503` when the core has no keychain |
 | `DELETE /v1/secrets/{ref}` | — | `204` |

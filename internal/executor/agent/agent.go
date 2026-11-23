@@ -19,6 +19,9 @@ type Limits struct {
 	MaxSteps  int
 	MaxTokens int
 	MaxWall   time.Duration
+	// MaxToolCalls stops the loop once this many tools were called; a step in
+	// progress finishes, so a run may go over by one step's calls.
+	MaxToolCalls int
 }
 
 // Agent runs the tool-using loop. Save persists the checkpoint; it is called
@@ -189,6 +192,8 @@ func (a *Agent) limitHit(cp *Checkpoint) string {
 	switch {
 	case a.Limits.MaxSteps > 0 && cp.Steps >= a.Limits.MaxSteps:
 		return "limit reached: steps"
+	case a.Limits.MaxToolCalls > 0 && len(cp.ToolCalls) >= a.Limits.MaxToolCalls:
+		return "limit reached: tool calls"
 	case a.Limits.MaxTokens > 0 && cp.Tokens >= a.Limits.MaxTokens:
 		return "limit reached: tokens"
 	case a.Limits.MaxWall > 0 && time.Duration(cp.ElapsedMS)*time.Millisecond >= a.Limits.MaxWall:

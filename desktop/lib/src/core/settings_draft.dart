@@ -9,12 +9,16 @@ class SettingsDraft {
       aliases = _maps(raw['aliases']),
       defaults = _map(raw['defaults']),
       limits = _map(raw['limits']),
-      desktop = _map(raw['desktop']);
+      desktop = _map(raw['desktop']),
+      agent = _map(raw['agent']);
 
   final List<Map<String, Object?>> providers;
   final List<Map<String, Object?>> aliases;
   final Map<String, Object?> defaults;
   final Map<String, Object?> limits;
+
+  /// Agent-mode tool rules and limits (`agent` in the config).
+  final Map<String, Object?> agent;
 
   /// The desktop app's own preferences (`desktop` in the config).
   final Map<String, Object?> desktop;
@@ -90,5 +94,23 @@ class SettingsDraft {
     'defaults': defaults,
     'limits': limits,
     'desktop': desktop,
+    'agent': agent,
   };
+}
+
+/// Agent-mode settings in a [SettingsDraft]: limits and default tool rules.
+extension AgentDraft on SettingsDraft {
+  /// A limit such as max_steps; null when unset (the built-in default applies).
+  int? agentLimit(String key) => (agent[key] as num?)?.toInt();
+
+  /// Sets a limit; null or 0 removes it (the built-in default applies).
+  void setAgentLimit(String key, int? value) => value == null || value == 0 ? agent.remove(key) : agent[key] = value;
+
+  /// Tool → allow, ask or block.
+  Map<String, String> get toolRules => {
+    for (final e in (agent['tools'] as Map? ?? const {}).entries)
+      if (e.key is String && e.value is String) e.key as String: e.value as String,
+  };
+
+  set toolRules(Map<String, String> rules) => rules.isEmpty ? agent.remove('tools') : agent['tools'] = rules;
 }
