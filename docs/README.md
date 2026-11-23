@@ -10,7 +10,8 @@
 - Decisions: [ADR 0001 stack](adr/0001-stack.md) · [ADR 0002 Eino (superseded)](adr/0002-agent-engine-eino.md) ·
   [ADR 0003 dependency policy](adr/0003-dependency-policy.md) ·
   [ADR 0004 local JSON API](adr/0004-local-json-api.md) ·
-  [ADR 0005 agent loop, MCP, ACP](adr/0005-agent-loop-mcp-acp.md)
+  [ADR 0005 agent loop, MCP, ACP](adr/0005-agent-loop-mcp-acp.md) ·
+  [ADR 0006 process trees](adr/0006-process-trees.md)
 - Agent mode: [design](superpowers/specs/2026-11-21-agent-mode-design.md) ·
   [phase 1 plan](superpowers/plans/2026-11-21-agent-mode-phase1.md)
 - Output threads: [design](superpowers/specs/2026-11-21-output-threads-design.md) ·

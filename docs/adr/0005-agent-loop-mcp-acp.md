@@ -44,4 +44,4 @@ and audit of every attempt.
 - Agent runs are jobs the core owns. They outlive the API connection, can be cancelled, and hold a run lock while
   executing.
 - Delegation means bundling and pinning nca releases, with checksums, per platform (phase 5).
-- Killing a command's child processes on cancel needs OS-specific code and is not built until approved.
+- Stopping a server or command with its child processes is OS-specific; approved and built in ADR 0006.
