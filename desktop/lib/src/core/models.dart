@@ -463,3 +463,38 @@ class RunInfo {
   final Map<String, String> vars;
   final String model;
 }
+
+/// One line of a version diff: op is ' ', '+' or '-'.
+class DiffLine {
+  const DiffLine(this.op, this.text);
+  final String op;
+  final String text;
+}
+
+/// Two versions of an output compared line by line.
+class OutputDiffInfo {
+  const OutputDiffInfo({required this.from, required this.to, this.lines = const [], this.added = 0, this.removed = 0});
+
+  factory OutputDiffInfo.fromJson(Map<String, Object?> j) {
+    final counts = j['counts'] is Map<String, Object?>
+        ? j['counts']! as Map<String, Object?>
+        : const <String, Object?>{};
+    return OutputDiffInfo(
+      from: j['from'] as String? ?? '',
+      to: j['to'] as String? ?? '',
+      lines: [
+        for (final l in j['lines'] is List ? j['lines']! as List : const [])
+          if (l is Map<String, Object?>)
+            DiffLine(String.fromCharCode((l['op'] as num?)?.toInt() ?? 32), l['text'] as String? ?? ''),
+      ],
+      added: (counts['added'] as num?)?.toInt() ?? 0,
+      removed: (counts['removed'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  final String from;
+  final String to;
+  final List<DiffLine> lines;
+  final int added;
+  final int removed;
+}

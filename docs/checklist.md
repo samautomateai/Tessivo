@@ -46,6 +46,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Core log (rotated, redacted) and a diagnostics bundle for bug reports (`tess diagnostics`, `GET /v1/diagnostics`, desktop Settings › Save diagnostics) | NFR Operations | ☑ |
 | Native Anthropic and Gemini providers (`kind` in the config; caching, thinking, tools, structured output) and provider presets in the desktop (LiteLLM, OpenAI, Anthropic, Gemini, Ollama, LM Studio, vLLM, OpenRouter, Groq, DeepSeek, Mistral, xAI, Together) | SET-1, SET-2 | ☑ |
 | Rate limits and provider failures: 2 retries by default, `Retry-After` honoured, jitter, long waits fall back at once, context overflow recognised for every provider, `max_concurrent` per provider, plain hints for 401/403/404/429 | SET-4 | ☑ |
+| Compare a version with the one it revised, line by line (`tess output diff`, `…/outputs/{id}/diff`, desktop Compare) | REP-3 | ☑ |
 | Run an output again, optionally on another model (`tess output rerun --model`, `GET …/outputs/{id}/run` then `POST …/runs`, desktop Run again) | RUN-3 | ☑ |
 | Search across notebooks, outputs, prompts, research notebooks and notes (`tess search`, `GET /v1/search`, desktop sidebar search); scans the folders with bounded reads. A SQLite index can come later for large workspaces | NB-3 | ☑ |
 | Agent mode phase 1 (ADR 0005): our own loop with LLM tool calling, rooted read-only code tools, allow/ask/block rules, durable pause and resume across restarts, runs as jobs, `tess run` approve, deny, resume, cancel and pending, approval endpoints and events, desktop approvals | WT/E11 | ☑ |
@@ -91,7 +92,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 `tess new`, `tess notebook rename|archive|unarchive|delete --yes`, `tess prompt list|show|save|rm`, `tess usage`, `tess search`, `tess diagnostics`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
 `--prompt-name`, `--var`, `--model`, `--thinking`, `--mode agent`, `--tool name=rule`, `--json`, `--out`, `--no-save`),
 `tess run pending|approve|deny|resume|cancel` (agent approvals; `--notebook DIR`, `--remember run|notebook`), `tess outputs`,
-`tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun <notebook> <output-id>` (output threads; `refine --from ID`; `export --format md|docx|pdf --out FILE`; `rerun --model M`),
+`tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff <notebook> <output-id>` (output threads; `refine --from ID`; `export --format md|docx|pdf --out FILE`; `rerun --model M`; `diff --against ID`),
 `tess schedule add|list|remove|enable|disable|next`,
 `tess research new|list|show|delete|source add|list|level|remove|refresh|ask|note add|list|rm`, `tess template`, `tess memory`, `tess serve`, `tess secret`, `tess audit`,
 `tess models`, `tess worktypes`, `tess config init|show|path|get|set|export|import`, `tess version`.

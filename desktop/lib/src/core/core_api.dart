@@ -31,6 +31,9 @@ abstract interface class CoreClient {
 
   /// The run behind an output: its prompt, variables and model.
   Future<RunInfo> outputRun(String notebookId, String outputId);
+
+  /// An output compared with the version it revised (or [against]).
+  Future<OutputDiffInfo> diffOutput(String notebookId, String outputId, {String? against});
   Future<List<SavedPrompt>> listPrompts(String notebookId);
   Future<SavedPrompt> savePrompt(String notebookId, SavedPrompt prompt);
   Future<void> deletePrompt(String notebookId, String name);

@@ -343,6 +343,27 @@ class DemoCoreClient
       const RunInfo(prompt: 'Assess the risk of merging this change.', model: 'smart');
 
   @override
+  Future<OutputDiffInfo> diffOutput(String notebookId, String outputId, {String? against}) async {
+    final o = demoOutputs.firstWhere(
+      (o) => o.id == outputId,
+      orElse: () => throw const CoreException(404, 'no output'),
+    );
+    final from = against ?? o.parentId;
+    if (from == null) throw CoreException(400, 'output $outputId is an original, not a revision');
+    return OutputDiffInfo(
+      from: from,
+      to: outputId,
+      lines: const [
+        DiffLine(' ', '# Risk report'),
+        DiffLine('-', 'Score 7'),
+        DiffLine('+', 'Score 6 after mitigation'),
+      ],
+      added: 1,
+      removed: 1,
+    );
+  }
+
+  @override
   Future<List<SearchHit>> search(String query) async {
     final words = query.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     if (words.isEmpty) throw const CoreException(400, 'give words to search for');
