@@ -33,7 +33,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Shared service layer; `tess serve` local API (token, origin/host checks, limits, SSE runs) | — | ☑ |
 | Flutter client for the local API (Unix socket/loopback, token, SSE, endpoint discovery, demo fallback) | — | ☑ |
 | Desktop reuses a healthy core or starts `tess serve --exit-with-parent` (bundled binary or PATH), waits for health, stops it on exit; core exits if the app dies | — | ☑ |
-| Extractors: DOCX (paragraphs, tables), XLSX (all sheets, computed stats), PPTX (slides + notes); zip-bomb, entry, size and XML-token limits; fuzzed | SRC-1 | ☑ |
+| Extractors: DOCX (paragraphs, tables), XLSX (all sheets, computed stats), PPTX (slides + notes), PDF (pdfium in a WebAssembly sandbox, pages marked); zip-bomb, entry, size and XML-token limits; fuzzed | SRC-1 | ☑ |
 | OS keychain secrets, built in-house: `tess secret set/delete/check`; env then keychain lookup | SET-1 | ☑ |
 | Rename, archive (schedules paused) and delete notebooks; delete refused while a run is active, paused or interrupted (`tess notebook`, `PATCH|DELETE /v1/notebooks/{id}`, desktop notebook menu and Archived group) | NB-1 | ☑ |
 | Saved prompts per notebook with their own model settings: list, save, delete (refused while a schedule runs one), run by name (`tess prompt`, `/v1/notebooks/{id}/prompts`, desktop Prompts menu in the run bar) | PR-1, PR-2 | ☑ |

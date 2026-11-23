@@ -12,6 +12,7 @@ holds credentials for model providers. Every control below exists in code and is
 | Key sent in clear text | Plain `http://` refused for non-loopback hosts unless `allow_insecure_http`; URLs with embedded credentials refused; TLS 1.2+ | `config`, `llm/transport.go` |
 | Headers or keys forwarded by redirects | All HTTP redirects refused | `llm/transport.go` |
 | Hung or slow provider | Bounded dial, TLS handshake and time-to-first-byte; whole-call timeout for non-streaming; idle timeout between stream chunks; response bodies capped (32 MiB, SSE line 4 MiB) | `llm` |
+| Hostile PDFs | Parsed by pdfium compiled to WebAssembly and run in a wazero sandbox inside the core: no access to the process memory or files; ≤ 64 MiB, ≤ 2,000 pages, 2 MiB of text, 60 s per document, after which the instance is killed; at most 2 at a time; fuzzed (`FuzzPDF`) | `extract/pdf.go` |
 | Zip bombs, huge Office files | Compressed size ≤ 64 MiB; ≤ 10k entries; per-part 32 MiB, total 128 MiB, ratio ≤ 200:1, enforced while reading, never from declared sizes | `extract/archive.go` |
 | XML attacks (XXE, billion laughs) | Go's decoder never expands external or custom entities; ≤ 5M tokens per part | `extract/office.go` |
 | Oversized inputs | Text files ≤ 2 MiB; code-base files ≤ 256 KiB, ≤ 2000 files; sheets ≤ 100k rows × 1000 cols; JSON ≤ 200k chars | `extract` |

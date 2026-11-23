@@ -32,8 +32,8 @@ below with its reason in the same change that adds it.
 | Dependency | Reason |
 | --- | --- |
 | nca (bundled binary, not a Go module; MIT) | Coding agent the agent delegates code changes to over ACP (ADR 0005, phase 5); pinned release, checksums verified at build time |
+| `github.com/klippa-app/go-pdfium` (MIT) with pdfium (BSD-3/Apache-2.0) compiled to WebAssembly, run by `github.com/tetratelabs/wazero` (Apache-2.0); pulls `jolestar/go-commons-pool` (Apache-2.0), `google/uuid` (BSD-3), `golang.org/x/sys` and `x/text` (BSD-3) | PDF text extraction. pdfium is the PDF engine browsers use; in WebAssembly it runs sandboxed in the core process (no cgo, no external program), so a hostile PDF cannot reach memory or files outside the sandbox. Writing a PDF parser makes no sense. Costs about 5 MB of binary |
 | `modernc.org/sqlite` | Embedded SQLite without cgo; writing a database makes no sense |
-| PDF text extraction library (TBD) | PDF parsing is large and error-prone; pick a maintained pure-Go one |
 
 ## Current direct dependencies
 

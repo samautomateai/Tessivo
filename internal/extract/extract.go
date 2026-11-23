@@ -68,6 +68,8 @@ func KindOf(name string) string {
 		return KindJSON
 	case ext == ".docx" || ext == ".xlsx" || ext == ".pptx":
 		return ext[1:]
+	case ext == ".pdf":
+		return KindPDF
 	case codeExt[ext]:
 		return "code"
 	case ext == "" && isWellKnown(filepath.Base(name)):
@@ -134,12 +136,16 @@ func FromBytes(source, kind string, b []byte) (Document, error) {
 		return XLSX(source, b)
 	case KindPPTX:
 		return PPTX(source, b)
+	case KindPDF:
+		return PDF(source, b)
 	default:
 		return Document{Source: source, Kind: kind, Text: string(b)}, nil
 	}
 }
 
-func isOffice(kind string) bool { return kind == KindDOCX || kind == KindXLSX || kind == KindPPTX }
+func isOffice(kind string) bool {
+	return kind == KindDOCX || kind == KindXLSX || kind == KindPPTX || kind == KindPDF
+}
 
 func readLimited(path string, limit int64) ([]byte, error) {
 	f, err := os.Open(path) //nolint:gosec // G304: the user chose this context file

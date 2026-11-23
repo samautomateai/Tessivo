@@ -4,8 +4,16 @@ Tessivo is MIT-licensed (see [LICENSE](LICENSE)). It includes or builds on the t
 
 ## Go core and CLI (`tess`)
 
-The Go module has no third-party module dependencies: it uses only the Go standard library
-(BSD-style license, <https://go.dev/LICENSE>), which is compiled into `tess`.
+`tess` is built from the Go standard library (BSD-style, <https://go.dev/LICENSE>) and, for reading PDFs, these modules (their license texts ship in the Go module cache and at the links below):
+
+| Module | License |
+| --- | --- |
+| github.com/klippa-app/go-pdfium | MIT, <https://github.com/klippa-app/go-pdfium/blob/main/LICENSE> |
+| pdfium (embedded as WebAssembly) | BSD-3-Clause and Apache-2.0, <https://pdfium.googlesource.com/pdfium/+/main/LICENSE> |
+| github.com/tetratelabs/wazero | Apache-2.0, <https://github.com/tetratelabs/wazero/blob/main/LICENSE> |
+| github.com/jolestar/go-commons-pool/v2 | Apache-2.0, <https://github.com/jolestar/go-commons-pool/blob/master/LICENSE> |
+| github.com/google/uuid | BSD-3-Clause, <https://github.com/google/uuid/blob/master/LICENSE> |
+| golang.org/x/sys, golang.org/x/text | BSD-3-Clause, <https://go.dev/LICENSE> |
 
 ### Zero (ported code)
 
