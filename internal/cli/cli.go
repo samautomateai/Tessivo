@@ -77,6 +77,7 @@ Usage:
   tess mcp add|list|test|remove ...        MCP servers notebooks can attach (see 'tess mcp -h')
   tess research new|list|show|delete|source|ask|note ...   research notebooks: summaries, cited answers
   tess models [--provider NAME]             list models from configured providers
+  tess models test <alias|provider/model>   send each model one tiny request: does it answer?
   tess worktypes                            list work types
   tess audit verify|show [<notebook-or-file>] [--last N]   check or read the tamper-evident audit log
   tess serve [--network unix|tcp] [--addr A] [--notify]   run the local API (--notify: OS notifications)
@@ -144,6 +145,7 @@ const (
 	subSave   = "save"
 	subSet    = "set"
 	subExport = "export"
+	subTest   = "test"
 	subRemove = "remove"
 	subDelete = "delete"
 )

@@ -334,6 +334,10 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   Future<SettingsInfo> getSettings() async => settingsFromJson(await _json('GET', '/v1/settings'));
 
   @override
+  Future<List<ModelCheck>> testModel(String model) async =>
+      modelChecksFromJson(await _json('POST', '/v1/models/test', body: {'model': model}));
+
+  @override
   Future<SettingsInfo> updateSettings(Map<String, Object?> body) async =>
       settingsFromJson(await _json('PUT', '/v1/settings', body: body));
 

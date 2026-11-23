@@ -37,6 +37,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `DELETE /v1/secrets/{ref}` | — | `204` |
 | `GET /v1/diagnostics` | — | a zip for bug reports: `about.txt` (version, OS), `checks.txt` (setup and counts, whether each key is set), `config.json` (key references only), `core.log` (its last 2 MiB); everything redacted, no keys, notebook names or content |
 | `GET /v1/models?provider=` | — | `{"models": {"provider": ["model", …]}}` |
+| `POST /v1/models/test` | `{model}` (an alias or provider/model) | `{checks: [{model, ok, millis, reply?, error?}]}`: one tiny request (16 tokens, no retries, no fallback, 30 s) to each model in the chain; errors redacted; tokens count toward the limits |
 | `GET /v1/notebooks/{id}/schedules` | — | `{"schedules": [Schedule]}` |
 | `POST /v1/notebooks/{id}/schedules` | `{cron, prompt?, promptName?, vars?, missed?, enabled?}` | `201 Schedule` |
 | `PATCH /v1/notebooks/{id}/schedules/{scheduleId}` | `{enabled}` | `Schedule` |

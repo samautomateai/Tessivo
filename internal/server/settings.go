@@ -14,6 +14,7 @@ func (s *Server) settingsRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /v1/secrets/{ref}", s.setSecret)
 	mux.HandleFunc("DELETE /v1/secrets/{ref}", s.deleteSecret)
 	mux.HandleFunc("GET /v1/diagnostics", s.diagnostics)
+	mux.HandleFunc("POST /v1/models/test", s.testModel)
 }
 
 func (s *Server) updateSettings(w http.ResponseWriter, r *http.Request) {
@@ -81,4 +82,21 @@ func (s *Server) diagnostics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", `attachment; filename="tessivo-diagnostics.zip"`)
 	_, _ = w.Write(buf.Bytes())
+}
+
+// testModel sends one tiny request to every model behind an alias or provider/model.
+func (s *Server) testModel(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Model string `json:"model"`
+	}
+	if err := decode(w, r, &body); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	checks, err := s.svc.TestModel(r.Context(), body.Model)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"checks": checks})
 }

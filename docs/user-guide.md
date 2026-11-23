@@ -38,8 +38,8 @@ of context, Tessivo tries the next one.
    thinking and tools included); everything else uses the OpenAI-compatible API.
 2. **Set its API key.** The key goes to the OS keychain: Windows Credential Manager, macOS Keychain, or the Secret
    Service on Linux. It is never written to the config file.
-3. **Choose models for each alias.** Use *Edit…* on the alias to list them in order of preference. To check that a
-   provider answers, run `tess models --provider <name>`.
+3. **Choose models for each alias.** Use *Edit…* on the alias to list them in order of preference, then *Test* to
+   send each one a short request and see which answer (`tess models test <alias>` in the terminal).
 
 From the terminal:
 
@@ -139,8 +139,9 @@ Press **Ctrl+K** (⌘K on macOS) for the command palette. Every action can also 
 
 ## Troubleshooting
 
-- **The model does not answer.** Run `tess models --provider <name>`. The error says whether the key, the URL
-  or the model name is wrong (401, 404) or whether the provider is rate-limiting you (429).
+- **The model does not answer.** Press *Test* on the alias in Settings, or run `tess models test <alias>`. The error
+  says whether the key, the URL or the model name is wrong (401, 404) or whether the provider is rate-limiting
+  you (429).
 - **A bug report.** *Settings → Save diagnostics…* or `tess diagnostics` writes a zip with versions, settings (key
   names only) and the end of the log. It contains no keys, notebook names or content.
 - **Token limits.** `tess usage` shows today's use. Set limits in Settings or with

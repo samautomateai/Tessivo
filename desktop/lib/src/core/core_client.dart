@@ -19,6 +19,7 @@ export 'checks.dart';
 export 'core_api.dart';
 export 'errors.dart';
 export 'mcp_models.dart';
+export 'model_check.dart';
 export 'research_models.dart';
 export 'thread_models.dart';
 

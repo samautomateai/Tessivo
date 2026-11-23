@@ -93,7 +93,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(color: Tokens.textMuted),
             ),
             const SizedBox(height: 20),
-            for (final a in s.aliases) AliasCard(alias: a, settings: s, onSave: _save),
+            for (final a in s.aliases) AliasCard(alias: a, settings: s, onSave: _save, onTest: widget.core.testModel),
             DefaultsEditor(key: const Key('defaults-editor'), settings: s, onSave: _save),
             const SizedBox(height: 16),
             Row(

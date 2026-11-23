@@ -287,3 +287,23 @@ func TestDefaults(t *testing.T) {
 		t.Fatal("want transport error")
 	}
 }
+
+func TestModelsTest(t *testing.T) {
+	h := newHarness(t)
+	h.initConfig()
+	out := h.mustRun("models", "test", "litellm/m")
+	if !strings.Contains(out, "litellm/m") || !strings.Contains(out, "ok") {
+		t.Fatalf("models test: %s", out)
+	}
+	h.model.err = errors.New("401 unauthorized")
+	if code := h.run("models", "test", "litellm/m"); code != ExitError ||
+		!strings.Contains(h.out.String(), "failed: ") {
+		t.Fatalf("a failing model must exit 1: %d %s", code, h.out)
+	}
+	if code := h.run("models", "test"); code != ExitUsage {
+		t.Fatalf("missing name: %d", code)
+	}
+	if code := h.run("models", "test", "nope"); code != ExitError {
+		t.Fatalf("unknown model: %d", code)
+	}
+}

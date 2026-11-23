@@ -10,6 +10,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Layered settings with source tracking | SET-5 | ☑ |
 | Secrets from environment (keychain next) | SET-1 | ☑ |
 | OpenAI-compatible client: models, chat, streaming, structured output, reasoning effort | SET-2, SET-3 | ☑ |
+| Test a model: `tess models test <alias|provider/model>`, `POST /v1/models/test`, desktop Test on each alias; one tiny request per model, no retries or fallback, redacted errors | SET-3 | ☑ |
 | Aliases and fallback chains with retry/backoff | SET-4 | ☑ |
 | Built-in work types with output schemas + validation and retry | WT-1, WT-2, WT-3 | ☑ |
 | Extractors: text, Markdown, CSV, JSON, code base | SRC-1, SRC-3 | ☑ |

@@ -57,3 +57,14 @@ func TestSettingsAndSecretsAPI(t *testing.T) {
 		t.Fatalf("no keychain: %d", code)
 	}
 }
+
+func TestModelTestRoute(t *testing.T) {
+	ts, _ := newTestServer(t, "OK")
+	code, body := call(t, ts, "POST", "/v1/models/test", `{"model":"litellm/m"}`)
+	if code != 200 || !strings.Contains(body, `"model":"litellm/m"`) || !strings.Contains(body, `"ok":true`) {
+		t.Fatalf("test: %d %s", code, body)
+	}
+	if code, _ := call(t, ts, "POST", "/v1/models/test", `{"model":"nope"}`); code != 400 {
+		t.Fatalf("unknown model: %d", code)
+	}
+}

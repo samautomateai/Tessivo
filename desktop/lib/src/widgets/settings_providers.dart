@@ -6,6 +6,7 @@ import '../core/core_client.dart';
 import '../core/models.dart';
 import '../core/settings_draft.dart';
 import '../theme.dart';
+import 'model_check_dialog.dart';
 
 /// A provider: its URL, whether its API key is set (never the key), a way to
 /// set the key, and its live model list.
@@ -294,11 +295,14 @@ String keyRefFor(String provider) => '${provider.toUpperCase().replaceAll(RegExp
 
 /// An alias's fallback chain, editable as one "provider/model" per line.
 class AliasCard extends StatelessWidget {
-  const AliasCard({super.key, required this.alias, required this.settings, required this.onSave});
+  const AliasCard({super.key, required this.alias, required this.settings, required this.onSave, this.onTest});
 
   final AliasInfo alias;
   final SettingsInfo settings;
   final Future<String?> Function(SettingsDraft draft) onSave;
+
+  /// Checks each model in the chain; the Test button shows when it is set.
+  final Future<List<ModelCheck>> Function(String model)? onTest;
 
   Future<void> _edit(BuildContext context) async {
     final lines = await showDialog<List<String>>(
@@ -323,6 +327,12 @@ class AliasCard extends StatelessWidget {
               Expanded(
                 child: Text('Fallback chain for "${alias.name}"', style: Theme.of(context).textTheme.titleSmall),
               ),
+              if (onTest != null)
+                TextButton(
+                  key: Key('test-alias-${alias.name}'),
+                  onPressed: () => unawaited(showModelCheck(context, alias.name, onTest!)),
+                  child: const Text('Test'),
+                ),
               TextButton(
                 key: Key('edit-alias-${alias.name}'),
                 onPressed: () => unawaited(_edit(context)),
