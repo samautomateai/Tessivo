@@ -84,3 +84,25 @@ func TestSecretsAreStoredButNeverReturned(t *testing.T) {
 		t.Fatalf("no store: %v", err)
 	}
 }
+
+func TestUpdateSettingsDesktopBlock(t *testing.T) {
+	s := newSvc(t, summary)
+	s.ConfigPath = filepath.Join(t.TempDir(), "config.json")
+	if err := s.cfg().Save(s.ConfigPath); err != nil {
+		t.Fatal(err)
+	}
+	cur := s.Settings()
+	in := SettingsUpdate{Providers: cur.Providers, Aliases: cur.Aliases, Defaults: cur.Defaults, Limits: cur.Limits}
+	in.Desktop = &config.DesktopConfig{CloseToTray: true}
+	if got, err := s.UpdateSettings(in); err != nil || !got.Desktop.CloseToTray {
+		t.Fatalf("%v %+v", err, got.Desktop)
+	}
+	in.Desktop = nil // an older client leaves the block alone
+	if got, err := s.UpdateSettings(in); err != nil || !got.Desktop.CloseToTray {
+		t.Fatalf("kept: %v %+v", err, got.Desktop)
+	}
+	saved, err := config.Load(s.ConfigPath)
+	if err != nil || !saved.Desktop.CloseToTray {
+		t.Fatalf("not saved: %v %+v", err, saved.Desktop)
+	}
+}

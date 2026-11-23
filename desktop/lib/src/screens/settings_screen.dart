@@ -82,6 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         final s = snap.data!;
         return ListView(
+          key: const Key('settings-list'),
           padding: const EdgeInsets.all(28),
           children: [
             Text('Models and aliases', style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
@@ -116,6 +117,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             const SizedBox(height: 24),
             McpServersSection(core: widget.core),
+            const SizedBox(height: 24),
+            Text('Desktop', style: text.titleMedium),
+            SwitchListTile(
+              key: const Key('close-to-tray'),
+              contentPadding: EdgeInsets.zero,
+              value: SettingsDraft.fromJson(s.raw).closeToTray,
+              title: const Text('Keep running in the tray when the window is closed'),
+              subtitle: const Text('Runs and schedules go on; Quit in the tray menu ends Tessivo.'),
+              onChanged: (on) => unawaited(_save(SettingsDraft.fromJson(s.raw)..closeToTray = on)),
+            ),
             const SizedBox(height: 24),
             Text('Troubleshooting', style: text.titleMedium),
             const SizedBox(height: 8),

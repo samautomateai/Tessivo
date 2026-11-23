@@ -14,6 +14,8 @@ dependencies:
   flutter:
     sdk: flutter
   material_ui: ^1.11.0
+  tray_manager: 0.5.3
+  window_manager: 0.5.2
 
 dev_dependencies:
   flutter_test:
@@ -22,3 +24,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/tray/

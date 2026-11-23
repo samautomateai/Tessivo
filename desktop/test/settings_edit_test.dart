@@ -30,6 +30,7 @@ Future<void> _openSettings(WidgetTester tester) async {
 }
 
 void main() {
+  trayToggleTests();
   testWidgets('edit run defaults and limits, then save', (tester) async {
     final (_, core) = await _pump(tester);
     await _openSettings(tester);
@@ -164,5 +165,20 @@ void main() {
     expect(calls.last, startsWith('PUT /v1/settings'));
     client.close();
     await server.close(force: true);
+  });
+}
+
+void trayToggleTests() {
+  testWidgets('the tray toggle saves desktop.close_to_tray', (tester) async {
+    final (_, core) = await _pump(tester);
+    await _openSettings(tester);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('close-to-tray')),
+      200,
+      scrollable: find.descendant(of: find.byKey(const Key('settings-list')), matching: find.byType(Scrollable)).first,
+    );
+    await tester.tap(find.byKey(const Key('close-to-tray')));
+    await tester.pumpAndSettle();
+    expect(SettingsDraft.fromJson((await core.getSettings()).raw).closeToTray, isTrue);
   });
 }

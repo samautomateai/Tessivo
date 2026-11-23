@@ -31,7 +31,7 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks/{id}/outputs/{outputId}/run` | — | `{runId, prompt, promptName?, vars?, model, mode?}`: the run that made the output, to run it again (`POST …/runs` with `overrides.model` for another model) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/diff?against=` | — | `{from, to, lines: [{op, text}], counts: {added, removed}}`: the output against the version it revised (or `against`); `op` is the character code of `" "`, `"+"` or `"-"`; `400` for an original without `against` |
 | `GET /v1/settings` | — | config (key references only) |
-| `PUT /v1/settings` | `{providers, aliases, defaults, limits}` | the config after the change; validated, saved to the config file and applied at once (MCP servers have their own routes) |
+| `PUT /v1/settings` | `{providers, aliases, defaults, limits, desktop?}` | the config after the change; validated, saved to the config file and applied at once (MCP servers have their own routes). `desktop: {close_to_tray}` holds the desktop app's own preferences; leaving it out keeps them |
 | `GET /v1/secrets/{ref}` | — | `{set: bool}`: whether an API key is available (keychain or environment); its value never leaves the core |
 | `PUT /v1/secrets/{ref}` | `{value}` | `204`; stores the key in the OS keychain (one line, ≤ 8 KiB); `503` when the core has no keychain |
 | `DELETE /v1/secrets/{ref}` | — | `204` |

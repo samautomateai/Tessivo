@@ -80,13 +80,14 @@ type Limits struct {
 // File is the on-disk application config shared by the CLI and desktop app.
 type File struct {
 	// WorkspaceDir holds notebooks managed by the desktop app (default ~/Tessivo/notebooks).
-	WorkspaceDir string      `json:"workspace_dir,omitempty"`
-	Providers    []Provider  `json:"providers"`
-	Aliases      []Alias     `json:"aliases"`
-	Defaults     RunSettings `json:"defaults"`
-	Limits       Limits      `json:"limits"`
-	Agent        AgentConfig `json:"agent,omitzero"`
-	MCP          MCPConfig   `json:"mcp,omitzero"`
+	WorkspaceDir string        `json:"workspace_dir,omitempty"`
+	Providers    []Provider    `json:"providers"`
+	Aliases      []Alias       `json:"aliases"`
+	Defaults     RunSettings   `json:"defaults"`
+	Limits       Limits        `json:"limits"`
+	Agent        AgentConfig   `json:"agent,omitzero"`
+	MCP          MCPConfig     `json:"mcp,omitzero"`
+	Desktop      DesktopConfig `json:"desktop,omitzero"`
 }
 
 // Default returns a starter config pointing at a local LiteLLM proxy.
@@ -310,4 +311,11 @@ func (a Alias) Retries() int {
 		return DefaultRetries
 	}
 	return *a.MaxRetries
+}
+
+// DesktopConfig holds the desktop app's own preferences.
+type DesktopConfig struct {
+	// CloseToTray keeps the app running in the system tray when its window is
+	// closed, so schedules and runs go on; Quit in the tray menu ends it.
+	CloseToTray bool `json:"close_to_tray,omitempty"`
 }

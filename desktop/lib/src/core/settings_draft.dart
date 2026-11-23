@@ -8,12 +8,21 @@ class SettingsDraft {
     : providers = _maps(raw['providers']),
       aliases = _maps(raw['aliases']),
       defaults = _map(raw['defaults']),
-      limits = _map(raw['limits']);
+      limits = _map(raw['limits']),
+      desktop = _map(raw['desktop']);
 
   final List<Map<String, Object?>> providers;
   final List<Map<String, Object?>> aliases;
   final Map<String, Object?> defaults;
   final Map<String, Object?> limits;
+
+  /// The desktop app's own preferences (`desktop` in the config).
+  final Map<String, Object?> desktop;
+
+  /// Whether closing the window keeps the app running in the tray.
+  bool get closeToTray => desktop['close_to_tray'] == true;
+
+  set closeToTray(bool on) => on ? desktop['close_to_tray'] = true : desktop.remove('close_to_tray');
 
   static Map<String, Object?> _map(Object? v) =>
       v is Map ? (jsonDecode(jsonEncode(v)) as Map).cast<String, Object?>() : <String, Object?>{};
@@ -75,5 +84,11 @@ class SettingsDraft {
   }
 
   /// The PUT /v1/settings body.
-  Map<String, Object?> toBody() => {'providers': providers, 'aliases': aliases, 'defaults': defaults, 'limits': limits};
+  Map<String, Object?> toBody() => {
+    'providers': providers,
+    'aliases': aliases,
+    'defaults': defaults,
+    'limits': limits,
+    'desktop': desktop,
+  };
 }
