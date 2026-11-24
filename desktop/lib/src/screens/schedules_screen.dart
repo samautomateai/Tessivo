@@ -4,7 +4,17 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
 import '../core/models.dart';
-import '../theme.dart';
+import '../design/colors.dart';
+import '../design/components/buttons.dart';
+import '../design/components/empty_state.dart';
+import '../design/components/fields.dart';
+import '../design/components/headers.dart';
+import '../design/components/notices.dart';
+import '../design/components/table.dart';
+import '../design/components/tags.dart';
+import '../design/icons.dart';
+import '../design/sizes.dart';
+import '../design/type.dart';
 
 /// Missed-run policies the core accepts.
 const missedPolicies = ['skip', 'run_once'];
@@ -109,116 +119,158 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final nb = widget.state.selected;
-    return ListView(
-      padding: const EdgeInsets.all(28),
-      children: [
-        Text('Schedules', style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 4),
-        Text(
-          nb == null ? 'Select a notebook first.' : 'Runs for "${nb.name}" while Tessivo is open.',
-          style: const TextStyle(color: Tokens.textMuted),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          Text(
-            _error!,
-            key: const Key('schedule-error'),
-            style: const TextStyle(color: Colors.red),
-          ),
-        ],
-        const SizedBox(height: 16),
-        if (nb != null) ...[
-          for (final s in _items) _ScheduleCard(schedule: s, busy: _busy, onToggle: _toggle, onDelete: _delete),
-          if (_items.isEmpty && !_busy) const Text('No schedules yet.'),
-          const SizedBox(height: 20),
-          _addForm(text),
-        ],
-      ],
-    );
-  }
-
-  Widget _addForm(TextTheme text) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  List<Widget> _row(ScheduleInfo s) {
+    final c = TvColors.of(context);
+    final last = s.history.isEmpty ? null : s.history.last;
+    final tone = switch (last?.status) {
+      'ok' => TvTagTone.green,
+      'failed' => TvTagTone.red,
+      _ => TvTagTone.yellow,
+    };
+    return [
+      Text(
+        s.cron,
+        key: Key('schedule-${s.id}'),
+        style: TvType.code.copyWith(color: c.textPrimary),
+      ),
+      Tooltip(message: s.prompt, child: Text(s.prompt.isEmpty ? 'The notebook prompt' : s.prompt)),
+      Text(s.nextRun ?? '—'),
+      last == null
+          ? const Text('—')
+          : Tooltip(
+              message: last.error ?? last.status,
+              child: TvTag(last.status.replaceAll('_', ' '), tone: tone),
+            ),
+      Text(s.missed == 'run_once' ? 'Run once' : 'Skip'),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Text('Add schedule', style: text.titleSmall),
-          const SizedBox(height: 8),
-          TextField(
-            key: const Key('schedule-cron'),
-            controller: _cron,
-            decoration: const InputDecoration(labelText: 'Cron', hintText: '0 8 * * MON  or  @daily'),
-          ),
-          TextField(
-            key: const Key('schedule-prompt'),
-            controller: _prompt,
-            decoration: const InputDecoration(labelText: 'Prompt (optional, defaults to the notebook prompt)'),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Text('If missed: '),
-              DropdownButton<String>(
-                key: const Key('schedule-missed'),
-                value: _missed,
-                items: [for (final p in missedPolicies) DropdownMenuItem(value: p, child: Text(p))],
-                onChanged: (v) => setState(() => _missed = v ?? _missed),
+          SizedBox(
+            height: 20,
+            child: FittedBox(
+              child: Switch(
+                key: Key('schedule-enabled-${s.id}'),
+                value: s.enabled,
+                activeTrackColor: c.success,
+                onChanged: _busy ? null : (v) => unawaited(_toggle(s, v)),
               ),
-              const Spacer(),
-              FilledButton(key: const Key('schedule-add'), onPressed: _busy ? null : _add, child: const Text('Add')),
-            ],
+            ),
+          ),
+          TvIconButton(
+            TvIcon.close,
+            key: Key('schedule-delete-${s.id}'),
+            tooltip: 'Remove',
+            onPressed: _busy ? null : () => unawaited(_delete(s)),
           ),
         ],
       ),
-    ),
-  );
-}
-
-class _ScheduleCard extends StatelessWidget {
-  const _ScheduleCard({required this.schedule, required this.busy, required this.onToggle, required this.onDelete});
-
-  final ScheduleInfo schedule;
-  final bool busy;
-  final void Function(ScheduleInfo, bool) onToggle;
-  final void Function(ScheduleInfo) onDelete;
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    final s = schedule;
-    final last = s.history.isEmpty ? null : s.history.last;
-    final details = [
-      'next: ${s.nextRun ?? '—'}',
-      'missed: ${s.missed}',
-      if (last != null) 'last: ${last.status}${last.error == null ? '' : ' (${last.error})'}',
-    ].join(' · ');
-    return Card(
-      child: ListTile(
-        key: Key('schedule-${s.id}'),
-        title: Text(s.cron, style: const TextStyle(fontFamily: 'monospace')),
-        subtitle: Text(s.prompt.isEmpty ? details : '${s.prompt}\n$details'),
-        isThreeLine: s.prompt.isNotEmpty,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Switch(
-              key: Key('schedule-enabled-${s.id}'),
-              value: s.enabled,
-              onChanged: busy ? null : (v) => onToggle(s, v),
+    final c = TvColors.of(context);
+    final nb = widget.state.selected;
+    if (nb == null) {
+      return ColoredBox(
+        color: c.background,
+        child: TvEmptyState(
+          icon: TvIcon.schedules,
+          title: 'No notebook open',
+          message: 'Schedules belong to a notebook. Open one, then come back to schedule its runs.',
+          actionLabel: 'Go to notebooks',
+          onAction: () => widget.state.go(Section.notebooks),
+        ),
+      );
+    }
+    return ColoredBox(
+      color: c.background,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TvPageHeader(title: 'Schedules', meta: nb.name),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(TvSpace.s24, TvSpace.s8, TvSpace.s24, TvSpace.s32),
+              children: [
+                Text(
+                  'Runs of "${nb.name}" while Tessivo (or tess serve) is running.',
+                  style: TvType.helper.copyWith(color: c.textHelper),
+                ),
+                if (_error case final e?) ...[
+                  const SizedBox(height: TvSpace.s12),
+                  TvInlineNotice(key: const Key('schedule-error'), kind: TvNoticeKind.error, title: e),
+                ],
+                const SizedBox(height: TvSpace.s16),
+                if (_items.isEmpty && !_busy)
+                  Text(
+                    'No schedules yet. Add one below, for example every Monday at 08:00.',
+                    key: const Key('no-schedules'),
+                    style: TvType.body.copyWith(color: c.textSecondary),
+                  )
+                else
+                  TvDataTable(
+                    key: const Key('schedules-table'),
+                    columns: const ['When', 'Prompt', 'Next run', 'Last result', 'If missed', ''],
+                    flex: const [3, 5, 3, 2, 2, 2],
+                    rows: [for (final s in _items) _row(s)],
+                  ),
+                const SizedBox(height: TvSpace.s32),
+                Align(alignment: Alignment.topLeft, child: _addForm(c)),
+              ],
             ),
-            IconButton(
-              key: Key('schedule-delete-${s.id}'),
-              tooltip: 'Remove',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: busy ? null : () => onDelete(s),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _addForm(TvColors c) => ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: TvSize.readingWidth),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Add a schedule', style: TvType.heading01.copyWith(color: c.textPrimary)),
+        const SizedBox(height: TvSpace.s12),
+        TvTextField(
+          label: 'When (cron)',
+          fieldKey: const Key('schedule-cron'),
+          controller: _cron,
+          hint: '0 8 * * MON  or  @daily',
+          mono: true,
+        ),
+        const SizedBox(height: TvSpace.s12),
+        TvTextField(
+          label: 'Prompt',
+          fieldKey: const Key('schedule-prompt'),
+          controller: _prompt,
+          helper: 'Optional; the notebook prompt when empty.',
+        ),
+        const SizedBox(height: TvSpace.s12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            SizedBox(
+              width: 220,
+              child: TvDropdown<String>(
+                key: const Key('schedule-missed'),
+                label: 'If a run was missed',
+                items: const [('skip', 'Skip it'), ('run_once', 'Run once')],
+                value: _missed,
+                onChanged: (v) => setState(() => _missed = v),
+              ),
+            ),
+            const Spacer(),
+            TvButton(
+              'Add schedule',
+              key: const Key('schedule-add'),
+              icon: TvIcon.add,
+              kind: TvButtonKind.primary,
+              onPressed: _busy ? null : () => unawaited(_add()),
             ),
           ],
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }

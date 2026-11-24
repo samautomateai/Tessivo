@@ -111,6 +111,9 @@ class AppState extends ChangeNotifier {
   String? defaultModel;
   UsageInfo? usage;
 
+  /// The next scheduled run: its notebook and when (as the core says it).
+  ({String notebook, String at})? nextRun;
+
   /// Subscribes to core events and reconnects with capped backoff.
   void listenForEvents() {
     unawaited(_events?.cancel());
@@ -195,6 +198,7 @@ class AppState extends ChangeNotifier {
     await loadResearch();
     await checkSetup();
     await refreshUsage();
+    await refreshNextRun();
   }
 
   void go(Section s) {

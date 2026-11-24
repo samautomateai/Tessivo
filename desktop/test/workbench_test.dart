@@ -19,6 +19,7 @@ Future<void> ctrl(WidgetTester tester, LogicalKeyboardKey key) async {
 }
 
 void main() {
+  nextRunTests();
   testWidgets('header shows breadcrumbs, search and a palette hint', (tester) async {
     final state = await pumpApp(tester);
     expect(find.byType(Workbench), findsOneWidget);
@@ -104,5 +105,25 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: '$s');
     }
+  });
+}
+
+void nextRunTests() {
+  testWidgets('the status bar shows the next scheduled run and leads to Schedules', (tester) async {
+    final state = await pumpApp(tester);
+    final item = find.byKey(const Key('next-run'));
+    expect(find.descendant(of: item, matching: find.text('Next: Weekly ops report, Mon 08:00')), findsOneWidget);
+    await tester.tap(item);
+    await tester.pumpAndSettle();
+    expect(state.section, Section.schedules);
+  });
+
+  test('next run times read as today, tomorrow or a weekday', () {
+    final now = DateTime(2026, 11, 24, 9); // a Tuesday
+    expect(nextRunLabel(DateTime(2026, 11, 24, 17, 5).toIso8601String(), now), 'today 17:05');
+    expect(nextRunLabel(DateTime(2026, 11, 25, 8).toIso8601String(), now), 'tomorrow 08:00');
+    expect(nextRunLabel(DateTime(2026, 11, 30, 8).toIso8601String(), now), 'Mon 08:00');
+    expect(nextRunLabel(DateTime(2026, 12, 9, 8).toIso8601String(), now), '2026-12-09 08:00');
+    expect(nextRunLabel('Mon 08:00', now), 'Mon 08:00');
   });
 }

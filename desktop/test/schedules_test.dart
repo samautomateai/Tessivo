@@ -82,6 +82,7 @@ Future<AppState> pumpSchedules(WidgetTester tester) async {
 }
 
 void main() {
+  emptySchedulesTests();
   group('http client', () {
     late HttpServer server;
     late HttpCoreClient client;
@@ -194,4 +195,20 @@ class _EndingCore extends FakeCoreClient {
     subscriptions++;
     return const Stream.empty();
   }
+}
+
+void emptySchedulesTests() {
+  testWidgets('a notebook without schedules says how to add one', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final state = AppState(FakeCoreClient(tick: Duration.zero));
+    await tester.pumpWidget(TessivoApp(state: state));
+    await state.load();
+    state.select('nb-2');
+    state.go(Section.schedules);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('no-schedules')), findsOneWidget);
+    expect(find.byKey(const Key('schedule-add')), findsOneWidget);
+  });
 }

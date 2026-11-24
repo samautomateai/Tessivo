@@ -58,3 +58,42 @@ extension SettingsNavigation on AppState {
     go(Section.settings);
   }
 }
+
+/// The status bar's next scheduled run.
+extension NextRun on AppState {
+  /// Finds the earliest next run among the enabled schedules of notebooks
+  /// that have one; a time the core gave that does not parse ranks last.
+  Future<void> refreshNextRun() async {
+    ({String notebook, String at, DateTime? when})? best;
+    for (final nb in notebooks.where((n) => n.schedule != null && !n.archived)) {
+      final List<ScheduleInfo> list;
+      try {
+        list = await core.listSchedules(nb.id);
+      } on Object {
+        continue;
+      }
+      for (final s in list.where((s) => s.enabled && s.nextRun != null)) {
+        final when = DateTime.tryParse(s.nextRun!);
+        final better = best == null || (when != null && (best.when == null || when.isBefore(best.when!)));
+        if (better) best = (notebook: nb.name, at: s.nextRun!, when: when);
+      }
+    }
+    nextRun = best == null ? null : (notebook: best.notebook, at: best.at);
+    _changed();
+  }
+}
+
+/// "today 08:00", "tomorrow 08:00", "Mon 08:00"; text the core sent that is
+/// not a time stays as it is.
+String nextRunLabel(String at, DateTime now) {
+  final t = DateTime.tryParse(at)?.toLocal();
+  if (t == null) return at;
+  final hm = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  final day = DateTime(t.year, t.month, t.day).difference(DateTime(now.year, now.month, now.day)).inDays;
+  if (day == 0) return 'today $hm';
+  if (day == 1) return 'tomorrow $hm';
+  const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  return day < 7
+      ? '${names[t.weekday - 1]} $hm'
+      : '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')} $hm';
+}

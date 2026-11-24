@@ -66,6 +66,15 @@ class StatusBar extends StatelessWidget {
                 ),
               ),
             if (usage != null) Flexible(child: _Item(child: Text(usageText(usage.tokens, usage.dayLimit)))),
+            if (state.nextRun case final n?)
+              Flexible(
+                child: _Item(
+                  key: const Key('next-run'),
+                  tooltip: 'Next scheduled run (Schedules)',
+                  onTap: () => state.go(Section.schedules),
+                  child: Text('Next: ${n.notebook}, ${nextRunLabel(n.at, DateTime.now())}'),
+                ),
+              ),
             const Spacer(),
             if (waiting > 0)
               Flexible(
@@ -90,7 +99,7 @@ class StatusBar extends StatelessWidget {
 }
 
 class _Item extends StatelessWidget {
-  const _Item({required this.child, this.onTap, this.tooltip});
+  const _Item({super.key, required this.child, this.onTap, this.tooltip});
 
   final Widget child;
   final VoidCallback? onTap;
