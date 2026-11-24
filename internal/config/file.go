@@ -195,7 +195,7 @@ func (f File) Validate() error {
 	if err := f.Defaults.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("defaults: %w", err))
 	}
-	errs = append(errs, f.Agent.Validate(), f.MCP.Check())
+	errs = append(errs, f.Agent.Validate(), f.MCP.Check(), f.Desktop.Validate())
 	return errors.Join(errs...)
 }
 
@@ -310,11 +310,4 @@ func (a Alias) Retries() int {
 		return DefaultRetries
 	}
 	return *a.MaxRetries
-}
-
-// DesktopConfig holds the desktop app's own preferences.
-type DesktopConfig struct {
-	// CloseToTray keeps the app running in the system tray when its window is
-	// closed, so schedules and runs go on; Quit in the tray menu ends it.
-	CloseToTray bool `json:"close_to_tray,omitempty"`
 }

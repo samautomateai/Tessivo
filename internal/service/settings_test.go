@@ -132,3 +132,23 @@ func TestUpdateSettingsAgentBlock(t *testing.T) {
 		t.Fatal("refused settings were applied")
 	}
 }
+
+func TestUpdateSettingsDesktopThemeZoomLayout(t *testing.T) {
+	s := newSvc(t, summary)
+	cur := s.Settings()
+	in := SettingsUpdate{Providers: cur.Providers, Aliases: cur.Aliases, Defaults: cur.Defaults, Limits: cur.Limits}
+	open := false
+	in.Desktop = &config.DesktopConfig{Theme: "dark", Zoom: 1.2, Layout: &config.DesktopLayout{PanelOpen: &open}}
+	got, err := s.UpdateSettings(in)
+	if err != nil || got.Desktop.Theme != "dark" || got.Desktop.Zoom != 1.2 || *got.Desktop.Layout.PanelOpen {
+		t.Fatalf("%v %+v", err, got.Desktop)
+	}
+	in.Desktop = nil
+	if got, _ := s.UpdateSettings(in); got.Desktop.Theme != "dark" {
+		t.Fatal("an absent desktop block keeps the theme")
+	}
+	in.Desktop = &config.DesktopConfig{Theme: "purple"}
+	if _, err := s.UpdateSettings(in); !IsInvalid(err) {
+		t.Fatalf("a bad theme: %v", err)
+	}
+}
