@@ -55,7 +55,8 @@ tess chat repeat <session> --name "Key rotation"                 # turn the chat
 ## Develop
 
 Requires Go (any recent release; it fetches the toolchain pinned in `go.mod`) and, for the desktop
-app, Flutter stable. Everything else is installed for you:
+app, Flutter stable (on Windows also Developer Mode, which Flutter plugins need for symlinks; `task doctor`
+checks it). Everything else is installed for you:
 
 ```sh
 go run ./tools/devtools install   # first time, before Task exists: Task, golangci-lint v2, govulncheck, gosec, osv-scanner, git hooks

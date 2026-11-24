@@ -24,7 +24,7 @@ our own agent loop for agent mode (ADR 0005), MCP for tools. Spec: see `docs/REA
 - Set up once: `task install` (or `go run ./tools/devtools install` before Task exists) installs Task,
   golangci-lint v2, govulncheck, gosec, osv-scanner and the git hooks (format, lengths, text, lint on commit; Dart
   format and analyze when Dart files are staged).
-  `task doctor` diagnoses and repairs; `task update` moves go.mod to the latest Go toolchain and upgrades every tool.
+  `task doctor` diagnoses and repairs (also symlink support for Flutter plugins and stale desktop build caches); `task update` moves go.mod to the latest Go toolchain and upgrades every tool.
 
 ## Security and performance rules
 
