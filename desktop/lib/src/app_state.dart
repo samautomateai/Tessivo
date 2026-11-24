@@ -6,11 +6,15 @@ import 'chat_state.dart';
 import 'connection.dart';
 import 'core/core_client.dart';
 import 'core/models.dart';
+import 'core/settings_draft.dart';
+import 'design/theme.dart';
+import 'design/zoom.dart';
 import 'research_state.dart';
 import 'thread_state.dart';
 
 part 'app_state_extras.dart';
 part 'app_state_sources.dart';
+part 'app_state_appearance.dart';
 
 enum Section { chat, notebooks, research, templates, schedules, library, settings }
 
@@ -85,6 +89,10 @@ class AppState extends ChangeNotifier {
   /// keeps retrying and clears it once the core answers again.
   bool connectionLost = false;
 
+  /// Theme and zoom from `desktop.theme` / `desktop.zoom` (Settings → Appearance).
+  TvThemeMode themeMode = TvThemeMode.system;
+  double zoom = 1;
+
   /// Subscribes to core events and reconnects with capped backoff.
   void listenForEvents() {
     unawaited(_events?.cancel());
@@ -156,6 +164,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> load() async {
+    await loadAppearance();
     notebooks = await core.listNotebooks();
     selectedId ??= notebooks.isEmpty ? null : notebooks.first.id;
     loading = false;

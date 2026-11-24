@@ -287,8 +287,9 @@ The Markdown view (outputs, chat replies) is restyled with these tokens: heading
 
 - **Body text 13 px**, one step under Carbon's 14 px, to match VS Code and the user's "fonts are too big".
 - **One high-contrast theme (dark)**, like VS Code's default high contrast; a light high-contrast theme can follow.
-- **Zoom is applied** by multiplying the text scaler and every size token by the zoom factor from one inherited
-  widget, not by transforming the whole canvas (which would blur text).
+- **Zoom scales the whole UI** (changed during build, ADR 0009): the app is laid out at the window size divided by
+  the zoom and painted scaled up, as VS Code does. Flutter paints vectors, so text stays sharp; nothing can be left
+  unscaled and no component needs zoom code.
 - **Developers without a running core** now see the connection screen instead of demo data, so `task desktop:run`
   builds `tess` first and puts it next to the app (as releases do).
 - **Theme and zoom live in the core config** (`desktop.theme`, `desktop.zoom`) like `close_to_tray`, so they are the

@@ -30,7 +30,7 @@ const _notMovedYet = {
   'lib/src/widgets/work_type_badge.dart',
 };
 
-final _raw = RegExp(r'Color\(0x|fontSize:|Colors\.');
+final _raw = RegExp(r'Color\(0x|fontSize:|(?<![A-Za-z])Colors\.');
 
 void main() {
   test('screens and widgets use design tokens, not raw colours or font sizes', () {

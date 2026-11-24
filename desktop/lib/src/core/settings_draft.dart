@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import '../design/theme.dart';
+import '../design/zoom.dart';
+
 /// An editable copy of the core's settings JSON. It edits the raw maps the
 /// core sent, so fields the desktop does not show (headers, timeouts, TLS,
 /// retries) go back unchanged on save.
@@ -113,4 +116,38 @@ extension AgentDraft on SettingsDraft {
   };
 
   set toolRules(Map<String, String> rules) => rules.isEmpty ? agent.remove('tools') : agent['tools'] = rules;
+}
+
+/// The desktop app's appearance in a [SettingsDraft] (`desktop.theme`,
+/// `desktop.zoom`, `desktop.layout`). Unknown or out-of-range values read as
+/// the defaults, so a hand-edited config never breaks the app.
+extension AppearanceDraft on SettingsDraft {
+  static const _themes = {
+    'system': TvThemeMode.system,
+    'light': TvThemeMode.light,
+    'dark': TvThemeMode.dark,
+    'high-contrast': TvThemeMode.highContrast,
+  };
+
+  TvThemeMode get theme => _themes[desktop['theme']] ?? TvThemeMode.system;
+
+  set theme(TvThemeMode mode) {
+    if (mode == TvThemeMode.system) {
+      desktop.remove('theme');
+    } else {
+      desktop['theme'] = _themes.entries.firstWhere((e) => e.value == mode).key;
+    }
+  }
+
+  double get zoom {
+    final z = (desktop['zoom'] as num?)?.toDouble() ?? 1;
+    return z >= minZoom && z <= maxZoom ? z : 1;
+  }
+
+  set zoom(double z) => z == 1 ? desktop.remove('zoom') : desktop['zoom'] = z;
+
+  /// The workbench's panel state (raw; LayoutPrefs reads it).
+  Map<String, Object?> get layout => (desktop['layout'] as Map?)?.cast<String, Object?>() ?? const {};
+
+  set layout(Map<String, Object?> l) => l.isEmpty ? desktop.remove('layout') : desktop['layout'] = l;
 }

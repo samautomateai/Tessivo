@@ -17,6 +17,7 @@ enum TvIcon {
   settings('settings'),
   account('user--avatar'),
   add('add'),
+  subtract('subtract'),
   close('close'),
   run('play'),
   runAgain('renew'),

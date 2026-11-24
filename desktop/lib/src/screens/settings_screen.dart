@@ -3,12 +3,14 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../app_state.dart';
 import '../core/core_client.dart';
 import '../core/models.dart';
 import '../core/settings_draft.dart';
 import '../theme.dart';
 import '../widgets/export_menu.dart';
 import '../widgets/settings_agent.dart';
+import '../widgets/settings_appearance.dart';
 import '../widgets/settings_defaults.dart';
 import '../widgets/settings_providers.dart';
 import '../widgets/text_prompt_dialog.dart';
@@ -18,9 +20,12 @@ import 'mcp_settings.dart';
 /// defaults and token limits, and MCP servers. Changes are saved to the
 /// core's config file; API keys go to the OS keychain and are never shown.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.core, this.onChanged});
+  const SettingsScreen({super.key, required this.core, this.onChanged, this.state});
 
   final CoreClient core;
+
+  /// The app, for Appearance (theme and zoom); absent in tests of the core settings alone.
+  final AppState? state;
 
   /// Called after a save or a key change (the app re-checks its setup).
   final VoidCallback? onChanged;
@@ -131,6 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (on) => unawaited(_save(SettingsDraft.fromJson(s.raw)..closeToTray = on)),
             ),
             const SizedBox(height: 24),
+            if (widget.state != null) ...[AppearanceSettings(state: widget.state!), const SizedBox(height: 24)],
             Text('Troubleshooting', style: text.titleMedium),
             const SizedBox(height: 8),
             Row(

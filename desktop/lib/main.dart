@@ -11,6 +11,7 @@ import 'src/core/settings_draft.dart';
 import 'src/core/supervisor.dart';
 import 'src/design/colors.dart';
 import 'src/design/theme.dart';
+import 'src/design/zoom.dart';
 import 'src/shell.dart';
 import 'src/tray.dart';
 import 'src/tray_plugins.dart';
@@ -58,15 +59,26 @@ class TessivoApp extends StatelessWidget {
   final AppState state;
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: state,
+    builder: (context, _) => MaterialApp(
       title: 'Tessivo',
       debugShowCheckedModeBanner: false,
       theme: tvTheme(TvColors.light),
       darkTheme: tvTheme(TvColors.dark),
-      highContrastTheme: tvTheme(TvColors.highContrast),
-      highContrastDarkTheme: tvTheme(TvColors.highContrast),
+      // The theme choice and the OS settings pick the tokens; zoom scales the whole UI.
+      builder: (context, child) {
+        final colors = resolveColors(
+          state.themeMode,
+          platform: MediaQuery.platformBrightnessOf(context),
+          highContrast: MediaQuery.highContrastOf(context),
+        );
+        return Theme(
+          data: tvTheme(colors),
+          child: ZoomScope(factor: state.zoom, child: child!),
+        );
+      },
       home: AppShell(state: state),
-    );
-  }
+    ),
+  );
 }

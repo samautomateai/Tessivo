@@ -69,7 +69,7 @@ class AppShell extends StatelessWidget {
     Section.templates => TemplatesScreen(state: state),
     Section.schedules => SchedulesScreen(state: state),
     Section.library => LibraryScreen(core: state.core),
-    Section.settings => SettingsScreen(core: state.core, onChanged: () => unawaited(state.checkSetup())),
+    Section.settings => SettingsScreen(core: state.core, state: state, onChanged: () => unawaited(state.checkSetup())),
   };
 }
 
