@@ -8,7 +8,7 @@ import '../design/components/buttons.dart';
 import '../design/icons.dart';
 import '../design/sizes.dart';
 import '../design/type.dart';
-import '../widgets/approvals_sheet.dart';
+
 import '../widgets/command_palette.dart';
 import '../widgets/search_box.dart';
 
@@ -24,6 +24,7 @@ String breadcrumbs(AppState state) => switch (state.section) {
   Section.templates => 'Templates',
   Section.library => 'Outputs',
   Section.settings => 'Settings',
+  Section.approvals => 'Approvals',
 };
 
 /// The Carbon shell header: product, breadcrumbs, search with the palette
@@ -97,7 +98,7 @@ class TvHeader extends StatelessWidget {
             key: const Key('approvals-badge'),
             tooltip: state.approvals.isEmpty ? 'No approvals waiting' : 'Approvals waiting',
             badge: state.approvals.length,
-            onPressed: () => unawaited(showApprovalsSheet(context, state)),
+            onPressed: () => state.go(Section.approvals),
           ),
           TvIconButton(
             TvIcon.notifications,

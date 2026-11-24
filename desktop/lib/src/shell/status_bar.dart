@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
@@ -8,7 +6,6 @@ import '../design/components/tags.dart';
 import '../design/icons.dart';
 import '../design/sizes.dart';
 import '../design/type.dart';
-import '../widgets/approvals_sheet.dart';
 
 /// 950, 412k, 2M, 1.3M.
 String formatTokens(int n) {
@@ -74,7 +71,7 @@ class StatusBar extends StatelessWidget {
               Flexible(
                 child: _Item(
                   tooltip: 'Open the approvals',
-                  onTap: () => unawaited(showApprovalsSheet(context, state)),
+                  onTap: () => state.go(Section.approvals),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

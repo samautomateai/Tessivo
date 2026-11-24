@@ -7,6 +7,7 @@ import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
+import 'package:tessivo_desktop/src/screens/approvals_page.dart';
 
 import 'support/fake_core/fake_core.dart';
 import 'support/real_http.dart';
@@ -87,6 +88,7 @@ Future<(AppState, RecordingCore)> pumpWith(WidgetTester tester) async {
 }
 
 void main() {
+  approvalsPageTests();
   moreTests();
   testWidgets('approvals badge shows count', (tester) async {
     final (state, _) = await pumpWith(tester);
@@ -119,6 +121,8 @@ void main() {
   testWidgets('allow for this notebook sends remember', (tester) async {
     final (_, core) = await pumpWith(tester);
     await tester.tap(find.byKey(const Key('approvals-badge')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byWidgetPredicate((w) => '${w.key}'.contains('approval-more-')).first);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('approve-notebook')).first);
     await tester.pumpAndSettle();
@@ -219,7 +223,7 @@ void main() {
 }
 
 void moreTests() {
-  testWidgets('interrupted runs can be resumed from the sheet', (tester) async {
+  testWidgets('interrupted runs can be resumed from the approvals page', (tester) async {
     final (state, core) = await pumpWith(tester);
     core.interrupted = true;
     await state.refreshApprovals();
@@ -227,7 +231,7 @@ void moreTests() {
     expect(find.descendant(of: find.byKey(const Key('approvals-badge')), matching: find.text('2')), findsOneWidget);
     await tester.tap(find.byKey(const Key('approvals-badge')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Interrupted'), findsOneWidget);
+    expect(find.text('interrupted'), findsOneWidget);
     await tester.tap(find.byKey(const Key('resume-run')));
     await tester.pumpAndSettle();
     expect(core.resumed, ['r-int']);
@@ -241,5 +245,34 @@ void moreTests() {
     await tester.tap(find.byKey(const Key('approve-once')).first);
     await tester.pumpAndSettle();
     expect(state.notices.last, contains('approval expired'));
+  });
+}
+
+void approvalsPageTests() {
+  testWidgets('the approvals page lists each call in a table', (tester) async {
+    final (state, _) = await pumpWith(tester);
+    state.go(Section.approvals);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('approvals-table')), findsOneWidget);
+    expect(find.text('1 waiting'), findsOneWidget);
+  });
+
+  testWidgets('with nothing waiting the approvals page says so', (tester) async {
+    await pumpWith(tester);
+    await tester.tap(find.byKey(const Key('approvals-badge')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('deny')).first);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('no-approvals')), findsOneWidget);
+    expect(find.text('Nothing is waiting'), findsOneWidget);
+  });
+
+  test('waiting since reads like a person would say it', () {
+    final now = DateTime.utc(2026, 11, 24, 12);
+    expect(waitingSince('2026-11-24T11:59:40Z', now), 'just now');
+    expect(waitingSince('2026-11-24T11:55:00Z', now), '5 min ago');
+    expect(waitingSince('2026-11-24T09:00:00Z', now), '3 h ago');
+    expect(waitingSince('2026-11-21T12:00:00Z', now), '3 days ago');
+    expect(waitingSince('', now), '');
   });
 }

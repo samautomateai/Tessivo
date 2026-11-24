@@ -12,12 +12,12 @@ import '../../design/icons.dart';
 import '../../design/sizes.dart';
 import '../../design/type.dart';
 import '../../thread_state.dart';
-import '../../widgets/approvals_sheet.dart';
 import '../../widgets/compare_button.dart';
 import '../../widgets/export_menu.dart';
 import '../../widgets/markdown_view.dart';
 import '../../widgets/output_edit_form.dart';
 import '../../widgets/rerun_button.dart';
+import '../approvals_page.dart';
 
 /// Below this width the toolbar's actions show only their icons.
 const _labelsMinWidth = 620.0;

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
+import '../screens/approvals_page.dart';
 import '../screens/chat/chat_context_panel.dart';
 import '../screens/chat/chat_page.dart';
 import '../screens/chat/chat_side_bar.dart';
@@ -25,6 +26,7 @@ Widget pageFor(AppState state) => switch (state.section) {
   Section.templates => TemplatesScreen(state: state),
   Section.schedules => SchedulesScreen(state: state),
   Section.library => LibraryScreen(core: state.core),
+  Section.approvals => ApprovalsPage(state: state),
   Section.settings => SettingsPage(state: state, onChanged: () => unawaited(state.checkSetup())),
 };
 

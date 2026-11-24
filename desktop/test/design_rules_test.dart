@@ -8,7 +8,6 @@ import 'package:flutter_test/flutter_test.dart';
 const _notMovedYet = {
   'lib/src/screens/schedules_screen.dart',
   'lib/src/screens/templates_screen.dart',
-  'lib/src/widgets/approvals_sheet.dart',
   'lib/src/widgets/output_edit_form.dart',
   'lib/src/widgets/work_type_badge.dart',
 };

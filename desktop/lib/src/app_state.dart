@@ -18,7 +18,7 @@ part 'app_state_sources.dart';
 part 'app_state_appearance.dart';
 part 'app_state_layout.dart';
 
-enum Section { chat, notebooks, research, templates, schedules, library, settings }
+enum Section { chat, notebooks, research, templates, schedules, library, settings, approvals }
 
 /// The parts of the Settings page, listed in its side bar.
 enum SettingsSection { models, defaults, agent, mcp, appearance, desktop, diagnostics }
