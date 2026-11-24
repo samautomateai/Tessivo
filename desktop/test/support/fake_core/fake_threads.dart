@@ -1,14 +1,14 @@
 import 'dart:async';
 
-import 'chat_models.dart';
-import 'checks.dart';
-import 'errors.dart';
-import 'models.dart';
-import 'thread_models.dart';
+import 'package:tessivo_desktop/src/core/chat_models.dart';
+import 'package:tessivo_desktop/src/core/checks.dart';
+import 'package:tessivo_desktop/src/core/errors.dart';
+import 'package:tessivo_desktop/src/core/models.dart';
+import 'package:tessivo_desktop/src/core/thread_models.dart';
 
 /// In-memory output threads for the demo core: sample outputs (oldest first),
 /// one seeded thread and suggestion, streamed replies and new versions. Mixed
-/// into `DemoCoreClient`.
+/// into `FakeCoreClient`.
 mixin DemoThreads {
   /// Delay between streamed words.
   Duration get chatTick;

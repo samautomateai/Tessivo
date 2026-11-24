@@ -36,16 +36,12 @@ Future<void> startTray(TrayController tray) async {
   }
 }
 
-/// Connects to the core (reusing or starting `tess serve`); falls back to
-/// demo data when it cannot.
+/// Connects to the core (reusing or starting `tess serve`). It never falls
+/// back to sample data: a failure reaches the caller.
 Future<CoreClient> connectCore(Future<Endpoint?> Function() connect) async {
-  try {
-    final ep = await connect();
-    if (ep != null) return HttpCoreClient(ep);
-  } on Object catch (e) {
-    debugPrint('Tessivo core not available ($e); using demo data');
-  }
-  return DemoCoreClient();
+  final ep = await connect();
+  if (ep == null) throw const CoreStartException('the Tessivo core did not start');
+  return HttpCoreClient(ep);
 }
 
 class TessivoApp extends StatelessWidget {

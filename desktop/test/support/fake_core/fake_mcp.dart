@@ -1,7 +1,7 @@
-import 'errors.dart';
-import 'mcp_models.dart';
+import 'package:tessivo_desktop/src/core/errors.dart';
+import 'package:tessivo_desktop/src/core/mcp_models.dart';
 
-/// In-memory MCP servers for the demo core. Mixed into `DemoCoreClient`,
+/// In-memory MCP servers for the demo core. Mixed into `FakeCoreClient`,
 /// which also attaches them to notebooks.
 mixin DemoMcp {
   final List<McpServer> demoMcpServers = [

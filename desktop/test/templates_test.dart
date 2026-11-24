@@ -5,11 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
-import 'package:tessivo_desktop/src/core/demo_templates.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 
+import 'support/fake_core/fake_core.dart';
+import 'support/fake_core/fake_templates.dart';
 import 'support/real_http.dart';
 
 const token = 'secret-token';
@@ -78,7 +78,7 @@ Future<AppState> pumpTemplates(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final state = AppState(DemoCoreClient(tick: Duration.zero));
+  final state = AppState(FakeCoreClient(tick: Duration.zero));
   await tester.pumpWidget(TessivoApp(state: state));
   await state.load();
   state.go(Section.templates);
@@ -142,7 +142,7 @@ void main() {
   });
 
   test('demo core guards template operations', () async {
-    final core = DemoCoreClient(tick: Duration.zero);
+    final core = FakeCoreClient(tick: Duration.zero);
     expect(() => core.createFromTemplate('missing'), throwsStateError);
     expect(() => core.saveAsTemplate('missing', name: 'x'), throwsStateError);
     expect(() => core.saveAsTemplate('nb-1', name: '!!!'), throwsFormatException);

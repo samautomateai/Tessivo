@@ -1,5 +1,5 @@
-import 'errors.dart';
-import 'models.dart';
+import 'package:tessivo_desktop/src/core/errors.dart';
+import 'package:tessivo_desktop/src/core/models.dart';
 
 /// In-memory saved prompts for the demo core, per notebook.
 mixin DemoPrompts {

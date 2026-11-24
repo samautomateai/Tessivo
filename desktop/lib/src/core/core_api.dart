@@ -9,7 +9,7 @@ import 'research_models.dart';
 import 'thread_models.dart';
 
 /// The desktop app's view of the Go core. `HttpCoreClient` talks to the local
-/// API (docs/api.md); [DemoCoreClient] serves sample data when no core runs.
+/// API (docs/api.md). Tests use a fake (test/support/fake_core).
 abstract interface class CoreClient {
   Future<List<WorkType>> listWorkTypes();
   Future<List<Notebook>> listNotebooks();

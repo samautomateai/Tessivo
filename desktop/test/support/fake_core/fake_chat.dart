@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'chat_models.dart';
-import 'checks.dart';
-import 'errors.dart';
-import 'models.dart';
+import 'package:tessivo_desktop/src/core/chat_models.dart';
+import 'package:tessivo_desktop/src/core/checks.dart';
+import 'package:tessivo_desktop/src/core/errors.dart';
+import 'package:tessivo_desktop/src/core/models.dart';
 
 /// In-memory chat for the demo core: sessions, streamed sample replies, memory,
-/// "make repeatable" and saving replies. Mixed into `DemoCoreClient`.
+/// "make repeatable" and saving replies. Mixed into `FakeCoreClient`.
 mixin DemoChat {
   final Map<String, Completer<bool>> _toolAnswers = {};
 

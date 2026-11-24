@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 
+import 'support/fake_core/fake_core.dart';
 import 'support/real_http.dart';
 
 const _token = 'secret-token';
@@ -163,7 +163,7 @@ void main() {
   });
 
   test('demo core: thread, suggestions and a new version', () async {
-    final core = DemoCoreClient(tick: Duration.zero);
+    final core = FakeCoreClient(tick: Duration.zero);
     final outs = await core.listOutputs(notebookId: 'nb-1');
     final first = outs.firstWhere((o) => o.version == 1);
     final thread = await core.getThread('nb-1', first.id);

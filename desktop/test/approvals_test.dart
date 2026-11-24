@@ -5,14 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 
+import 'support/fake_core/fake_core.dart';
 import 'support/real_http.dart';
 
 /// Records answers and can pause a run, on top of the demo core.
-class RecordingCore extends DemoCoreClient {
+class RecordingCore extends FakeCoreClient {
   RecordingCore() : super(tick: Duration.zero);
 
   final answers = <String>[];

@@ -1,8 +1,8 @@
-import 'errors.dart';
-import 'json_mapping.dart';
-import 'model_check.dart';
-import 'models.dart';
-import 'prompt_library.dart';
+import 'package:tessivo_desktop/src/core/errors.dart';
+import 'package:tessivo_desktop/src/core/json_mapping.dart';
+import 'package:tessivo_desktop/src/core/model_check.dart';
+import 'package:tessivo_desktop/src/core/models.dart';
+import 'package:tessivo_desktop/src/core/prompt_library.dart';
 
 /// Demo settings as the core's JSON, editable, plus which API keys are set.
 mixin DemoSettings {
@@ -82,3 +82,26 @@ mixin DemoSettings {
 
   Future<void> deleteSecret(String ref) async => _keys.remove(ref);
 }
+
+// Moved from lib: a few library entries for the fake core.
+/// A few entries of the library, for the demo client.
+const demoLibrary = [
+  LibraryPrompt(
+    id: 'change-risk',
+    name: 'Change risk review',
+    workType: 'analyze',
+    text: 'Review the change in the context. What could break, for whom, and how likely is it?',
+  ),
+  LibraryPrompt(
+    id: 'action-items',
+    name: 'Extract action items',
+    workType: 'summarize',
+    text: 'List every action item in the context: what has to be done, by whom and by when, as stated.',
+  ),
+  LibraryPrompt(
+    id: 'status-report',
+    name: 'Status report',
+    workType: 'report',
+    text: 'Write a status report from the context: done, in progress, blocked and next.',
+  ),
+];

@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 
-class _FailingCore extends DemoCoreClient {
+import 'support/fake_core/fake_core.dart';
+
+class _FailingCore extends FakeCoreClient {
   @override
   Stream<RunEvent> startRun({
     required String notebookId,
@@ -17,14 +18,14 @@ class _FailingCore extends DemoCoreClient {
   }
 }
 
-class _EmptyCore extends DemoCoreClient {
+class _EmptyCore extends FakeCoreClient {
   @override
   Future<List<Notebook>> listNotebooks() async => const [];
 }
 
 void main() {
   test('demo core lists work types and notebooks', () async {
-    final core = DemoCoreClient(tick: Duration.zero);
+    final core = FakeCoreClient(tick: Duration.zero);
     expect(await core.listWorkTypes(), hasLength(4));
     expect(await core.listNotebooks(), hasLength(4));
     expect(await core.listOutputs(workType: WorkTypeId.summarize), hasLength(1));

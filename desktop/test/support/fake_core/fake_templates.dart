@@ -1,4 +1,4 @@
-import 'models.dart';
+import 'package:tessivo_desktop/src/core/models.dart';
 
 /// Sample of the core's built-in templates for the demo client.
 const demoTemplates = <TemplateInfo>[

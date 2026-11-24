@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tessivo_desktop/main.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/settings_draft.dart';
 import 'package:tessivo_desktop/src/tray.dart';
+
+import 'support/fake_core/fake_core.dart';
 
 class FakeWindow implements DesktopWindow {
   final calls = <String>[];
@@ -79,7 +80,7 @@ class BrokenWindow extends FakeWindow {
 
 void mainHelperTests() {
   test('closeToTray reads the core settings; startTray survives a missing tray', () async {
-    final core = DemoCoreClient(tick: Duration.zero);
+    final core = FakeCoreClient(tick: Duration.zero);
     expect(await closeToTray(core), isFalse);
     await core.updateSettings({
       'desktop': {'close_to_tray': true},

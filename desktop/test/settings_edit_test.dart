@@ -5,17 +5,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/settings_draft.dart';
 
+import 'support/fake_core/fake_core.dart';
 import 'support/real_http.dart';
 
-Future<(AppState, DemoCoreClient)> _pump(WidgetTester tester, {bool keySet = true}) async {
+Future<(AppState, FakeCoreClient)> _pump(WidgetTester tester, {bool keySet = true}) async {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final core = DemoCoreClient(tick: Duration.zero);
+  final core = FakeCoreClient(tick: Duration.zero);
   if (!keySet) await core.deleteSecret('TESSIVO_LITELLM_KEY');
   final state = AppState(core);
   await tester.pumpWidget(TessivoApp(state: state));

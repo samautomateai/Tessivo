@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tessivo_desktop/main.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 import 'package:tessivo_desktop/src/core/supervisor.dart';
@@ -191,9 +190,9 @@ void main() {
       expect(defaultEndpointPath({'APPDATA': r'C:\A'}, os: 'windows'), r'C:\A\tessivo\run\endpoint.json');
     });
 
-    test('connectCore falls back to demo data', () async {
-      expect(await connectCore(() async => null), isA<DemoCoreClient>());
-      expect(await connectCore(() async => throw const CoreStartException('no tess')), isA<DemoCoreClient>());
+    test('connectCore never falls back to sample data', () async {
+      expect(connectCore(() async => null), throwsA(isA<CoreStartException>()));
+      expect(connectCore(() async => throw const CoreStartException('no tess')), throwsA(isA<CoreStartException>()));
       final real = await connectCore(() async => const Endpoint(network: 'tcp', address: '127.0.0.1:1', token: 't'));
       expect(real, isA<HttpCoreClient>());
       (real as HttpCoreClient).close();

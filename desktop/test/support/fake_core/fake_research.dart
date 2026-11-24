@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'chat_models.dart';
-import 'errors.dart';
-import 'research_models.dart';
+import 'package:tessivo_desktop/src/core/chat_models.dart';
+import 'package:tessivo_desktop/src/core/errors.dart';
+import 'package:tessivo_desktop/src/core/research_models.dart';
 
 /// In-memory research notebooks for the demo core. Summaries are ready as
 /// soon as a source is added; answers cite the first source in context.

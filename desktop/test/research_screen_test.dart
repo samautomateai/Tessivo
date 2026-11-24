@@ -2,15 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 import 'package:tessivo_desktop/src/research_state.dart';
 
-Future<AppState> _pump(WidgetTester tester, {double width = 1600, DemoCoreClient? core}) async {
+import 'support/fake_core/fake_core.dart';
+
+Future<AppState> _pump(WidgetTester tester, {double width = 1600, FakeCoreClient? core}) async {
   tester.view.physicalSize = Size(width, 1000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final state = AppState(core ?? DemoCoreClient(tick: Duration.zero));
+  final state = AppState(core ?? FakeCoreClient(tick: Duration.zero));
   await tester.pumpWidget(TessivoApp(state: state));
   await state.load();
   await tester.pumpAndSettle();
@@ -143,7 +144,7 @@ void main() {
   });
 
   testWidgets('a failed summary event becomes a notice, others reload quietly', (tester) async {
-    final core = DemoCoreClient(tick: Duration.zero);
+    final core = FakeCoreClient(tick: Duration.zero);
     final state = await _pump(tester, core: core);
     state.listenForEvents();
     await _openBoard(tester);

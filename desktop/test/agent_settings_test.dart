@@ -2,14 +2,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/settings_draft.dart';
 
-Future<DemoCoreClient> _open(WidgetTester tester) async {
+import 'support/fake_core/fake_core.dart';
+
+Future<FakeCoreClient> _open(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final core = DemoCoreClient(tick: Duration.zero);
+  final core = FakeCoreClient(tick: Duration.zero);
   final state = AppState(core);
   await tester.pumpWidget(TessivoApp(state: state));
   await state.load();

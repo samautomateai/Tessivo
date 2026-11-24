@@ -5,9 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 
+import 'support/fake_core/fake_core.dart';
 import 'support/real_http.dart';
 
 void main() {
@@ -15,7 +15,7 @@ void main() {
     tester.view.physicalSize = const Size(1600, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    final core = DemoCoreClient(tick: Duration.zero);
+    final core = FakeCoreClient(tick: Duration.zero);
     final state = AppState(core);
     await tester.pumpWidget(TessivoApp(state: state));
     await state.load();
@@ -32,7 +32,7 @@ void main() {
   });
 
   test('demo checks: offline models fail, unknown names are refused', () async {
-    final core = DemoCoreClient(tick: Duration.zero);
+    final core = FakeCoreClient(tick: Duration.zero);
     final got = await core.testModel('lab/offline-model');
     expect((got.single.ok, got.single.error), (false, 'connection refused'));
     expect(() => core.testModel('nope'), throwsA(isA<CoreException>()));

@@ -3,15 +3,16 @@ import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
 import 'package:tessivo_desktop/src/chat_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 import 'package:tessivo_desktop/src/widgets/chat_widgets.dart';
+
+import 'support/fake_core/fake_core.dart';
 
 Future<AppState> pumpChat(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final state = AppState(DemoCoreClient(tick: Duration.zero));
+  final state = AppState(FakeCoreClient(tick: Duration.zero));
   await tester.pumpWidget(TessivoApp(state: state));
   await state.load();
   await tester.pumpAndSettle();
@@ -29,7 +30,7 @@ Future<void> answer(WidgetTester tester, String value) async {
 void main() {
   group('chat state', () {
     test('loads, sends and reloads the stored turns', () async {
-      final chat = ChatState(DemoCoreClient(tick: Duration.zero));
+      final chat = ChatState(FakeCoreClient(tick: Duration.zero));
       await chat.load();
       expect(chat.sessions.first.pinned, isTrue);
       expect(chat.memory, isNotEmpty);
@@ -43,7 +44,7 @@ void main() {
     });
 
     test('stop keeps the partial reply and marks it stopped', () async {
-      final chat = ChatState(DemoCoreClient(tick: const Duration(milliseconds: 5)));
+      final chat = ChatState(FakeCoreClient(tick: const Duration(milliseconds: 5)));
       await chat.newChat();
       final sending = chat.send('Explain the architecture');
       while (chat.streaming.isEmpty) {
@@ -60,7 +61,7 @@ void main() {
     });
 
     test('attachments, filters, updates, plan and errors', () async {
-      final chat = ChatState(DemoCoreClient(tick: Duration.zero));
+      final chat = ChatState(FakeCoreClient(tick: Duration.zero));
       await chat.load();
       await chat.select('c-1');
       const a = ChatAttachment(kind: 'path', ref: '/srv/repo');
@@ -260,7 +261,7 @@ void main() {
   });
 }
 
-class _FailingChat extends DemoCoreClient {
+class _FailingChat extends FakeCoreClient {
   _FailingChat() : super(tick: Duration.zero);
 
   @override

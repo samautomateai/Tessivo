@@ -2,15 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 import 'package:tessivo_desktop/src/theme.dart';
+
+import 'support/fake_core/fake_core.dart';
 
 Future<AppState> pumpApp(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1600, 1000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final state = AppState(DemoCoreClient(tick: Duration.zero));
+  final state = AppState(FakeCoreClient(tick: Duration.zero));
   await tester.pumpWidget(TessivoApp(state: state));
   expect(find.byType(CircularProgressIndicator), findsOneWidget);
   await state.load();

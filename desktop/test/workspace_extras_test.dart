@@ -5,10 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 
+import 'support/fake_core/fake_core.dart';
 import 'support/real_http.dart';
 
 const token = 'secret-token';
@@ -93,7 +93,7 @@ Future<AppState> pumpWorkspace(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1600, 1400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final state = AppState(DemoCoreClient(tick: Duration.zero));
+  final state = AppState(FakeCoreClient(tick: Duration.zero));
   await tester.pumpWidget(TessivoApp(state: state));
   await state.load();
   await tester.pumpAndSettle();
@@ -179,7 +179,7 @@ void main() {
   });
 
   test('demo core covers the new calls', () async {
-    final core = DemoCoreClient(tick: Duration.zero);
+    final core = FakeCoreClient(tick: Duration.zero);
     expect(() => core.getNotebook('missing'), throwsStateError);
     expect(() => core.getOutput('nb-2', 'o1'), throwsStateError);
     expect((await core.getOutput('nb-1', 'o1')).markdown, startsWith('# PR #482'));
@@ -262,7 +262,7 @@ void main() {
   });
 }
 
-class _RejectingCore extends DemoCoreClient {
+class _RejectingCore extends FakeCoreClient {
   @override
   Future<Notebook> getNotebook(String notebookId) => throw StateError('offline');
 

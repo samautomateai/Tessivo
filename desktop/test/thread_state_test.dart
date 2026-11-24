@@ -1,15 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/thread_state.dart';
 
+import 'support/fake_core/fake_core.dart';
+
 void main() {
-  late DemoCoreClient core;
+  late FakeCoreClient core;
   late List<String> errors;
   late int applied;
   late ThreadState t;
 
   setUp(() async {
-    core = DemoCoreClient(tick: Duration.zero);
+    core = FakeCoreClient(tick: Duration.zero);
     errors = [];
     applied = 0;
     t = ThreadState(core, 'nb-1', 'o1', onError: errors.add, onApplied: () async => applied++);
@@ -71,7 +72,7 @@ void main() {
 }
 
 /// Applying creates a new saved prompt, as the core does for ad-hoc runs.
-class _CreatingCore extends DemoCoreClient {
+class _CreatingCore extends FakeCoreClient {
   _CreatingCore() : super(tick: Duration.zero);
 
   @override

@@ -6,10 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
-import 'package:tessivo_desktop/src/core/core_client.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 
+import 'support/fake_core/fake_core.dart';
 import 'support/real_http.dart';
 
 const token = 'secret-token';
@@ -72,7 +72,7 @@ Future<AppState> pumpSchedules(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1600, 1000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final state = AppState(DemoCoreClient(tick: Duration.zero));
+  final state = AppState(FakeCoreClient(tick: Duration.zero));
   await tester.pumpWidget(TessivoApp(state: state));
   await state.load();
   state.select('nb-4');
@@ -159,7 +159,7 @@ void main() {
 
   testWidgets('core events show a dismissible banner', (tester) async {
     final state = await pumpSchedules(tester);
-    final core = state.core as DemoCoreClient;
+    final core = state.core as FakeCoreClient;
     state.listenForEvents();
     core.emit(const CoreEvent(kind: 'schedule.started', notebookName: 'Ops'));
     core.emit(const CoreEvent(kind: 'schedule.finished', notebookName: 'Ops', title: 'Weekly'));
@@ -186,7 +186,7 @@ void main() {
   });
 }
 
-class _EndingCore extends DemoCoreClient {
+class _EndingCore extends FakeCoreClient {
   int subscriptions = 0;
 
   @override
