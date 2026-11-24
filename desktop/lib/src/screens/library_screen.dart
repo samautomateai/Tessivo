@@ -2,10 +2,19 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/core_client.dart';
 import '../core/models.dart';
-import '../theme.dart';
-import '../widgets/work_type_badge.dart';
+import '../design/colors.dart';
+import '../design/components/buttons.dart';
+import '../design/components/empty_state.dart';
+import '../design/components/headers.dart';
+import '../design/components/tags.dart';
+import '../design/components/tile.dart';
+import '../design/icons.dart';
+import '../design/sizes.dart';
+import '../design/type.dart';
+import '../widgets/markdown_view.dart';
 
-/// Outputs library filtered by work type.
+/// Every saved output, filtered by work type, as tiles; the picked one opens
+/// in the detail panel.
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key, required this.core});
 
@@ -18,6 +27,8 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   WorkTypeId? _filter;
   late Future<List<OutputSummary>> _outputs = widget.core.listOutputs();
+  OutputSummary? _open;
+  Future<OutputDetail>? _detail;
 
   void _setFilter(WorkTypeId? f) {
     setState(() {
@@ -26,89 +37,144 @@ class _LibraryScreenState extends State<LibraryScreen> {
     });
   }
 
+  void _show(OutputSummary o) {
+    if (o.notebookId.isEmpty) return;
+    final detail = widget.core.getOutput(o.notebookId, o.id);
+    detail.ignore(); // the panel's FutureBuilder shows any error; don't report it as unhandled first
+    setState(() {
+      _open = o;
+      _detail = detail;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text(
-          'Outputs library',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          children: [
-            ChoiceChip(
-              key: const Key('filter-all'),
-              label: const Text('All'),
-              selected: _filter == null,
-              onSelected: (_) => _setFilter(null),
+    final c = TvColors.of(context);
+    final open = _open;
+    return ColoredBox(
+      color: c.background,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const TvPageHeader(title: 'Outputs'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(TvSpace.s24, TvSpace.s12, TvSpace.s24, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: WorkTypeFilter(keyPrefix: 'filter', value: _filter, onChanged: _setFilter),
             ),
-            for (final t in WorkTypeId.values)
-              ChoiceChip(
-                key: Key('filter-${t.name}'),
-                label: Text(workTypeLabel(t)),
-                selected: _filter == t,
-                onSelected: (_) => _setFilter(t),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        FutureBuilder<List<OutputSummary>>(
-          future: _outputs,
-          builder: (context, snap) {
-            if (!snap.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final items = snap.data!;
-            if (items.isEmpty) {
-              return const Text('No outputs yet.');
-            }
-            return Card(child: Column(children: [for (final o in items) _row(o)]));
-          },
-        ),
-      ],
+          ),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: FutureBuilder<List<OutputSummary>>(
+                    future: _outputs,
+                    builder: (context, snap) {
+                      if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+                      final items = snap.data!;
+                      if (items.isEmpty) {
+                        return const TvEmptyState(
+                          icon: TvIcon.document,
+                          title: 'No outputs yet.',
+                          message: 'Every run of a notebook saves its output here.',
+                        );
+                      }
+                      return ListView(
+                        padding: const EdgeInsets.all(TvSpace.s24),
+                        children: [
+                          Wrap(
+                            spacing: TvSpace.s16,
+                            runSpacing: TvSpace.s16,
+                            children: [for (final o in items) _tile(c, o)],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                if (open != null) _panel(c, open),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _row(OutputSummary o) => ListTile(
+  Widget _tile(TvColors c, OutputSummary o) => TvTile(
     key: Key('output-${o.id}'),
-    title: Text(o.title),
-    subtitle: Text('${o.notebookName} · ${o.trigger} · ${o.createdAt}'),
-    leading: WorkTypeBadge(workType: o.workType),
-    trailing: Text('v${o.version}', style: const TextStyle(color: Tokens.textMuted)),
-    onTap: o.notebookId.isEmpty ? null : () => showOutput(context, widget.core, o),
-  );
-}
-
-/// Opens a saved output as selectable Markdown source.
-Future<void> showOutput(BuildContext context, CoreClient core, OutputSummary o) {
-  final detail = core.getOutput(o.notebookId, o.id);
-  detail.ignore(); // the dialog's FutureBuilder shows any error; don't report it as unhandled first
-  return showDialog<void>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(o.title),
-      content: SizedBox(
-        width: 720,
-        height: 520,
-        child: FutureBuilder<OutputDetail>(
-          future: detail,
-          builder: (context, snap) {
-            if (snap.hasError) return Text('Could not open this output: ${snap.error}');
-            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-            return SingleChildScrollView(
-              child: SelectableText(
-                snap.data!.markdown,
-                key: const Key('output-markdown'),
-                style: const TextStyle(fontFamily: 'monospace', height: 1.4),
-              ),
-            );
-          },
+    selected: _open?.id == o.id,
+    onTap: o.notebookId.isEmpty ? null : () => _show(o),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            WorkTypeTag(o.workType),
+            const Spacer(),
+            Text('v${o.version}', style: TvType.helper.copyWith(color: c.textHelper)),
+          ],
         ),
-      ),
-      actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+        const SizedBox(height: TvSpace.s12),
+        Text(
+          o.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TvType.heading01.copyWith(color: c.textPrimary),
+        ),
+        const SizedBox(height: TvSpace.s4),
+        Text(
+          '${o.notebookName} · ${o.trigger} · ${o.createdAt}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TvType.helper.copyWith(color: c.textHelper),
+        ),
+      ],
+    ),
+  );
+
+  Widget _panel(TvColors c, OutputSummary o) => Container(
+    key: const Key('output-detail'),
+    width: 420,
+    decoration: BoxDecoration(
+      color: c.layer01,
+      border: Border(left: BorderSide(color: c.borderSubtle)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TvPanelHeader(
+          o.title,
+          actions: [
+            TvIconButton(
+              TvIcon.close,
+              key: const Key('output-detail-close'),
+              tooltip: 'Close',
+              onPressed: () => setState(() => _open = null),
+            ),
+          ],
+        ),
+        Expanded(
+          child: FutureBuilder<OutputDetail>(
+            future: _detail,
+            builder: (context, snap) {
+              if (snap.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(TvSpace.s16),
+                  child: Text('Could not open this output: ${snap.error}', style: TvType.body.copyWith(color: c.error)),
+                );
+              }
+              if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(TvSpace.s16),
+                child: KeyedSubtree(key: const Key('output-markdown'), child: MarkdownView(snap.data!.markdown)),
+              );
+            },
+          ),
+        ),
+      ],
     ),
   );
 }

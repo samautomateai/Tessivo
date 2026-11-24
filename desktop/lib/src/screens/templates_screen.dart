@@ -4,9 +4,17 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
 import '../core/models.dart';
-import '../theme.dart';
+import '../design/colors.dart';
+import '../design/components/buttons.dart';
+import '../design/components/empty_state.dart';
+import '../design/components/headers.dart';
+import '../design/components/notices.dart';
+import '../design/components/tags.dart';
+import '../design/components/tile.dart';
+import '../design/icons.dart';
+import '../design/sizes.dart';
+import '../design/type.dart';
 import '../widgets/text_prompt_dialog.dart';
-import '../widgets/work_type_badge.dart';
 
 /// Template gallery: browse built-in and user templates, start a notebook from
 /// one, save the selected notebook as a template, and remove user templates.
@@ -24,6 +32,9 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
   List<TemplateInfo> _items = const [];
   String? _error;
   int _request = 0;
+
+  /// The template shown in the detail panel.
+  String? _open;
 
   @override
   void initState() {
@@ -74,122 +85,243 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
+    final c = TvColors.of(context);
     final nb = widget.state.selected;
-    return ListView(
-      padding: const EdgeInsets.all(28),
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text('Templates', style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
+    final open = _items.where((t) => t.id == _open).firstOrNull;
+    return ColoredBox(
+      color: c.background,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LayoutBuilder(
+            builder: (context, box) => TvPageHeader(
+              title: 'Templates',
+              actions: [
+                TvToolButton(
+                  nb == null ? 'Save notebook as template' : 'Save "${nb.name}" as template',
+                  key: const Key('save-as-template'),
+                  icon: TvIcon.templates,
+                  compact: box.maxWidth < 640,
+                  onPressed: nb == null ? null : () => unawaited(_save()),
+                ),
+              ],
             ),
-            OutlinedButton.icon(
-              key: const Key('save-as-template'),
-              onPressed: nb == null ? null : _save,
-              icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-              label: Text(nb == null ? 'Save notebook as template' : 'Save "${nb.name}" as template'),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(TvSpace.s24, TvSpace.s4, TvSpace.s24, TvSpace.s12),
+            child: Text(
+              'Templates carry prompts, context slots and memory. Never your files or secrets.',
+              style: TvType.helper.copyWith(color: c.textHelper),
             ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Templates carry prompts, context slots and memory. Never your files or secrets.',
-          style: TextStyle(color: Tokens.textMuted),
-        ),
-        const SizedBox(height: 16),
-        Wrap(spacing: 8, children: [_chip(null, 'All'), for (final w in WorkTypeId.values) _chip(w, workTypeLabel(w))]),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          Text(
-            _error!,
-            key: const Key('template-error'),
-            style: const TextStyle(color: Colors.red),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: TvSpace.s24),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: WorkTypeFilter(
+                keyPrefix: 'template-filter',
+                value: _filter,
+                onChanged: (w) {
+                  setState(() => _filter = w);
+                  unawaited(_reload());
+                },
+              ),
+            ),
+          ),
+          if (_error case final e?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(TvSpace.s24, TvSpace.s12, TvSpace.s24, 0),
+              child: TvInlineNotice(key: const Key('template-error'), kind: TvNoticeKind.error, title: e),
+            ),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _items.isEmpty
+                      ? const TvEmptyState(
+                          key: Key('no-templates'),
+                          icon: TvIcon.templates,
+                          title: 'No templates here yet',
+                          message: 'Save a notebook as a template to start others from it.',
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.all(TvSpace.s24),
+                          children: [
+                            Wrap(
+                              spacing: TvSpace.s16,
+                              runSpacing: TvSpace.s16,
+                              children: [
+                                for (final t in _items)
+                                  _TemplateTile(
+                                    template: t,
+                                    selected: t.id == _open,
+                                    onOpen: () => setState(() => _open = t.id == _open ? null : t.id),
+                                    onUse: () => unawaited(_use(t)),
+                                    onDelete: () => unawaited(_delete(t)),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                ),
+                if (open != null) _TemplateDetail(template: open, onUse: () => unawaited(_use(open))),
+              ],
+            ),
           ),
         ],
-        const SizedBox(height: 16),
-        if (_items.isEmpty) const Text('No templates for this work type yet.'),
-        Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: [for (final t in _items) _TemplateCard(template: t, onUse: _use, onDelete: _delete)],
-        ),
-      ],
+      ),
     );
   }
-
-  Widget _chip(WorkTypeId? w, String label) => ChoiceChip(
-    key: Key('template-filter-${w?.name ?? 'all'}'),
-    label: Text(label),
-    selected: _filter == w,
-    onSelected: (_) {
-      setState(() => _filter = w);
-      unawaited(_reload());
-    },
-  );
 }
 
-class _TemplateCard extends StatelessWidget {
-  const _TemplateCard({required this.template, required this.onUse, required this.onDelete});
+String _meta(TemplateInfo t) => [
+  '${t.prompts.length} prompt${t.prompts.length == 1 ? '' : 's'}',
+  if (t.scheduleCron != null) 'schedule ${t.scheduleCron}',
+  if (t.isUser) 'v${t.version}',
+  if (t.parent != null) 'extends ${t.parent}',
+].join(' · ');
+
+class _TemplateTile extends StatelessWidget {
+  const _TemplateTile({
+    required this.template,
+    required this.selected,
+    required this.onOpen,
+    required this.onUse,
+    required this.onDelete,
+  });
 
   final TemplateInfo template;
-  final void Function(TemplateInfo) onUse;
-  final void Function(TemplateInfo) onDelete;
+  final bool selected;
+  final VoidCallback onOpen;
+  final VoidCallback onUse;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final c = TvColors.of(context);
     final t = template;
-    final slots = t.slots.map((s) => s.required ? '${s.name}*' : s.name).join(', ');
-    final meta = [
-      '${t.prompts.length} prompt${t.prompts.length == 1 ? '' : 's'}',
-      if (t.scheduleCron != null) 'schedule ${t.scheduleCron}',
-      if (t.isUser) 'v${t.version}',
-      if (t.parent != null) 'extends ${t.parent}',
-    ].join(' · ');
-    return SizedBox(
-      width: 320,
-      child: Card(
-        key: Key('template-card-${t.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return TvTile(
+      key: Key('template-card-${t.id}'),
+      selected: selected,
+      onTap: onOpen,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  WorkTypeBadge(workType: t.workType),
-                  const Spacer(),
-                  Text(t.isUser ? 'Yours' : 'Built-in', style: const TextStyle(color: Tokens.textMuted, fontSize: 12)),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(t.name, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Text(t.description, maxLines: 3, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 8),
-              if (slots.isNotEmpty) Text('Context: $slots', style: const TextStyle(fontSize: 12)),
-              Text(meta, style: const TextStyle(color: Tokens.textMuted, fontSize: 12)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  FilledButton(
-                    key: Key('template-use-${t.id}'),
-                    onPressed: () => onUse(t),
-                    child: const Text('Use template'),
-                  ),
-                  const Spacer(),
-                  if (t.isUser)
-                    IconButton(
-                      key: Key('template-delete-${t.id}'),
-                      tooltip: 'Remove template',
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => onDelete(t),
-                    ),
-                ],
-              ),
+              WorkTypeTag(t.workType),
+              const Spacer(),
+              Text(t.isUser ? 'Yours' : 'Built-in', style: TvType.helper.copyWith(color: c.textHelper)),
             ],
           ),
-        ),
+          const SizedBox(height: TvSpace.s12),
+          Text(
+            t.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TvType.heading01.copyWith(color: c.textPrimary),
+          ),
+          const SizedBox(height: TvSpace.s4),
+          SizedBox(
+            height: 54,
+            child: Text(
+              t.description,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TvType.body.copyWith(color: c.textSecondary),
+            ),
+          ),
+          Text(
+            _meta(t),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TvType.helper.copyWith(color: c.textHelper),
+          ),
+          const SizedBox(height: TvSpace.s12),
+          Row(
+            children: [
+              TvButton('Use template', key: Key('template-use-${t.id}'), dense: true, onPressed: onUse),
+              const Spacer(),
+              if (t.isUser)
+                TvIconButton(
+                  TvIcon.close,
+                  key: Key('template-delete-${t.id}'),
+                  tooltip: 'Remove template',
+                  onPressed: onDelete,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What a template brings: its prompts, the context it asks for, and more.
+class _TemplateDetail extends StatelessWidget {
+  const _TemplateDetail({required this.template, required this.onUse});
+
+  final TemplateInfo template;
+  final VoidCallback onUse;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = TvColors.of(context);
+    final t = template;
+    final label = TvType.caption.copyWith(color: c.textSecondary);
+    final body = TvType.body.copyWith(color: c.textPrimary);
+    return Container(
+      key: const Key('template-detail'),
+      width: TvSize.panel,
+      decoration: BoxDecoration(
+        color: c.layer01,
+        border: Border(left: BorderSide(color: c.borderSubtle)),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.all(TvSpace.s16),
+        children: [
+          Align(alignment: Alignment.centerLeft, child: WorkTypeTag(t.workType)),
+          const SizedBox(height: TvSpace.s8),
+          Text(t.name, style: TvType.heading02.copyWith(color: c.textPrimary)),
+          const SizedBox(height: TvSpace.s8),
+          Text(t.description, style: TvType.body.copyWith(color: c.textSecondary)),
+          const SizedBox(height: TvSpace.s16),
+          Text('PROMPTS', style: label),
+          if (t.prompts.isEmpty) Text('—', style: body),
+          for (final p in t.prompts) Text(p, style: body),
+          const SizedBox(height: TvSpace.s16),
+          Text('CONTEXT IT ASKS FOR', style: label),
+          if (t.slots.isEmpty) Text('—', style: body),
+          for (final s in t.slots)
+            Padding(
+              padding: const EdgeInsets.only(top: TvSpace.s4),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(text: s.required ? '${s.name} (required)' : s.name, style: body),
+                    if (s.description.isNotEmpty)
+                      TextSpan(
+                        text: '\n${s.description}',
+                        style: TvType.helper.copyWith(color: c.textHelper),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: TvSpace.s16),
+          Text(_meta(t), style: TvType.helper.copyWith(color: c.textHelper)),
+          const SizedBox(height: TvSpace.s16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TvButton(
+              'Use template',
+              key: const Key('template-detail-use'),
+              kind: TvButtonKind.primary,
+              onPressed: onUse,
+            ),
+          ),
+        ],
       ),
     );
   }

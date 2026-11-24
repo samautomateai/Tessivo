@@ -249,7 +249,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('output-markdown')), findsOneWidget);
     expect(find.textContaining('Sample output from Weekly ops report'), findsOneWidget);
-    await tester.tap(find.text('Close'));
+    await tester.tap(find.byKey(const Key('output-detail-close')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('output-markdown')), findsNothing);
   });

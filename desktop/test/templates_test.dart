@@ -74,11 +74,11 @@ Future<(HttpServer, List<Map<String, Object?>>)> fakeTemplates() async {
   return (server, bodies);
 }
 
-Future<AppState> pumpTemplates(WidgetTester tester) async {
+Future<AppState> pumpTemplates(WidgetTester tester, {FakeCoreClient? core}) async {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final state = AppState(FakeCoreClient(tick: Duration.zero));
+  final state = AppState(core ?? FakeCoreClient(tick: Duration.zero));
   await tester.pumpWidget(TessivoApp(state: state));
   await state.load();
   state.go(Section.templates);
@@ -93,6 +93,7 @@ Future<void> nameDialog(WidgetTester tester, String name) async {
 }
 
 void main() {
+  emptyTemplatesTests();
   group('http client', () {
     late HttpServer server;
     late List<Map<String, Object?>> bodies;
@@ -153,7 +154,11 @@ void main() {
   testWidgets('gallery filters by work type', (tester) async {
     await pumpTemplates(tester);
     expect(find.byKey(const Key('template-card-weekly-ops-report')), findsOneWidget);
-    expect(find.text('Context: Tickets*, Previous report'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('template-card-weekly-ops-report')));
+    await tester.pumpAndSettle();
+    final detail = find.byKey(const Key('template-detail'));
+    expect(find.descendant(of: detail, matching: find.textContaining('Tickets (required)')), findsOneWidget);
+    expect(find.descendant(of: detail, matching: find.textContaining('Previous report')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('template-filter-summarize')));
     await tester.pumpAndSettle();
@@ -214,4 +219,18 @@ void main() {
     expect(state.section, Section.templates);
     expect(find.byKey(const Key('template-card-change-risk-review')), findsOneWidget);
   });
+}
+
+void emptyTemplatesTests() {
+  testWidgets('with no templates the gallery says how to make one', (tester) async {
+    await pumpTemplates(tester, core: _NoTemplates());
+    expect(find.byKey(const Key('no-templates')), findsOneWidget);
+  });
+}
+
+class _NoTemplates extends FakeCoreClient {
+  _NoTemplates() : super(tick: Duration.zero);
+
+  @override
+  Future<List<TemplateInfo>> listTemplates({WorkTypeId? workType}) async => const [];
 }

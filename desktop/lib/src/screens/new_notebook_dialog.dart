@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../app_state.dart';
 import '../core/core_client.dart';
 import '../core/models.dart';
-import '../widgets/work_type_badge.dart';
+import '../design/components/tags.dart';
 
 /// Step 1 of creating a notebook: pick a work type and name it.
 Future<void> showNewNotebookDialog(BuildContext context, AppState state, {bool research = false}) {
@@ -143,11 +143,7 @@ class _NewNotebookDialogState extends State<NewNotebookDialog> {
               padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  WorkTypeBadge(workType: w.id),
-                  const SizedBox(height: 8),
-                  Text(w.question),
-                ],
+                children: [WorkTypeTag(w.id), const SizedBox(height: 8), Text(w.question)],
               ),
             ),
           ),
