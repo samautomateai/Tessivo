@@ -2,7 +2,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/models.dart';
 import '../core/settings_draft.dart';
-import '../theme.dart';
+import '../design/colors.dart';
+import '../design/type.dart';
 
 /// Run defaults and token limits, edited in place and saved together.
 class DefaultsEditor extends StatefulWidget {
@@ -120,14 +121,15 @@ class _DefaultsEditorState extends State<DefaultsEditor> {
               children: [
                 FilledButton(key: const Key('save-defaults'), onPressed: _save, child: const Text('Save')),
                 const SizedBox(width: 12),
-                if (_status != null) Text(_status!, style: const TextStyle(color: Tokens.textMuted)),
+                if (_status != null)
+                  Text(_status!, style: TvType.helper.copyWith(color: TvColors.of(context).textHelper)),
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Overridden by: notebook › work type › prompt › single run. A limit of 0 or empty means none; '
               'a warning comes at 80% of the daily limit.',
-              style: TextStyle(color: Tokens.textMuted),
+              style: TvType.helper.copyWith(color: TvColors.of(context).textHelper),
             ),
           ],
         ),

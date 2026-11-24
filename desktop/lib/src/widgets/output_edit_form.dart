@@ -5,9 +5,10 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
 import '../core/core_client.dart';
+import '../design/colors.dart';
 import '../design/components/buttons.dart';
 import '../design/icons.dart';
-import '../theme.dart';
+import '../design/type.dart';
 
 /// "Edit": change the open output's fields in a form and save them as a new
 /// version, without running the model again.
@@ -131,9 +132,9 @@ class _OutputEditDialogState extends State<OutputEditDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Saved as a new version; the model is not called. Lists take one item per line.',
-              style: TextStyle(color: Tokens.textMuted),
+              style: TvType.helper.copyWith(color: TvColors.of(context).textHelper),
             ),
             const SizedBox(height: 12),
             for (final MapEntry(:key, value: c) in _fields.entries)
@@ -144,7 +145,7 @@ class _OutputEditDialogState extends State<OutputEditDialog> {
                   controller: c,
                   minLines: 1,
                   maxLines: _kinds[key] == _Kind.text ? 6 : 10,
-                  style: _kinds[key] == _Kind.json ? const TextStyle(fontFamily: 'monospace', fontSize: 12) : null,
+                  style: _kinds[key] == _Kind.json ? TvType.code : null,
                   decoration: InputDecoration(
                     labelText: _label(key),
                     helperText: _kinds[key] == _Kind.json ? 'JSON' : null,

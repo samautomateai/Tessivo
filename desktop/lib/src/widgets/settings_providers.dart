@@ -262,6 +262,7 @@ class _AddProviderDialogState extends State<AddProviderDialog> {
           children: [
             DropdownButtonFormField<ProviderPreset>(
               key: const Key('provider-preset'),
+              isExpanded: true,
               initialValue: _preset,
               decoration: const InputDecoration(labelText: 'Provider'),
               items: [for (final p in providerPresets) DropdownMenuItem(value: p, child: Text(p.label))],

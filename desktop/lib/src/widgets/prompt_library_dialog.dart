@@ -1,7 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../core/core_client.dart';
-import '../theme.dart';
+import '../design/colors.dart';
+import '../design/type.dart';
 
 /// Picks a starter prompt: the notebook's work type first, the rest below.
 class PromptLibraryDialog extends StatelessWidget {
@@ -16,7 +17,7 @@ class PromptLibraryDialog extends StatelessWidget {
     key: Key('library-${p.id}'),
     title: Text(p.name),
     subtitle: Text(p.text, maxLines: 2, overflow: TextOverflow.ellipsis),
-    trailing: Text(p.workType, style: const TextStyle(color: Tokens.textMuted)),
+    trailing: Text(p.workType, style: TvType.helper.copyWith(color: TvColors.of(context).textHelper)),
     onTap: () => Navigator.of(context).pop(p),
   );
 

@@ -2,7 +2,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/models.dart';
 import '../core/settings_draft.dart';
-import '../theme.dart';
+import '../design/colors.dart';
+import '../design/type.dart';
 
 /// Agent-mode limits and the default rule for each tool, saved together.
 /// Notebooks and single runs can set stricter or extra rules of their own.
@@ -133,9 +134,9 @@ class _AgentEditorState extends State<AgentEditor> {
           ),
           const SizedBox(height: 16),
           Text('Tool rules', style: Theme.of(context).textTheme.labelLarge),
-          const Text(
+          Text(
             'Tools without a rule ask first. Notebook and run rules come before these.',
-            style: TextStyle(color: Tokens.textMuted),
+            style: TvType.helper.copyWith(color: TvColors.of(context).textHelper),
           ),
           for (var i = 0; i < _tools.length; i++) _toolRow(i),
           TextButton.icon(
@@ -150,7 +151,8 @@ class _AgentEditorState extends State<AgentEditor> {
             children: [
               FilledButton(key: const Key('agent-save'), onPressed: _save, child: const Text('Save')),
               const SizedBox(width: 12),
-              if (_status != null) Text(_status!, style: const TextStyle(color: Tokens.textMuted)),
+              if (_status != null)
+                Text(_status!, style: TvType.helper.copyWith(color: TvColors.of(context).textHelper)),
             ],
           ),
         ],

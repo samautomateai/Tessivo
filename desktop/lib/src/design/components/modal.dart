@@ -7,11 +7,12 @@ import 'buttons.dart';
 
 /// A button in a modal's footer; tapping it closes the modal with [value].
 class TvModalAction<T> {
-  const TvModalAction(this.label, {required this.value, this.kind = TvButtonKind.secondary});
+  const TvModalAction(this.label, {required this.value, this.kind = TvButtonKind.secondary, this.key});
 
   final String label;
   final T value;
   final TvButtonKind kind;
+  final Key? key;
 }
 
 /// A Carbon modal: title, body and right-aligned actions, 4 px corners.
@@ -71,7 +72,7 @@ class TvModal<T> extends StatelessWidget {
                 runSpacing: TvSpace.s8,
                 children: [
                   for (final a in actions)
-                    TvButton(a.label, kind: a.kind, onPressed: () => Navigator.of(context).pop(a.value)),
+                    TvButton(a.label, key: a.key, kind: a.kind, onPressed: () => Navigator.of(context).pop(a.value)),
                 ],
               ),
             ],

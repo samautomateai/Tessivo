@@ -6,7 +6,7 @@ import '../core/core_client.dart';
 import '../core/models.dart';
 import '../design/colors.dart';
 import '../design/type.dart';
-import '../theme.dart';
+import '../design/work_types.dart';
 import '../widgets/text_prompt_dialog.dart';
 
 /// Asks which work type to save a reply as, then saves it to the library.

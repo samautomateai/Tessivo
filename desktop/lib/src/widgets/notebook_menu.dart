@@ -4,6 +4,10 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
 import '../core/models.dart';
+import '../design/components/buttons.dart';
+import '../design/components/menu.dart';
+import '../design/components/modal.dart';
+import '../design/icons.dart';
 import 'text_prompt_dialog.dart';
 
 /// Rename, archive or restore, and delete for the open notebook.
@@ -19,47 +23,41 @@ class NotebookMenu extends StatelessWidget {
   }
 
   Future<void> _delete(BuildContext context) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Delete "${notebook.name}"?'),
-        content: const Text(
-          'This deletes the notebook folder with its sources, prompts, runs and outputs. It cannot be undone.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            key: const Key('confirm-delete'),
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
+    final ok = await showTvModal<bool>(
+      context,
+      title: 'Delete "${notebook.name}"?',
+      body: const Text(
+        'This deletes the notebook folder with its sources, prompts, runs and outputs. It cannot be undone.',
       ),
+      actions: const [
+        TvModalAction('Cancel', value: false, kind: TvButtonKind.ghost),
+        TvModalAction('Delete', value: true, kind: TvButtonKind.danger, key: Key('confirm-delete')),
+      ],
     );
     if (ok ?? false) await state.deleteNotebook(notebook.id);
   }
 
   @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      key: const Key('notebook-menu'),
-      tooltip: 'Notebook',
-      icon: const Icon(Icons.more_vert),
-      onSelected: (v) => unawaited(switch (v) {
-        'rename' => _rename(context),
-        'archive' => state.setArchived(notebook.id, true),
-        'restore' => state.setArchived(notebook.id, false),
-        _ => _delete(context),
-      }),
-      itemBuilder: (_) => [
-        const PopupMenuItem(key: Key('notebook-rename'), value: 'rename', child: Text('Rename…')),
-        if (notebook.archived)
-          const PopupMenuItem(key: Key('notebook-restore'), value: 'restore', child: Text('Restore from archive'))
-        else
-          const PopupMenuItem(key: Key('notebook-archive'), value: 'archive', child: Text('Archive')),
-        const PopupMenuItem(key: Key('notebook-delete'), value: 'delete', child: Text('Delete…')),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => TvMenuButton(
+    key: const Key('notebook-menu'),
+    label: 'Notebook actions',
+    icon: TvIcon.more,
+    compact: true,
+    items: [
+      TvMenuItem('Rename…', key: const Key('notebook-rename'), onSelected: () => unawaited(_rename(context))),
+      if (notebook.archived)
+        TvMenuItem(
+          'Restore from archive',
+          key: const Key('notebook-restore'),
+          onSelected: () => unawaited(state.setArchived(notebook.id, false)),
+        )
+      else
+        TvMenuItem(
+          'Archive',
+          key: const Key('notebook-archive'),
+          onSelected: () => unawaited(state.setArchived(notebook.id, true)),
+        ),
+      TvMenuItem('Delete…', key: const Key('notebook-delete'), onSelected: () => unawaited(_delete(context))),
+    ],
+  );
 }

@@ -4,7 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
+import '../design/colors.dart';
+import '../design/components/fields.dart';
+import '../design/components/rows.dart';
+import '../design/icons.dart';
+import '../design/sizes.dart';
 import '../design/theme.dart';
+import '../design/type.dart';
 import '../screens/new_notebook_dialog.dart';
 import 'search_box.dart';
 
@@ -123,26 +129,32 @@ class _PaletteState extends State<_Palette> {
 
   @override
   Widget build(BuildContext context) {
+    final c = TvColors.of(context);
     final matches = _matches;
     return Dialog(
       key: const Key('palette'),
       alignment: Alignment.topCenter,
       insetPadding: const EdgeInsets.only(top: 80, left: 24, right: 24),
       child: SizedBox(
-        width: 560,
+        width: 600,
         height: 420,
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(TvSpace.s8),
               child: TextField(
                 key: const Key('palette-input'),
                 controller: _query,
                 autofocus: true,
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  hintText: 'Type a command, a notebook or words to search',
-                  prefixIcon: Icon(Icons.keyboard_command_key),
+                style: TvType.body.copyWith(color: c.textPrimary),
+                cursorColor: c.interactive,
+                decoration: tvFieldDecoration(c, hint: 'Type a command, a notebook or words to search').copyWith(
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: TvSpace.s8),
+                    child: TvIconView(TvIcon.search, color: c.textSecondary),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 32),
                 ),
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) {
@@ -150,17 +162,17 @@ class _PaletteState extends State<_Palette> {
                 },
               ),
             ),
-            const Divider(height: 1),
             Expanded(
               child: ListView(
+                padding: const EdgeInsets.only(bottom: TvSpace.s8),
                 children: [
-                  for (final (i, c) in matches.indexed)
-                    ListTile(
+                  for (final (i, cmd) in matches.indexed)
+                    TvTreeRow(
                       key: Key('palette-$i'),
-                      dense: true,
+                      leading: const SizedBox.shrink(),
+                      label: cmd.label,
                       selected: i == 0,
-                      title: Text(c.label),
-                      onTap: () => Navigator.of(context).pop(c),
+                      onTap: () => Navigator.of(context).pop(cmd),
                     ),
                 ],
               ),

@@ -5,7 +5,7 @@ import 'package:tessivo_desktop/src/app_state.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 import 'package:tessivo_desktop/src/design/colors.dart';
 import 'package:tessivo_desktop/src/design/theme.dart' show tvTheme;
-import 'package:tessivo_desktop/src/theme.dart';
+import 'package:tessivo_desktop/src/design/work_types.dart';
 
 import 'support/fake_core/fake_core.dart';
 import 'support/notebook_tabs.dart';
@@ -130,7 +130,7 @@ void main() {
   test('theme and labels cover every work type', () {
     for (final t in WorkTypeId.values) {
       expect(workTypeLabel(t), isNotEmpty);
-      expect(colorsFor(t).dot, isNot(colorsFor(t).background));
+      expect(TvColors.dark.tag(t).dot, isNot(TvColors.dark.tag(t).background));
     }
     expect(tvTheme(TvColors.dark).brightness, Brightness.dark);
   });

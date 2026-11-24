@@ -133,7 +133,26 @@ ThemeData tvTheme(TvColors c) {
         side: BorderSide(color: c.borderSubtle),
       ),
     ),
-    dialogTheme: DialogThemeData(backgroundColor: c.layer01, shape: corners(TvRadius.medium)),
+    dialogTheme: DialogThemeData(
+      backgroundColor: c.layer01,
+      surfaceTintColor: c.layer01,
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(TvRadius.medium),
+        side: BorderSide(color: c.borderSubtle),
+      ),
+      titleTextStyle: t(TvType.heading02),
+      contentTextStyle: t(TvType.bodyLong, c.textSecondary),
+      actionsPadding: const EdgeInsets.fromLTRB(TvSpace.s16, 0, TvSpace.s16, TvSpace.s16),
+    ),
+    switchTheme: SwitchThemeData(
+      trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? c.success : c.layer02),
+      trackOutlineColor: WidgetStatePropertyAll(c.borderStrong),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: corners(TvRadius.small),
+      side: BorderSide(color: c.textPrimary),
+    ),
     popupMenuTheme: PopupMenuThemeData(color: c.layer01, shape: corners(TvRadius.medium)),
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(color: c.layer02, borderRadius: BorderRadius.circular(TvRadius.medium)),
