@@ -13,6 +13,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_svg: 2.3.2
   material_ui: ^1.11.0
   tray_manager: 0.5.3
   window_manager: 0.5.2
@@ -26,6 +27,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/tray/
+    - assets/icons/carbon/
   # IBM Plex (SIL Open Font License 1.1, assets/fonts/OFL.txt), the design system's type.
   fonts:
     - family: IBMPlexSans
