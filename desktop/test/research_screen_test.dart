@@ -31,6 +31,7 @@ Future<void> _tab(WidgetTester tester, String tab) async {
 }
 
 void main() {
+  researchZoomTests();
   testWidgets('with no research notebooks the page says how to start', (tester) async {
     final state = await _pump(tester);
     for (final r in [...state.research]) {
@@ -197,5 +198,19 @@ void main() {
     expect(fileSection(text, 'a.go'), 'package a');
     expect(fileSection(text, 'missing.go'), text);
     expect(fileSection('plain', null), 'plain');
+  });
+}
+
+void researchZoomTests() {
+  testWidgets('at 200 % zoom on a 1366×768 window no research tab overflows', (tester) async {
+    final state = await _pump(tester, width: 1366);
+    tester.view.physicalSize = const Size(1366, 768);
+    await _openBoard(tester);
+    await state.setZoom(2.0);
+    await tester.pumpAndSettle();
+    for (final tab in ['sources', 'chat', 'notes']) {
+      await _tab(tester, tab);
+      expect(tester.takeException(), isNull, reason: tab);
+    }
   });
 }

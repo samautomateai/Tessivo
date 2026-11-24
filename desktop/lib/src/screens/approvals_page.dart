@@ -138,11 +138,31 @@ class ApprovalsPage extends StatelessWidget {
                 : ListView(
                     padding: const EdgeInsets.fromLTRB(TvSpace.s24, TvSpace.s16, TvSpace.s24, TvSpace.s24),
                     children: [
-                      TvDataTable(
-                        key: const Key('approvals-table'),
-                        columns: const ['Run', 'Tool', 'Arguments', 'Waiting since', ''],
-                        flex: const [3, 3, 5, 2, 4],
-                        rows: [for (final a in list) _row(context, a, now)],
+                      LayoutBuilder(
+                        builder: (context, box) {
+                          // Narrow: the arguments move to the tool's tooltip and the time is left out.
+                          final wide = box.maxWidth >= 900;
+                          return TvDataTable(
+                            key: const Key('approvals-table'),
+                            columns: wide
+                                ? const ['Run', 'Tool', 'Arguments', 'Waiting since', '']
+                                : const ['Run', 'Tool', ''],
+                            flex: wide ? const [3, 3, 5, 2, 4] : const [3, 3, 5],
+                            rows: [
+                              for (final a in list)
+                                if (wide)
+                                  _row(context, a, now)
+                                else
+                                  [
+                                    ..._row(context, a, now)
+                                        .take(2)
+                                        .indexed
+                                        .map((e) => e.$1 == 1 ? Tooltip(message: a.args, child: e.$2) : e.$2),
+                                    _row(context, a, now).last,
+                                  ],
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),

@@ -100,7 +100,7 @@ void main() {
     await state.setZoom(2.0);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    for (final s in [Section.chat, Section.settings, Section.templates, Section.schedules]) {
+    for (final s in Section.values) {
       state.go(s);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: '$s');
