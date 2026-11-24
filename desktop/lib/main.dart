@@ -9,8 +9,9 @@ import 'src/core/core_client.dart';
 import 'src/core/http_core_client.dart';
 import 'src/core/settings_draft.dart';
 import 'src/core/supervisor.dart';
+import 'src/design/colors.dart';
+import 'src/design/theme.dart';
 import 'src/shell.dart';
-import 'src/theme.dart';
 import 'src/tray.dart';
 import 'src/tray_plugins.dart';
 
@@ -61,8 +62,10 @@ class TessivoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Tessivo',
       debugShowCheckedModeBanner: false,
-      theme: buildTheme(Brightness.light),
-      darkTheme: buildTheme(Brightness.dark),
+      theme: tvTheme(TvColors.light),
+      darkTheme: tvTheme(TvColors.dark),
+      highContrastTheme: tvTheme(TvColors.highContrast),
+      highContrastDarkTheme: tvTheme(TvColors.highContrast),
       home: AppShell(state: state),
     );
   }

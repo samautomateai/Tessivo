@@ -25,7 +25,9 @@ states. Theme, zoom and panel layout are saved in the core config's `desktop` bl
   13/20; label 11/16 600 uppercase (0.32); helper 12/16 (0.32); caption 10/12 500 (0.2); code Plex Mono 12/16.
 - Sizes: header 40, toolbar 38, tab bar 36, tree row 26, table row 36 (head 32), button 28 (dense 24), input 32,
   status bar 22, activity bar 64, side bar 236, secondary panel 290, reading width 760. Spacing 2/4/8/12/16/24/32/40/48.
-- Corners 0 except tags (9) and round avatars/dots; hairline borders instead of cards; focus outline 2 px interactive.
+- Corners (VS Code): `TvRadius.none` 0 (panels, rows, tabs, bars), `small` 2 (buttons, inputs, tags, tool blocks,
+  cards), `medium` 4 (menus, palette, dialogs, tooltips); round only avatars, dots, count badges. Hairline borders
+  instead of cards; focus outline 2 px interactive.
 - Motion 70 ms / 110 ms; none when `MediaQuery.disableAnimations`.
 - Colour values: spec section 6.1 (Dark Gray 100, Light White, High contrast), work-type tags as in 6.1.
 - Every icon button has a tooltip and semantic label; less-than-daily actions show a text label; activity bar labels.

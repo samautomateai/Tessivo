@@ -55,6 +55,7 @@ Direct third-party packages beyond the Flutter SDK and `material_ui`:
 | --- | --- |
 | tray_manager, window_manager, menu_base, screen_retriever (leanflutter) | MIT, <https://github.com/leanflutter/tray_manager/blob/main/LICENSE> |
 | shortid | BSD-3-Clause, <https://github.com/0xff00ff/shortid> |
+| IBM Plex Sans 1.1.0 and Plex Mono 2.5.0 (fonts, bundled in `desktop/assets/fonts/`) | SIL Open Font License 1.1, <https://github.com/IBM/plex/blob/master/LICENSE.txt> (copy in `OFL.txt`) |
 
 On Linux the tray uses the system library libayatana-appindicator3 (LGPL-2.1/3), linked dynamically and not shipped.
 

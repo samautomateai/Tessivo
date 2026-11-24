@@ -3,6 +3,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
+import 'package:tessivo_desktop/src/design/colors.dart';
+import 'package:tessivo_desktop/src/design/theme.dart' show tvTheme;
 import 'package:tessivo_desktop/src/theme.dart';
 
 import 'support/fake_core/fake_core.dart';
@@ -118,6 +120,6 @@ void main() {
       expect(workTypeLabel(t), isNotEmpty);
       expect(colorsFor(t).dot, isNot(colorsFor(t).background));
     }
-    expect(buildTheme(Brightness.dark).brightness, Brightness.dark);
+    expect(tvTheme(TvColors.dark).brightness, Brightness.dark);
   });
 }

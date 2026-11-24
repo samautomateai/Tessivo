@@ -2,8 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'core/models.dart';
 
-/// Design tokens from the Tessivo GUI design: graphite sidebar, light content,
-/// indigo accent, one colour per work type.
+/// Old design tokens, kept until every screen uses lib/src/design (then removed).
 abstract final class Tokens {
   static const accent = Color(0xFF3B5BDB);
   static const sidebar = Color(0xFF1E2129);
@@ -34,23 +33,3 @@ String workTypeLabel(WorkTypeId id) => switch (id) {
   WorkTypeId.document => 'Document',
   WorkTypeId.report => 'Report',
 };
-
-ThemeData buildTheme(Brightness brightness) {
-  final scheme = ColorScheme.fromSeed(seedColor: Tokens.accent, brightness: brightness);
-  final light = brightness == Brightness.light;
-  return ThemeData(
-    colorScheme: scheme,
-    useMaterial3: true,
-    scaffoldBackgroundColor: light ? Tokens.canvas : const Color(0xFF15171C),
-    dividerColor: light ? Tokens.border : const Color(0xFF2C303B),
-    cardTheme: CardThemeData(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: light ? Tokens.border : const Color(0xFF2C303B)),
-      ),
-    ),
-    visualDensity: VisualDensity.compact,
-  );
-}

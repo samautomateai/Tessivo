@@ -50,6 +50,7 @@ Flutter (`desktop/pubspec.yaml`):
 | --- | --- |
 | `material_ui` | Flutter's official Material library, moved out of the framework in Flutter 3.47 |
 | `tray_manager` 0.5.3, `window_manager` 0.5.2 (MIT, leanflutter; pull `menu_base`, `screen_retriever` (MIT) and `shortid` (BSD-3)) | System tray icon and menu, and keeping the window open on close, on Windows, macOS and Linux (ADR 0007). Both need native code per OS; the mature 0.5 lines are used, not the November 2026 rewrites on `nativeapi` |
+| IBM Plex Sans and Mono (fonts, OFL-1.1, bundled assets; not a package) | The design system's type (ADR 0009): Carbon's own typeface, bundled so the app looks the same on every OS instead of falling back to system fonts. About 950 KB |
 | `flutter_lints` (dev) | Official lint set for `flutter analyze` |
 
 State management uses the SDK's `ChangeNotifier`; no third-party state package.

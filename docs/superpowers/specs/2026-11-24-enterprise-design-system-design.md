@@ -156,7 +156,9 @@ Reading content (output documents, chat turns) is capped at 760 px wide.
 - Spacing scale (Carbon): 2, 4, 8, 12, 16, 24, 32, 40, 48. Page padding 24 (header) / 32 (content).
 - Heights: header 40, toolbar 38, tab bar 36, tree row 26, table row 36 (head 32), button 28 (24 in dense places),
   input 32, status bar 22.
-- Corners: 0 on everything rectangular (Carbon); tags 9 (pill); avatars and status dots round.
+- Corners (VS Code, user decision 2026-11-24: "not overly curved"): 0 for panels, rows, tabs and bars; 2 for
+  buttons, inputs, tags, tool-call blocks and cards; 4 for menus, the palette, dialogs and tooltips; round only for
+  avatars, status dots and count badges.
 - Borders: 1 px hairlines between regions instead of cards. Cards only where a thing is a unit the user acts on
   (tool-call block, approval, suggestion).
 - Elevation: none except menus, the palette and dialogs (one Carbon shadow).
