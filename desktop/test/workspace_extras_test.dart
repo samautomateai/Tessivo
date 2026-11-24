@@ -9,6 +9,7 @@ import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 
 import 'support/fake_core/fake_core.dart';
+import 'support/notebook_tabs.dart';
 import 'support/real_http.dart';
 
 const token = 'secret-token';
@@ -193,11 +194,13 @@ void main() {
     state.select('nb-2');
     await tester.pumpAndSettle();
 
+    await openTab(tester, 'sources');
     await tester.tap(find.byKey(const Key('context-add')));
     await tester.pumpAndSettle();
     await answer(tester, 'contracts');
     expect(find.textContaining('Use an absolute path'), findsOneWidget);
 
+    await openTab(tester, 'sources');
     await tester.tap(find.byKey(const Key('context-add')));
     await tester.pumpAndSettle();
     await answer(tester, '/Users/me/contracts');
@@ -207,14 +210,17 @@ void main() {
 
   testWidgets('memory facts can be added and forgotten', (tester) async {
     final state = await pumpWorkspace(tester);
-    expect(find.text('0/$maxMemoryItems'), findsOneWidget);
+    await openTab(tester, 'memory');
+    expect(find.textContaining('0 of $maxMemoryItems facts'), findsOneWidget);
 
+    await openTab(tester, 'memory');
     await tester.tap(find.byKey(const Key('memory-add')));
     await tester.pumpAndSettle();
     await answer(tester, 'Audience is the CFO');
     expect(find.text('Audience is the CFO'), findsOneWidget);
     expect(state.selected!.memory, ['Audience is the CFO']);
 
+    await openTab(tester, 'memory');
     await tester.tap(find.byKey(const Key('memory-remove-0')));
     await tester.pumpAndSettle();
     expect(state.selected!.memory, isEmpty);
@@ -228,6 +234,7 @@ void main() {
     await tester.pumpWidget(TessivoApp(state: state));
     await state.load();
     await tester.pumpAndSettle();
+    await openTab(tester, 'memory');
     await tester.tap(find.byKey(const Key('memory-add')));
     await tester.pumpAndSettle();
     await answer(tester, 'anything');

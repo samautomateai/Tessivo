@@ -1,5 +1,10 @@
 import '../design/sizes.dart';
 
+/// Below these widths the secondary panel, then the side bar, close; their
+/// shortcuts still open them for the session (AppState.panelPeek).
+const panelMinWindow = 1100.0;
+const sideBarMinWindow = 860.0;
+
 /// Which workbench panels are open and how wide (`desktop.layout`).
 class LayoutPrefs {
   const LayoutPrefs({

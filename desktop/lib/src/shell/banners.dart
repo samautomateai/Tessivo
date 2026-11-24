@@ -24,7 +24,7 @@ class WorkbenchBanners extends StatelessWidget {
             title: 'Reconnecting to the Tessivo core…',
             message: 'Your work is safe; the app retries on its own.',
           ),
-        if (state.setupMessage case final m?)
+        if (state.setupMessage case final m? when state.section != Section.notebooks)
           TvInlineNotice(
             key: const Key('setup-banner'),
             kind: TvNoticeKind.info,

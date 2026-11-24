@@ -7,12 +7,13 @@ import 'package:tessivo_desktop/src/core/command_rule.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 
 import 'app_test.dart' show pumpApp;
+import 'support/notebook_tabs.dart';
 import 'support/real_http.dart';
 
 void main() {
   testWidgets('allow and remove agent commands on the notebook page', (tester) async {
     final state = await pumpApp(tester);
-    await tester.ensureVisible(find.byKey(const Key('command-add')));
+    await openTab(tester, 'agent');
     await tester.tap(find.byKey(const Key('command-add')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, '  go   test *  ');
@@ -20,6 +21,7 @@ void main() {
     await tester.pumpAndSettle();
     expect([for (final c in state.selected!.commands) '$c'], ['go test *']);
     expect(find.text('go test *'), findsOneWidget);
+    await openTab(tester, 'agent');
     await tester.tap(find.byKey(const Key('command-remove-0')));
     await tester.pumpAndSettle();
     expect(state.selected!.commands, isEmpty);

@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import '../app_state.dart';
 import '../core/core_client.dart';
 import '../core/models.dart';
+import '../design/components/menu.dart';
+import '../design/icons.dart';
 import 'prompt_library_dialog.dart';
 import 'text_prompt_dialog.dart';
 
@@ -36,33 +38,30 @@ class PromptMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
+    return TvMenuButton(
       key: const Key('prompts-menu'),
-      tooltip: 'Saved prompts',
-      icon: const Icon(Icons.bookmarks_outlined),
-      onSelected: (v) {
-        if (v == '+library') {
-          unawaited(_library(context));
-        } else if (v == '+save') {
-          unawaited(_save(context));
-        } else if (v.startsWith('-')) {
-          unawaited(state.deletePrompt(v.substring(1)));
-        } else {
-          onUse(state.prompts.firstWhere((p) => p.name == v));
-        }
-      },
-      itemBuilder: (_) => [
+      label: 'Saved prompts',
+      icon: TvIcon.document,
+      items: [
         for (final p in state.prompts)
-          PopupMenuItem(
+          TvMenuItem(
+            p.model.isEmpty ? p.name : '${p.name}  ·  ${p.model}',
             key: Key('prompt-use-${p.name}'),
-            value: p.name,
-            child: Text(p.model.isEmpty ? p.name : '${p.name}  ·  ${p.model}'),
+            onSelected: () => onUse(p),
           ),
-        if (state.prompts.isNotEmpty) const PopupMenuDivider(),
-        const PopupMenuItem(key: Key('prompt-library'), value: '+library', child: Text('From the library…')),
-        const PopupMenuItem(key: Key('prompt-save'), value: '+save', child: Text('Save as prompt…')),
+        if (state.prompts.isNotEmpty) const TvMenuItem.divider(),
+        TvMenuItem(
+          'From the library…',
+          key: const Key('prompt-library'),
+          onSelected: () => unawaited(_library(context)),
+        ),
+        TvMenuItem('Save as prompt…', key: const Key('prompt-save'), onSelected: () => unawaited(_save(context))),
         for (final p in state.prompts)
-          PopupMenuItem(key: Key('prompt-delete-${p.name}'), value: '-${p.name}', child: Text('Delete ${p.name}')),
+          TvMenuItem(
+            'Delete ${p.name}',
+            key: Key('prompt-delete-${p.name}'),
+            onSelected: () => unawaited(state.deletePrompt(p.name)),
+          ),
       ],
     );
   }

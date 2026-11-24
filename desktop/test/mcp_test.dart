@@ -8,6 +8,7 @@ import 'package:tessivo_desktop/src/app_state.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 
 import 'support/fake_core/fake_core.dart';
+import 'support/notebook_tabs.dart';
 import 'support/real_http.dart';
 
 const _server = {
@@ -162,9 +163,13 @@ void main() {
 
   testWidgets('a notebook attaches a server and adds a resource', (tester) async {
     final state = await _pump(tester);
+    await openTab(tester, 'agent');
     await tester.tap(find.byKey(const Key('nb-mcp-github')));
     await tester.pumpAndSettle();
     expect(state.selected!.mcpServers, ['github']);
+    await openTab(tester, 'sources');
+    await tester.tap(find.byKey(const Key('context-add-more')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('context-add-mcp')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('mcp-resource-uri')), 'repo://payments/README.md');

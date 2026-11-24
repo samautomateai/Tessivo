@@ -4,14 +4,23 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
 import '../core/models.dart';
+import '../design/components/buttons.dart';
+import '../design/icons.dart';
 
 /// "Run again": repeats the run behind the open output, optionally on another model.
 class RerunButton extends StatelessWidget {
-  const RerunButton({super.key, required this.state, required this.outputId, required this.enabled});
+  const RerunButton({
+    super.key,
+    required this.state,
+    required this.outputId,
+    required this.enabled,
+    this.compact = false,
+  });
 
   final AppState state;
   final String outputId;
   final bool enabled;
+  final bool compact;
 
   Future<void> _open(BuildContext context) async {
     final info = await state.runOf(outputId);
@@ -24,11 +33,12 @@ class RerunButton extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => TextButton.icon(
+  Widget build(BuildContext context) => TvToolButton(
+    'Run again',
     key: const Key('rerun'),
+    icon: TvIcon.runAgain,
+    compact: compact,
     onPressed: enabled ? () => unawaited(_open(context)) : null,
-    icon: const Icon(Icons.replay, size: 18),
-    label: const Text('Run again'),
   );
 }
 

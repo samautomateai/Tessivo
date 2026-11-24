@@ -3,14 +3,11 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
-import '../core/models.dart';
 import '../design/colors.dart';
 import '../design/components/buttons.dart';
 import '../design/components/headers.dart';
 import '../design/components/rows.dart';
-import '../design/components/tags.dart';
 import '../design/icons.dart';
-import '../design/work_types.dart';
 import '../screens/new_notebook_dialog.dart';
 import 'layout_prefs.dart';
 
@@ -63,76 +60,6 @@ class SideBarFrame extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Notebooks: the list (archived ones folded away) with New notebook.
-class NotebooksSideBar extends StatelessWidget {
-  const NotebooksSideBar({super.key, required this.state});
-
-  final AppState state;
-
-  Widget _row(Notebook nb) {
-    final tag = workTypeLabel(nb.workType);
-    return Semantics(
-      key: Key('nav-${nb.id}'),
-      button: true,
-      selected: nb.id == state.selectedId,
-      label: '${nb.name}, $tag notebook${nb.schedule == null ? '' : ', runs ${nb.schedule}'}',
-      excludeSemantics: true,
-      onTap: () => state.select(nb.id),
-      child: Builder(
-        builder: (context) => TvTreeRow(
-          leading: TvStatusDot(TvColors.of(context).tag(nb.workType).dot, square: true),
-          label: nb.name,
-          trailing: nb.schedule,
-          selected: nb.id == state.selectedId,
-          onTap: () => state.select(nb.id),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final archived = state.notebooks.where((n) => n.archived).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TvPanelHeader(
-          'Notebooks',
-          actions: [
-            TvIconButton(
-              TvIcon.add,
-              key: const Key('new-notebook'),
-              tooltip: 'New notebook (Ctrl N)',
-              onPressed: () => unawaited(showNewNotebookDialog(context, state)),
-            ),
-          ],
-        ),
-        Expanded(
-          child: ListView(
-            children: [
-              for (final nb in state.notebooks)
-                if (!nb.archived) _row(nb),
-              if (archived.isNotEmpty)
-                TvTreeRow(
-                  key: const Key('archived-toggle'),
-                  leading: Transform.rotate(
-                    angle: state.showArchived ? 1.5708 : 0,
-                    child: const TvIconView(TvIcon.expand),
-                  ),
-                  label: 'Archived (${archived.length})',
-                  muted: true,
-                  onTap: state.toggleArchived,
-                ),
-              if (state.showArchived)
-                for (final nb in archived) _row(nb),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

@@ -6,11 +6,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 
 import 'app_test.dart' show pumpApp;
+import 'support/notebook_tabs.dart';
 import 'support/real_http.dart';
 
 void main() {
   testWidgets('export the open output as Word to a chosen path', (tester) async {
     final state = await pumpApp(tester);
+    await openTab(tester, 'prompt');
     await tester.enterText(find.byKey(const Key('prompt')), 'Assess PR 482');
     await tester.tap(find.byKey(const Key('run')));
     await tester.pumpAndSettle();
@@ -34,6 +36,7 @@ void main() {
 
   testWidgets('the export menu offers PDF', (tester) async {
     await pumpApp(tester);
+    await openTab(tester, 'prompt');
     await tester.enterText(find.byKey(const Key('prompt')), 'Assess PR 482');
     await tester.tap(find.byKey(const Key('run')));
     await tester.pumpAndSettle();

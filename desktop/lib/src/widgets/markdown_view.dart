@@ -1,12 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../theme.dart';
+import '../design/colors.dart';
+import '../design/sizes.dart';
+import '../design/type.dart';
 
 /// Renders the Markdown that models usually produce: headings, paragraphs,
 /// bullet and numbered lists, fenced code blocks, tables, quotes and rules,
 /// with **bold**, *italic* and `code` inline. Everything else shows as text.
 /// No HTML, links or images are interpreted, so model output cannot load
-/// anything. Text stays selectable.
+/// anything. Text stays selectable. Type comes from TvType: body-long for
+/// text, heading-02/01 for headings, code for code.
 class MarkdownView extends StatelessWidget {
   const MarkdownView(this.source, {super.key});
 
@@ -17,85 +20,96 @@ class MarkdownView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = TvColors.of(context);
     final text = source.length > maxChars ? '${source.substring(0, maxChars)}\n\n…' : source;
     final blocks = parseMarkdown(text);
     return SelectionArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [for (final b in blocks) _block(context, b)],
+      child: DefaultTextStyle.merge(
+        style: TvType.bodyLong.copyWith(color: c.textPrimary),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [for (final b in blocks) _block(c, b)]),
       ),
     );
   }
 
-  Widget _block(BuildContext context, MdBlock b) {
-    final theme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: switch (b) {
-        MdHeading(:final level, :final text) => Text.rich(
+  Widget _block(TvColors c, MdBlock b) => Padding(
+    padding: EdgeInsets.only(bottom: b is MdHeading ? TvSpace.s8 : TvSpace.s12),
+    child: switch (b) {
+      MdHeading(:final level, :final text) => Padding(
+        padding: const EdgeInsets.only(top: TvSpace.s8),
+        child: Text.rich(
           inlineSpans(text),
-          style: (level == 1 ? theme.titleLarge : (level == 2 ? theme.titleMedium : theme.titleSmall))?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: (level <= 1 ? TvType.heading02 : TvType.heading01).copyWith(color: c.textPrimary),
         ),
-        MdParagraph(:final text) => Text.rich(inlineSpans(text)),
-        MdQuote(:final text) => Container(
-          padding: const EdgeInsets.only(left: 10),
-          decoration: const BoxDecoration(
-            border: Border(left: BorderSide(color: Tokens.textMuted, width: 3)),
-          ),
-          child: Text.rich(inlineSpans(text), style: const TextStyle(color: Tokens.textMuted)),
+      ),
+      MdParagraph(:final text) => Text.rich(inlineSpans(text)),
+      MdQuote(:final text) => Container(
+        padding: const EdgeInsets.only(left: TvSpace.s12),
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: c.borderStrong, width: 3)),
         ),
-        MdList(:final ordered, :final items) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final (i, item) in items.indexed)
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 2),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(width: 22, child: Text(ordered ? '${i + 1}.' : '•')),
-                    Expanded(child: Text.rich(inlineSpans(item))),
-                  ],
-                ),
+        child: Text.rich(inlineSpans(text), style: TextStyle(color: c.textSecondary)),
+      ),
+      MdList(:final ordered, :final items) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final (i, item) in items.indexed)
+            Padding(
+              padding: const EdgeInsets.only(left: TvSpace.s4, bottom: TvSpace.s2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 22,
+                    child: Text(ordered ? '${i + 1}.' : '•', style: TextStyle(color: c.textSecondary)),
+                  ),
+                  Expanded(child: Text.rich(inlineSpans(item))),
+                ],
               ),
-          ],
+            ),
+        ],
+      ),
+      MdCode(:final code) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(TvSpace.s12),
+        decoration: BoxDecoration(
+          color: c.layer01,
+          border: Border.all(color: c.borderSubtle),
+          borderRadius: BorderRadius.circular(TvRadius.small),
         ),
-        MdCode(:final code) => Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Text(code, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
-          ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Text(code, style: TvType.code.copyWith(color: c.textPrimary)),
         ),
-        MdTable(:final rows) => SingleChildScrollView(scrollDirection: Axis.horizontal, child: _table(context, rows)),
-        MdRule() => const Divider(),
-      },
-    );
-  }
+      ),
+      MdTable(:final rows) => SingleChildScrollView(scrollDirection: Axis.horizontal, child: _table(c, rows)),
+      MdRule() => Divider(color: c.borderSubtle, height: TvSpace.s16),
+    },
+  );
 
-  Widget _table(BuildContext context, List<List<String>> rows) {
+  /// Looks like the data table (layer head, subtle row lines), but rows grow
+  /// with their text: model tables must not lose words to an ellipsis.
+  Widget _table(TvColors c, List<List<String>> rows) {
     final cols = rows.fold(0, (n, r) => r.length > n ? r.length : n);
-    final border = BorderSide(color: Theme.of(context).dividerColor);
+    final line = BorderSide(color: c.borderSubtle);
     return Table(
       defaultColumnWidth: const IntrinsicColumnWidth(),
-      border: TableBorder(horizontalInside: border, top: border, bottom: border),
+      border: TableBorder(horizontalInside: line, bottom: line),
       children: [
         for (final (i, r) in rows.indexed)
           TableRow(
+            decoration: BoxDecoration(color: i == 0 ? c.layer02 : c.layer01),
             children: [
-              for (var c = 0; c < cols; c++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Text.rich(
-                    inlineSpans(c < r.length ? r[c] : ''),
-                    style: i == 0 ? const TextStyle(fontWeight: FontWeight.w600) : null,
+              for (var col = 0; col < cols; col++)
+                ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: i == 0 ? TvSize.tableHead : TvSize.tableRow, maxWidth: 360),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: TvSpace.s12, vertical: TvSpace.s8),
+                    child: Text.rich(
+                      inlineSpans(col < r.length ? r[col] : ''),
+                      style: i == 0
+                          ? TvType.label.copyWith(color: c.textPrimary, fontWeight: FontWeight.w600)
+                          : TvType.body.copyWith(color: c.textSecondary),
+                    ),
                   ),
                 ),
             ],
@@ -237,7 +251,7 @@ TextSpan inlineSpans(String text) {
       spans.add(
         TextSpan(
           text: t.substring(1, t.length - 1),
-          style: const TextStyle(fontFamily: 'monospace', backgroundColor: Color(0x14000000)),
+          style: const TextStyle(fontFamily: TvType.mono),
         ),
       );
     } else {

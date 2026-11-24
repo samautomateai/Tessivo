@@ -59,9 +59,13 @@ class TvButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[TvIconView(icon!, color: fg), const SizedBox(width: 6)],
-              Text(
-                label,
-                style: TvType.body.copyWith(color: fg, fontWeight: FontWeight.w500),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TvType.body.copyWith(color: fg, fontWeight: FontWeight.w500),
+                ),
               ),
             ],
           ),
@@ -118,4 +122,20 @@ class TvIconButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A toolbar action: icon and label (ghost, dense), or only the icon with
+/// the label as its tooltip when [compact].
+class TvToolButton extends StatelessWidget {
+  const TvToolButton(this.label, {super.key, required this.icon, this.onPressed, this.compact = false});
+
+  final String label;
+  final TvIcon icon;
+  final VoidCallback? onPressed;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => compact
+      ? TvIconButton(icon, tooltip: label, onPressed: onPressed)
+      : TvButton(label, icon: icon, kind: TvButtonKind.ghost, dense: true, onPressed: onPressed);
 }

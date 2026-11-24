@@ -8,6 +8,7 @@ import 'package:tessivo_desktop/src/design/theme.dart' show tvTheme;
 import 'package:tessivo_desktop/src/theme.dart';
 
 import 'support/fake_core/fake_core.dart';
+import 'support/notebook_tabs.dart';
 
 Future<AppState> pumpApp(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1600, 1000);
@@ -28,26 +29,30 @@ void main() {
     expect(find.text('Change risk review'), findsWidgets);
     expect(find.text('Weekly ops report'), findsOneWidget);
     expect(find.text('Mon 08:00'), findsOneWidget);
+    expect(find.text('Output'), findsOneWidget);
+    await openTab(tester, 'sources');
     expect(find.text('payments-service'), findsOneWidget);
-    expect(find.text('≈ 51k tokens'), findsOneWidget);
+    expect(find.textContaining('≈ 51k tokens · smart'), findsOneWidget);
   });
 
   testWidgets('toggling context updates the token estimate', (tester) async {
     await pumpApp(tester);
+    await openTab(tester, 'sources');
     await tester.tap(find.byKey(const Key('ctx-c1')));
     await tester.pumpAndSettle();
-    expect(find.text('≈ 13k tokens'), findsOneWidget);
+    expect(find.textContaining('≈ 13k tokens ·'), findsOneWidget);
   });
 
   testWidgets('running streams output and shows the outcome', (tester) async {
     final state = await pumpApp(tester);
+    await openTab(tester, 'prompt');
     await tester.enterText(find.byKey(const Key('prompt')), 'Assess PR 482');
     await tester.tap(find.byKey(const Key('run')));
     await tester.pumpAndSettle();
     expect(state.running, isFalse);
     expect(state.outcome?.valid, isTrue);
     expect(find.textContaining('Risk score'), findsOneWidget);
-    expect(find.text('Validated ✓'), findsOneWidget);
+    expect(find.text('Validated'), findsOneWidget);
     expect(find.textContaining('fell back to model B'), findsOneWidget);
   });
 
@@ -67,7 +72,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(state.selected?.name, 'Board minutes');
     expect(state.selected?.workType, WorkTypeId.summarize);
-    expect(find.textContaining('No context yet'), findsOneWidget);
+    await openTab(tester, 'sources');
+    expect(find.textContaining('No sources yet'), findsOneWidget);
   });
 
   testWidgets('cancel closes the dialog', (tester) async {
@@ -114,7 +120,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Weekly ops report'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('No context yet'), findsOneWidget);
+    await openTab(tester, 'sources');
+    expect(find.textContaining('No sources yet'), findsOneWidget);
   });
 
   test('theme and labels cover every work type', () {

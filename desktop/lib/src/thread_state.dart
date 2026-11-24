@@ -25,6 +25,9 @@ class ThreadState extends ChangeNotifier {
 
   ChatSession? session;
   OutputDetail? detail;
+
+  /// True once [load] finished, whether or not it got the output.
+  bool loaded = false;
   List<Suggestion> suggestions = const [];
 
   /// True while a reply streams; [streamedText] is what arrived so far.
@@ -73,6 +76,7 @@ class ThreadState extends ChangeNotifier {
       detail = d;
       suggestions = list;
     });
+    loaded = true;
     _changed();
   }
 

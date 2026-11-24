@@ -5,11 +5,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 
 import 'app_test.dart' show pumpApp;
+import 'support/notebook_tabs.dart';
 import 'support/real_http.dart';
 
 void main() {
   testWidgets('a library prompt fills the prompt box, own work type first', (tester) async {
     final state = await pumpApp(tester);
+    await openTab(tester, 'prompt');
+    await openTab(tester, 'prompt');
     await tester.tap(find.byKey(const Key('prompts-menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('prompt-library')));

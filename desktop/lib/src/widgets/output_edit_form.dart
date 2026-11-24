@@ -5,15 +5,18 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
 import '../core/core_client.dart';
+import '../design/components/buttons.dart';
+import '../design/icons.dart';
 import '../theme.dart';
 
 /// "Edit": change the open output's fields in a form and save them as a new
 /// version, without running the model again.
 class EditOutputButton extends StatelessWidget {
-  const EditOutputButton({super.key, required this.state, required this.enabled});
+  const EditOutputButton({super.key, required this.state, required this.enabled, this.compact = false});
 
   final AppState state;
   final bool enabled;
+  final bool compact;
 
   Future<void> _open(BuildContext context) async {
     final data = state.thread?.detail?.data ?? const {};
@@ -33,11 +36,12 @@ class EditOutputButton extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => TextButton.icon(
+  Widget build(BuildContext context) => TvToolButton(
+    'Edit',
     key: const Key('edit-output'),
+    icon: TvIcon.edit,
+    compact: compact,
     onPressed: enabled && (state.thread?.detail?.data.isNotEmpty ?? false) ? () => unawaited(_open(context)) : null,
-    icon: const Icon(Icons.edit_note, size: 18),
-    label: const Text('Edit'),
   );
 }
 

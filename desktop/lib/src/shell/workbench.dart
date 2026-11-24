@@ -12,10 +12,7 @@ import 'sections.dart';
 import 'side_bar.dart';
 import 'status_bar.dart';
 
-/// Below these widths the secondary panel, then the side bar, close (their
-/// shortcuts still open them once the window is wide enough again).
-const panelMinWindow = 1100.0;
-const sideBarMinWindow = 860.0;
+export 'layout_prefs.dart' show panelMinWindow, sideBarMinWindow;
 
 /// The window: Carbon header, then the VS Code workbench (activity bar, side
 /// bar, page, secondary panel) and the status bar.
@@ -46,10 +43,8 @@ class Workbench extends StatelessWidget {
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, box) {
-                    final side = box.maxWidth >= sideBarMinWindow && state.layout.sideBarOpen
-                        ? sideBarFor(state)
-                        : null;
-                    final panel = box.maxWidth >= panelMinWindow && state.layout.panelOpen ? panelFor(state) : null;
+                    final side = state.sideBarShown(box.maxWidth) ? sideBarFor(state) : null;
+                    final panel = state.panelShown(box.maxWidth) ? panelFor(state) : null;
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

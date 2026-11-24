@@ -69,6 +69,7 @@ class TvTextField extends StatelessWidget {
     this.onSubmitted,
     this.obscure = false,
     this.maxLines = 1,
+    this.minLines,
     this.mono = false,
     this.fieldKey,
   });
@@ -82,6 +83,7 @@ class TvTextField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final bool obscure;
   final int maxLines;
+  final int? minLines;
   final bool mono;
 
   /// The key of the inner [TextField], for tests that enter text.
@@ -101,6 +103,7 @@ class TvTextField extends StatelessWidget {
         onSubmitted: onSubmitted,
         obscureText: obscure,
         maxLines: obscure ? 1 : maxLines,
+        minLines: obscure ? null : minLines,
         style: (mono ? TvType.code : TvType.body).copyWith(color: c.textPrimary),
         cursorColor: c.interactive,
         decoration: tvFieldDecoration(c, hint: hint, error: error != null),

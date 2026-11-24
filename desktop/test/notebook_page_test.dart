@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
+import 'package:tessivo_desktop/src/design/components/buttons.dart';
 
 import 'support/fake_core/fake_core.dart';
 
@@ -19,8 +20,8 @@ Future<AppState> pumpPage(WidgetTester tester, {double width = 1600}) async {
 void main() {
   testWidgets('the latest output and its thread open with the notebook', (tester) async {
     final state = await pumpPage(tester);
-    expect(find.byKey(const Key('sources-pane')), findsOneWidget);
-    expect(find.byKey(const Key('outputs-pane')), findsOneWidget);
+    expect(find.byKey(const Key('outputs-list')), findsOneWidget);
+    expect(find.byKey(const Key('secondary-panel')), findsOneWidget);
     expect(state.selectedOutputId, 'o1');
     expect(find.byKey(const Key('output-thread')), findsOneWidget);
     expect(find.text('Why is the auth risk rated high?'), findsOneWidget);
@@ -64,24 +65,26 @@ void main() {
     expect(find.textContaining('Saved as v2'), findsOneWidget);
   });
 
-  testWidgets('narrow windows hide the side panes behind toggles', (tester) async {
-    await pumpPage(tester, width: 1000);
-    expect(find.byKey(const Key('sources-pane')), findsNothing);
-    expect(find.byKey(const Key('outputs-pane')), findsNothing);
-    await tester.tap(find.byKey(const Key('toggle-sources')));
+  testWidgets('a narrow window hides the thread; its toggle opens it for the session', (tester) async {
+    final state = await pumpPage(tester, width: 1000);
+    expect(find.byKey(const Key('secondary-panel')), findsNothing);
+    final toggle = find.byKey(const Key('toggle-thread'));
+    expect(tester.widget<TvIconButton>(toggle).tooltip, 'Show thread (Ctrl J)');
+    await tester.tap(toggle);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('sources-pane')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('toggle-outputs')));
+    expect(find.byKey(const Key('secondary-panel')), findsOneWidget);
+    expect(find.byKey(const Key('output-thread')), findsOneWidget);
+    expect(state.layout.panelOpen, isTrue, reason: 'the remembered layout is unchanged');
+    await tester.tap(toggle);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('outputs-pane')), findsOneWidget);
-    expect(find.byKey(const Key('sources-pane')), findsNothing);
+    expect(find.byKey(const Key('secondary-panel')), findsNothing);
   });
 
   testWidgets('a notebook without outputs explains what to do', (tester) async {
     final state = await pumpPage(tester);
     state.select('nb-3');
     await tester.pumpAndSettle();
-    expect(find.textContaining('Run the notebook to get an output'), findsOneWidget);
+    expect(find.textContaining('Run the prompt to get the first output'), findsOneWidget);
     expect(find.byKey(const Key('output-thread')), findsNothing);
   });
 }

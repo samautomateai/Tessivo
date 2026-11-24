@@ -36,7 +36,14 @@ class TvPageHeader extends StatelessWidget {
           if (tag != null) ...[const SizedBox(width: 10), tag!],
           const Spacer(),
           if (meta != null) ...[
-            Text(meta!, style: TvType.helper.copyWith(color: c.textHelper)),
+            Flexible(
+              child: Text(
+                meta!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TvType.helper.copyWith(color: c.textHelper),
+              ),
+            ),
             const SizedBox(width: TvSpace.s12),
           ],
           for (final (i, a) in actions.indexed) ...[if (i > 0) const SizedBox(width: TvSpace.s8), a],

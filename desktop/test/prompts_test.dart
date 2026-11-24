@@ -7,6 +7,7 @@ import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
 
 import 'app_test.dart' show pumpApp;
+import 'support/notebook_tabs.dart';
 import 'support/real_http.dart';
 
 Future<void> _menu(WidgetTester tester, String key) async {
@@ -19,6 +20,7 @@ Future<void> _menu(WidgetTester tester, String key) async {
 void main() {
   testWidgets('save the prompt, pick it, run with it, delete it', (tester) async {
     final state = await pumpApp(tester);
+    await openTab(tester, 'prompt');
     await tester.enterText(find.byKey(const Key('prompt')), 'Assess {{change}} for risk');
     await _menu(tester, 'prompt-save');
     await tester.enterText(find.byType(TextField).last, 'risk');
@@ -26,17 +28,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(state.prompts.single.name, 'risk');
 
+    await openTab(tester, 'prompt');
     await tester.enterText(find.byKey(const Key('prompt')), 'something else');
     await _menu(tester, 'prompt-use-risk');
     expect(tester.widget<TextField>(find.byKey(const Key('prompt'))).controller!.text, 'Assess {{change}} for risk');
-    expect(find.text('Prompt: risk'), findsOneWidget);
+    expect(find.text('Saved prompt: risk'), findsOneWidget);
     await tester.tap(find.byKey(const Key('run')));
     await tester.pumpAndSettle();
     expect(state.lastPromptName, 'risk');
 
+    await openTab(tester, 'prompt');
     await tester.enterText(find.byKey(const Key('prompt')), 'edited text');
     await tester.pump();
-    expect(find.text('Prompt: risk'), findsNothing); // editing detaches the saved prompt
+    expect(find.text('Saved prompt: risk'), findsNothing); // editing detaches the saved prompt
 
     await _menu(tester, 'prompt-delete-risk');
     expect(state.prompts, isEmpty);

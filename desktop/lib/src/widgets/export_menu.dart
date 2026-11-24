@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/core_client.dart';
+import '../design/components/menu.dart';
+import '../design/icons.dart';
 import 'text_prompt_dialog.dart';
 
 /// Saves the open output as Markdown or Word to a path the user confirms.
@@ -14,12 +16,14 @@ class ExportMenu extends StatelessWidget {
     required this.notebookId,
     required this.outputId,
     required this.title,
+    this.compact = false,
   });
 
   final CoreClient core;
   final String notebookId;
   final String outputId;
   final String title;
+  final bool compact;
 
   /// The Downloads folder (or home) plus a file name made from the title.
   String _suggested(String ext) {
@@ -52,15 +56,16 @@ class ExportMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
+    void pick(String format) => unawaited(_export(context, format));
+    return TvMenuButton(
       key: const Key('export-output'),
-      tooltip: 'Export',
-      icon: const Icon(Icons.file_download_outlined),
-      onSelected: (f) => unawaited(_export(context, f)),
-      itemBuilder: (_) => const [
-        PopupMenuItem(key: Key('export-docx'), value: 'docx', child: Text('Word document (.docx)…')),
-        PopupMenuItem(key: Key('export-pdf'), value: 'pdf', child: Text('PDF (.pdf)…')),
-        PopupMenuItem(key: Key('export-md'), value: 'md', child: Text('Markdown (.md)…')),
+      label: 'Export',
+      icon: TvIcon.export,
+      compact: compact,
+      items: [
+        TvMenuItem('Word document (.docx)…', key: const Key('export-docx'), onSelected: () => pick('docx')),
+        TvMenuItem('PDF (.pdf)…', key: const Key('export-pdf'), onSelected: () => pick('pdf')),
+        TvMenuItem('Markdown (.md)…', key: const Key('export-md'), onSelected: () => pick('md')),
       ],
     );
   }

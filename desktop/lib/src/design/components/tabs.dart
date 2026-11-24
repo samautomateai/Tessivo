@@ -30,36 +30,40 @@ class TvTabs extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: c.borderSubtle)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final (i, t) in tabs.indexed)
-            Semantics(
-              key: t.key,
-              selected: i == selected,
-              button: true,
-              child: InkWell(
-                onTap: () => onSelect(i),
-                hoverColor: c.layer01,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: i == selected ? c.interactive : const Color(0x00000000), width: 2),
+      // Scrolls sideways when the tabs do not fit (narrow window, large zoom).
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (i, t) in tabs.indexed)
+              Semantics(
+                key: t.key,
+                selected: i == selected,
+                button: true,
+                child: InkWell(
+                  onTap: () => onSelect(i),
+                  hoverColor: c.layer01,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: i == selected ? c.interactive : const Color(0x00000000), width: 2),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    t.text,
-                    style: TvType.body.copyWith(
-                      color: i == selected ? c.textPrimary : c.textSecondary,
-                      fontWeight: i == selected ? FontWeight.w500 : FontWeight.w400,
+                    child: Text(
+                      t.text,
+                      style: TvType.body.copyWith(
+                        color: i == selected ? c.textPrimary : c.textSecondary,
+                        fontWeight: i == selected ? FontWeight.w500 : FontWeight.w400,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

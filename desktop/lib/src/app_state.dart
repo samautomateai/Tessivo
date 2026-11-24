@@ -97,6 +97,11 @@ class AppState extends ChangeNotifier {
 
   /// Workbench panels (`desktop.layout`), the default model and today's usage for the status bar.
   LayoutPrefs layout = const LayoutPrefs();
+
+  /// The side bar or panel opened by its shortcut in a window too narrow for
+  /// it; not remembered.
+  bool sideBarPeek = false;
+  bool panelPeek = false;
   String? defaultModel;
   UsageInfo? usage;
 

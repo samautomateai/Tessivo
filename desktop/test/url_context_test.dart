@@ -6,11 +6,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:tessivo_desktop/src/core/http_core_client.dart';
 
 import 'app_test.dart' show pumpApp;
+import 'support/notebook_tabs.dart';
 import 'support/real_http.dart';
 
 void main() {
   testWidgets('add a web page and pasted text as sources', (tester) async {
     final state = await pumpApp(tester);
+    await openTab(tester, 'sources');
     await tester.tap(find.byKey(const Key('context-add-more')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('context-add-url')));
@@ -19,8 +21,10 @@ void main() {
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
     expect(find.text('status.example.com/q3'), findsOneWidget);
-    expect(find.text('Web page · read at run time'), findsOneWidget);
+    expect(find.text('Web page'), findsOneWidget);
+    expect(find.text('read at run time'), findsOneWidget);
 
+    await openTab(tester, 'sources');
     await tester.tap(find.byKey(const Key('context-add-more')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('context-add-text')));
@@ -34,6 +38,7 @@ void main() {
 
   testWidgets('add git changes as a source', (tester) async {
     final state = await pumpApp(tester);
+    await openTab(tester, 'sources');
     await tester.tap(find.byKey(const Key('context-add-more')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('context-add-git')));
@@ -44,7 +49,8 @@ void main() {
     await tester.pumpAndSettle();
     final item = state.selected!.context.last;
     expect((item.label, item.kind), ('payments changes since develop', 'Git changes'));
-    expect(find.text('Git changes · read at run time'), findsOneWidget);
+    expect(find.text('Git changes'), findsOneWidget);
+    expect(find.text('read at run time'), findsOneWidget);
   });
 
   test('http client sends url and text sources', () async {

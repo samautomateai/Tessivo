@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:tessivo_desktop/src/design/type.dart';
 import 'package:tessivo_desktop/src/widgets/markdown_view.dart';
 
 void main() {
@@ -42,7 +43,7 @@ void main() {
     final parts = span.children!.cast<TextSpan>();
     expect(parts.map((p) => p.text), ['a ', 'b', ' ', 'c', ' ', 'd', ' ', 'e', ' f']);
     expect(parts[1].style?.fontWeight, FontWeight.w600);
-    expect(parts[3].style?.fontFamily, 'monospace');
+    expect(parts[3].style?.fontFamily, TvType.mono);
     expect(parts[5].style?.fontStyle, FontStyle.italic);
   });
 

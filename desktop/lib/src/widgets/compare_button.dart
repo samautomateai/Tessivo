@@ -4,14 +4,25 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/core_client.dart';
 import '../core/models.dart';
+import '../design/colors.dart';
+import '../design/components/buttons.dart';
+import '../design/icons.dart';
+import '../design/type.dart';
 
 /// "Compare": the open revision against the version it revised.
 class CompareButton extends StatelessWidget {
-  const CompareButton({super.key, required this.core, required this.notebookId, required this.outputId});
+  const CompareButton({
+    super.key,
+    required this.core,
+    required this.notebookId,
+    required this.outputId,
+    this.compact = false,
+  });
 
   final CoreClient core;
   final String notebookId;
   final String outputId;
+  final bool compact;
 
   Future<void> _open(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -30,11 +41,12 @@ class CompareButton extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => TextButton.icon(
+  Widget build(BuildContext context) => TvToolButton(
+    'Compare',
     key: const Key('compare'),
+    icon: TvIcon.compare,
+    compact: compact,
     onPressed: () => unawaited(_open(context)),
-    icon: const Icon(Icons.difference_outlined, size: 18),
-    label: const Text('Compare'),
   );
 }
 
@@ -45,10 +57,10 @@ class _DiffDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final c = TvColors.of(context);
     Color? bg(String op) => switch (op) {
-      '+' => Colors.green.withValues(alpha: 0.15),
-      '-' => scheme.error.withValues(alpha: 0.12),
+      '+' => c.success.withValues(alpha: 0.15),
+      '-' => c.error.withValues(alpha: 0.15),
       _ => null,
     };
     return AlertDialog(
@@ -69,7 +81,7 @@ class _DiffDialog extends StatelessWidget {
                 child: Container(
                   color: bg(l.op),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-                  child: Text('${l.op} ${l.text}', style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
+                  child: Text('${l.op} ${l.text}', style: TvType.code.copyWith(color: c.textPrimary)),
                 ),
               ),
           ],
