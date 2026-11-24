@@ -3,13 +3,19 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/core_client.dart';
+import '../design/colors.dart';
+import '../design/components/buttons.dart';
+import '../design/components/fields.dart';
+import '../design/components/modal.dart';
+import '../design/icons.dart';
+import '../design/sizes.dart';
+import '../design/type.dart';
 import '../research_state.dart';
-import '../theme.dart';
 import 'markdown_view.dart';
 import 'research_sources.dart';
 
-/// The conversation column: what a question would send, the answers with
-/// their references, and the question box.
+/// The Ask tab: what a question would send, the answers with their
+/// references, and the question box.
 class ResearchChatPane extends StatefulWidget {
   const ResearchChatPane({super.key, required this.state});
 
@@ -48,6 +54,7 @@ class _ResearchChatPaneState extends State<ResearchChatPane> {
 
   @override
   Widget build(BuildContext context) {
+    final c = TvColors.of(context);
     final s = widget.state;
     final ctx = s.context;
     final messages = s.chat?.session.messages ?? const <ChatMessage>[];
@@ -57,26 +64,28 @@ class _ResearchChatPaneState extends State<ResearchChatPane> {
       children: [
         _Header(state: s),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          color: ctx.cut.isEmpty ? null : Colors.amber.withValues(alpha: 0.15),
+          padding: const EdgeInsets.symmetric(horizontal: TvSpace.s24, vertical: TvSpace.s4),
+          decoration: BoxDecoration(
+            color: ctx.cut.isEmpty ? c.layer01 : c.warning.withValues(alpha: 0.15),
+            border: Border(bottom: BorderSide(color: c.borderSubtle)),
+          ),
           child: Tooltip(
             message: ctx.cut.isEmpty ? 'What a question sends now' : 'Shortened to fit: ${ctx.cut.join(', ')}',
             child: Text(
               ctx.label,
               key: const Key('research-context-bar'),
-              style: const TextStyle(color: Tokens.textMuted, fontSize: 12),
+              style: TvType.helper.copyWith(color: c.textSecondary),
             ),
           ),
         ),
-        const Divider(height: 1),
         Expanded(
           child: messages.isEmpty && !s.streaming
-              ? const Center(
-                  child: Text('Ask about your sources and notes.', style: TextStyle(color: Tokens.textMuted)),
+              ? Center(
+                  child: Text('Ask about your sources and notes.', style: TvType.body.copyWith(color: c.textSecondary)),
                 )
               : ListView(
                   controller: _scroll,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(TvSpace.s24, TvSpace.s16, TvSpace.s24, TvSpace.s16),
                   children: [
                     for (final m in messages) _Answer(state: s, message: m),
                     if (s.streaming)
@@ -91,18 +100,18 @@ class _ResearchChatPaneState extends State<ResearchChatPane> {
                     if (s.skipped.isNotEmpty)
                       Text(
                         'Skipped (could not read): ${s.skipped.join(', ')}',
-                        style: const TextStyle(color: Tokens.textMuted, fontStyle: FontStyle.italic),
+                        style: TvType.helper.copyWith(color: c.textHelper),
                       ),
                   ],
                 ),
         ),
-        _composer(s),
+        _composer(c, s),
       ],
     );
   }
 
-  Widget _composer(ResearchState s) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+  Widget _composer(TvColors c, ResearchState s) => Padding(
+    padding: const EdgeInsets.fromLTRB(TvSpace.s24, TvSpace.s8, TvSpace.s24, TvSpace.s16),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -112,23 +121,21 @@ class _ResearchChatPaneState extends State<ResearchChatPane> {
             controller: _text,
             minLines: 1,
             maxLines: 6,
-            decoration: const InputDecoration(hintText: 'Ask a question', border: OutlineInputBorder()),
+            style: TvType.body.copyWith(color: c.textPrimary),
+            cursorColor: c.interactive,
+            decoration: tvFieldDecoration(c, hint: 'Ask a question'),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: TvSpace.s8),
         if (s.streaming)
-          OutlinedButton.icon(
-            key: const Key('research-stop'),
-            onPressed: () => unawaited(s.stop()),
-            icon: const Icon(Icons.stop),
-            label: const Text('Stop'),
-          )
+          TvButton('Stop', key: const Key('research-stop'), icon: TvIcon.close, onPressed: () => unawaited(s.stop()))
         else
-          FilledButton(
+          TvButton(
+            'Ask',
             key: const Key('research-send'),
+            icon: TvIcon.send,
+            kind: TvButtonKind.primary,
             onPressed: () => unawaited(_send()),
-            style: FilledButton.styleFrom(backgroundColor: Tokens.accent),
-            child: const Text('Ask'),
           ),
       ],
     ),
@@ -143,37 +150,45 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = TvColors.of(context);
     final current = state.chat?.session.id;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 8, 6),
+      padding: const EdgeInsets.fromLTRB(TvSpace.s24, TvSpace.s8, TvSpace.s16, TvSpace.s8),
       child: Row(
         children: [
           Expanded(
             child: state.chats.isEmpty
-                ? const Text('Conversation', style: TextStyle(fontWeight: FontWeight.w600))
-                : DropdownButton<String>(
-                    key: const Key('research-chats'),
-                    isExpanded: true,
-                    underline: const SizedBox.shrink(),
-                    value: state.chats.any((c) => c.id == current) ? current : null,
-                    hint: const Text('Conversation'),
-                    items: [
-                      for (final c in state.chats)
-                        DropdownMenuItem(
-                          value: c.id,
-                          child: Text(c.title, overflow: TextOverflow.ellipsis),
-                        ),
-                    ],
-                    onChanged: (id) {
-                      if (id != null) unawaited(state.openChat(id));
-                    },
+                ? Text('Conversation', style: TvType.heading01.copyWith(color: c.textPrimary))
+                : DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      key: const Key('research-chats'),
+                      isExpanded: true,
+                      isDense: true,
+                      dropdownColor: c.layer02,
+                      style: TvType.body.copyWith(color: c.textPrimary),
+                      value: state.chats.any((x) => x.id == current) ? current : null,
+                      hint: Text('Conversation', style: TvType.body.copyWith(color: c.textHelper)),
+                      items: [
+                        for (final x in state.chats)
+                          DropdownMenuItem(
+                            value: x.id,
+                            child: Text(x.title, overflow: TextOverflow.ellipsis),
+                          ),
+                      ],
+                      onChanged: (id) {
+                        if (id != null) unawaited(state.openChat(id));
+                      },
+                    ),
                   ),
           ),
-          TextButton.icon(
+          const SizedBox(width: TvSpace.s8),
+          TvButton(
+            'New conversation',
             key: const Key('research-new-chat'),
+            icon: TvIcon.add,
+            kind: TvButtonKind.ghost,
+            dense: true,
             onPressed: state.streaming ? null : () => unawaited(state.newChat()),
-            icon: const Icon(Icons.add_comment_outlined, size: 16),
-            label: const Text('New'),
           ),
         ],
       ),
@@ -191,13 +206,12 @@ class _Answer extends StatelessWidget {
   Future<void> _open(BuildContext context, Citation c) async {
     if (c.kind == 'note') {
       final note = state.notes.where((n) => n.id == c.id).firstOrNull;
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(c.label),
-          content: SizedBox(width: 600, child: SelectableText(note?.text ?? 'This note was deleted.')),
-          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
-        ),
+      await showTvModal<void>(
+        context,
+        title: c.label,
+        width: 600,
+        body: SelectableText(note?.text ?? 'This note was deleted.'),
+        actions: const [TvModalAction('Close', value: null)],
       );
       return;
     }
@@ -206,42 +220,52 @@ class _Answer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = TvColors.of(context);
     final m = message;
-    final scheme = Theme.of(context).colorScheme;
     final cites = m.id.isEmpty ? const <Citation>[] : state.chat?.citations[m.id] ?? const <Citation>[];
     return Align(
-      alignment: m.isUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: Alignment.topLeft,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 760),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: m.isUser ? scheme.primaryContainer : scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(10),
-        ),
+        constraints: const BoxConstraints(maxWidth: TvSize.readingWidth),
+        margin: const EdgeInsets.only(bottom: TvSpace.s12),
+        padding: m.isUser ? const EdgeInsets.all(TvSpace.s12) : const EdgeInsets.symmetric(vertical: TvSpace.s4),
+        decoration: m.isUser
+            ? BoxDecoration(
+                color: c.layer01,
+                border: Border.all(color: c.borderSubtle),
+                borderRadius: BorderRadius.circular(TvRadius.small),
+              )
+            : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (m.isUser) SelectableText(m.content) else MarkdownView(m.content),
+            if (m.isUser)
+              SelectableText(m.content, style: TvType.bodyLong.copyWith(color: c.textPrimary))
+            else
+              MarkdownView(m.content),
             if (cites.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              const Text('References', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-              for (final c in cites)
-                TextButton(
-                  key: Key('cite-${c.n}'),
-                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact, alignment: Alignment.centerLeft),
-                  onPressed: () => unawaited(_open(context, c)),
-                  child: Text('[${c.n}] ${c.reference}', style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: TvSpace.s8),
+              Text('REFERENCES', style: TvType.caption.copyWith(color: c.textSecondary)),
+              for (final x in cites)
+                InkWell(
+                  key: Key('cite-${x.n}'),
+                  onTap: () => unawaited(_open(context, x)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: TvSpace.s2),
+                    child: Text('[${x.n}] ${x.reference}', style: TvType.helper.copyWith(color: c.interactive)),
+                  ),
                 ),
             ],
             if (!m.isUser && m.id.isNotEmpty && m.content.isNotEmpty)
               Align(
                 alignment: Alignment.centerRight,
-                child: TextButton.icon(
+                child: TvButton(
+                  'Save to note',
                   key: Key('save-note-${m.id}'),
+                  icon: TvIcon.add,
+                  kind: TvButtonKind.ghost,
+                  dense: true,
                   onPressed: () => unawaited(state.noteFromMessage(m.id)),
-                  icon: const Icon(Icons.note_add_outlined, size: 16),
-                  label: const Text('Save to note'),
                 ),
               ),
           ],

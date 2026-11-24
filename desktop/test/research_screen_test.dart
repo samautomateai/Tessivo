@@ -25,7 +25,24 @@ Future<void> _openBoard(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _tab(WidgetTester tester, String tab) async {
+  await tester.tap(find.byKey(Key('tab-$tab')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
+  testWidgets('with no research notebooks the page says how to start', (tester) async {
+    final state = await _pump(tester);
+    for (final r in [...state.research]) {
+      await state.core.deleteResearch(r.id);
+    }
+    await state.load();
+    state.go(Section.research);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('no-research')), findsOneWidget);
+    expect(find.text('No research notebooks yet'), findsOneWidget);
+  });
+
   testWidgets('the dialog creates a research notebook listed under RESEARCH', (tester) async {
     final state = await _pump(tester);
     await tester.tap(find.byKey(const Key('activity-research')));
@@ -56,11 +73,15 @@ void main() {
     await _openBoard(tester);
     final bar = find.byKey(const Key('research-context-bar'));
     expect(tester.widget<Text>(bar).data, startsWith('2 sources · 1 summaries'));
+    await _tab(tester, 'sources');
     await tester.tap(find.byKey(const Key('level-rs2-off')));
     await tester.pumpAndSettle();
+    await _tab(tester, 'chat');
     expect(tester.widget<Text>(bar).data, '1 sources · 1 summaries · ≈ 0k tokens');
+    await _tab(tester, 'sources');
     await tester.tap(find.byKey(const Key('level-rs1-full')));
     await tester.pumpAndSettle();
+    await _tab(tester, 'chat');
     expect(tester.widget<Text>(bar).data, startsWith('1 sources · 0 summaries'));
   });
 
@@ -71,7 +92,7 @@ void main() {
     await tester.tap(find.byKey(const Key('research-send')));
     await tester.pumpAndSettle();
     expect(find.textContaining('ship in March [1]'), findsOneWidget);
-    expect(find.text('References'), findsOneWidget);
+    expect(find.text('REFERENCES'), findsOneWidget);
     await tester.tap(find.byKey(const Key('cite-1')));
     await tester.pumpAndSettle();
     expect(find.textContaining('a sample summary'), findsOneWidget);
@@ -81,6 +102,7 @@ void main() {
     expect(save, findsOneWidget);
     await tester.tap(save);
     await tester.pumpAndSettle();
+    await _tab(tester, 'notes');
     expect(find.text('AI'), findsOneWidget);
     expect(find.text('When do we ship?'), findsWidgets);
   });
@@ -89,6 +111,7 @@ void main() {
     final state = await _pump(tester);
     await _openBoard(tester);
     expect(state.researchState!.context.notes, 1);
+    await _tab(tester, 'notes');
     await tester.tap(find.byKey(const Key('note-include-rn1')));
     await tester.pumpAndSettle();
     expect(state.researchState!.context.notes, 0);
@@ -98,6 +121,7 @@ void main() {
   testWidgets('sources and notes can be added and removed', (tester) async {
     final state = await _pump(tester);
     await _openBoard(tester);
+    await _tab(tester, 'sources');
     await tester.tap(find.byKey(const Key('research-add-source')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, '/data/report.md');
@@ -112,6 +136,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('report.md'), findsNothing);
 
+    await _tab(tester, 'notes');
     await tester.tap(find.byKey(const Key('research-add-note')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('note-text')), 'Check the vendor contract');
@@ -122,12 +147,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Audit follow-up'), findsNothing);
 
+    await _tab(tester, 'chat');
     await tester.tap(find.byKey(const Key('research-new-chat')));
     await tester.pumpAndSettle();
     expect(state.researchState!.chats, hasLength(1));
   });
 
-  testWidgets('narrow windows show the columns as tabs', (tester) async {
+  testWidgets('a research notebook opens on Ask with tabs for sources and notes', (tester) async {
     await _pump(tester, width: 1000);
     await _openBoard(tester);
     expect(find.byKey(const Key('tab-sources')), findsOneWidget);

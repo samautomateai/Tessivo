@@ -1,88 +1,90 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
-import '../research_state.dart';
-import '../theme.dart';
+import '../design/colors.dart';
+import '../design/components/empty_state.dart';
+import '../design/components/headers.dart';
+import '../design/components/tabs.dart';
+import '../design/icons.dart';
 import '../widgets/research_chat.dart';
 import '../widgets/research_notes.dart';
 import '../widgets/research_sources.dart';
+import 'new_notebook_dialog.dart';
 
-/// A research notebook: sources, conversation and notes side by side, or as
-/// tabs when the window is narrower than [wide].
-class ResearchScreen extends StatelessWidget {
+/// A research notebook: tabs Sources, Ask and Notes under its header.
+class ResearchScreen extends StatefulWidget {
   const ResearchScreen({super.key, required this.state});
 
   final AppState state;
 
-  /// Narrowest width that shows the three columns.
-  static const wide = 1100.0;
+  @override
+  State<ResearchScreen> createState() => _ResearchScreenState();
+}
+
+class _ResearchScreenState extends State<ResearchScreen> {
+  int _tab = 1;
+
+  /// The notebook [_tab] belongs to; another one starts on Ask, or on
+  /// Sources while it has none.
+  String? _tabFor;
 
   @override
   Widget build(BuildContext context) {
+    final c = TvColors.of(context);
+    final state = widget.state;
     final r = state.researchState;
-    if (r == null) return const Center(child: Text('Pick a research notebook.'));
+    if (r == null) {
+      final none = state.research.isEmpty;
+      return ColoredBox(
+        color: c.background,
+        child: TvEmptyState(
+          key: const Key('no-research'),
+          icon: TvIcon.research,
+          title: none ? 'No research notebooks yet' : 'Pick a research notebook',
+          message: 'Add files and folders, ask about them with references, and keep what matters as notes.',
+          actionLabel: 'New research notebook',
+          onAction: () => unawaited(showNewNotebookDialog(context, state, research: true)),
+        ),
+      );
+    }
     return ListenableBuilder(
       listenable: r,
-      builder: (context, _) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _title(r),
-          const Divider(height: 1),
-          Expanded(child: MediaQuery.sizeOf(context).width >= wide ? _columns(r) : _tabs(r)),
-        ],
-      ),
-    );
-  }
-
-  Widget _title(ResearchState r) {
-    final nb = r.notebook;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(nb?.name ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-          if (nb != null && nb.description.isNotEmpty)
-            Text(nb.description, style: const TextStyle(color: Tokens.textMuted)),
-        ],
-      ),
-    );
-  }
-
-  Widget _columns(ResearchState r) => Row(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      SizedBox(width: 300, child: ResearchSources(state: r)),
-      const VerticalDivider(width: 1),
-      Expanded(child: ResearchChatPane(state: r)),
-      const VerticalDivider(width: 1),
-      SizedBox(width: 300, child: ResearchNotes(state: r)),
-    ],
-  );
-
-  Widget _tabs(ResearchState r) => DefaultTabController(
-    length: 3,
-    initialIndex: 1,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const TabBar(
-          tabs: [
-            Tab(key: Key('tab-sources'), text: 'Sources'),
-            Tab(key: Key('tab-chat'), text: 'Conversation'),
-            Tab(key: Key('tab-notes'), text: 'Notes'),
-          ],
-        ),
-        Expanded(
-          child: TabBarView(
+      builder: (context, _) {
+        final nb = r.notebook;
+        if (_tabFor != r.notebookId && nb != null) {
+          _tabFor = r.notebookId;
+          _tab = nb.sources.isEmpty ? 0 : 1;
+        }
+        int? count(int n) => n == 0 ? null : n;
+        return ColoredBox(
+          color: c.background,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ResearchSources(state: r),
-              ResearchChatPane(state: r),
-              ResearchNotes(state: r),
+              TvPageHeader(title: nb?.name ?? '', meta: nb == null || nb.description.isEmpty ? null : nb.description),
+              const SizedBox(height: 8),
+              TvTabs(
+                tabs: [
+                  TvTabItem('Sources', count: count(nb?.sources.length ?? 0), key: const Key('tab-sources')),
+                  const TvTabItem('Ask', key: Key('tab-chat')),
+                  TvTabItem('Notes', count: count(r.notes.length), key: const Key('tab-notes')),
+                ],
+                selected: _tab,
+                onSelect: (i) => setState(() => _tab = i),
+              ),
+              Expanded(
+                child: switch (_tab) {
+                  0 => ResearchSources(state: r),
+                  2 => ResearchNotes(state: r),
+                  _ => ResearchChatPane(state: r),
+                },
+              ),
             ],
           ),
-        ),
-      ],
-    ),
-  );
+        );
+      },
+    );
+  }
 }

@@ -6,14 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// still on the old styling are listed here; the list may only shrink, and is
 /// empty once every screen is on the design system.
 const _notMovedYet = {
-  'lib/src/screens/research_screen.dart',
   'lib/src/screens/schedules_screen.dart',
   'lib/src/screens/templates_screen.dart',
   'lib/src/widgets/approvals_sheet.dart',
   'lib/src/widgets/output_edit_form.dart',
-  'lib/src/widgets/research_chat.dart',
-  'lib/src/widgets/research_notes.dart',
-  'lib/src/widgets/research_sources.dart',
   'lib/src/widgets/work_type_badge.dart',
 };
 

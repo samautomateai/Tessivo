@@ -3,10 +3,15 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/core_client.dart';
+import '../design/colors.dart';
+import '../design/components/buttons.dart';
+import '../design/components/tags.dart';
+import '../design/icons.dart';
+import '../design/sizes.dart';
+import '../design/type.dart';
 import '../research_state.dart';
-import '../theme.dart';
 
-/// The notes column: your notes and saved answers, each in or out of the context.
+/// The Notes tab: your notes and saved answers, each in or out of the context.
 class ResearchNotes extends StatelessWidget {
   const ResearchNotes({super.key, required this.state});
 
@@ -14,40 +19,32 @@ class ResearchNotes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final c = TvColors.of(context);
+    return ListView(
       key: const Key('research-notes'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.fromLTRB(TvSpace.s24, TvSpace.s16, TvSpace.s24, TvSpace.s24),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
-          child: Row(
-            children: [
-              const Expanded(
-                child: Text('Notes', style: TextStyle(fontWeight: FontWeight.w600)),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Notes you include are sent with each question.',
+                style: TvType.helper.copyWith(color: c.textHelper),
               ),
-              TextButton.icon(
-                key: const Key('research-add-note'),
-                onPressed: () => unawaited(_edit(context, state, null)),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add'),
-              ),
-            ],
-          ),
+            ),
+            TvButton(
+              'Add',
+              key: const Key('research-add-note'),
+              icon: TvIcon.add,
+              dense: true,
+              onPressed: () => unawaited(_edit(context, state, null)),
+            ),
+          ],
         ),
-        Expanded(
-          child: state.notes.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'Write a note, or save an answer to keep it. Notes you include are sent with each question.',
-                    style: TextStyle(color: Tokens.textMuted),
-                  ),
-                )
-              : ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  children: [for (final n in state.notes) _NoteCard(state: state, note: n)],
-                ),
-        ),
+        const SizedBox(height: TvSpace.s12),
+        if (state.notes.isEmpty)
+          Text('Write a note, or save an answer to keep it.', style: TvType.body.copyWith(color: c.textSecondary)),
+        for (final n in state.notes) _NoteCard(state: state, note: n),
       ],
     );
   }
@@ -61,35 +58,31 @@ class _NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = TvColors.of(context);
     final n = note;
-    return Card(
+    return Material(
       key: Key('note-${n.id}'),
-      margin: const EdgeInsets.only(bottom: 8),
+      color: c.layer01,
       child: InkWell(
         onTap: () => unawaited(_edit(context, state, n)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 4, 10),
+        hoverColor: c.layer02,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(TvSpace.s12, TvSpace.s8, TvSpace.s4, TvSpace.s8),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: c.borderSubtle)),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  if (n.isAi) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: Tokens.accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text('AI', style: TextStyle(color: Tokens.accent, fontSize: 11)),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
+                  if (n.isAi) ...[const TvTag('AI', tone: TvTagTone.blue), const SizedBox(width: TvSpace.s8)],
                   Expanded(
                     child: Text(
                       n.title,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: TvType.body.copyWith(color: c.textPrimary, fontWeight: FontWeight.w500),
                     ),
                   ),
                   Tooltip(
@@ -97,13 +90,15 @@ class _NoteCard extends StatelessWidget {
                     child: Checkbox(
                       key: Key('note-include-${n.id}'),
                       value: n.include,
+                      visualDensity: VisualDensity.compact,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(TvRadius.small)),
                       onChanged: (v) => unawaited(state.setNoteIncluded(n, v ?? false)),
                     ),
                   ),
-                  IconButton(
+                  TvIconButton(
+                    TvIcon.close,
                     key: Key('note-delete-${n.id}'),
                     tooltip: 'Delete',
-                    icon: const Icon(Icons.delete_outline, size: 18),
                     onPressed: () => unawaited(state.deleteNote(n.id)),
                   ),
                 ],
@@ -112,7 +107,7 @@ class _NoteCard extends StatelessWidget {
                 n.text,
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Tokens.textMuted, fontSize: 12),
+                style: TvType.helper.copyWith(color: c.textSecondary),
               ),
             ],
           ),
