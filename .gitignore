@@ -60,3 +60,6 @@ desktop/.dart_tool/
 
 # Release archives (tools/release)
 dist/
+
+# Brainstorming mockups (superpowers visual companion)
+.superpowers/

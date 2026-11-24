@@ -1,0 +1,242 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  .tv { --bg:#161616; --l1:#262626; --l2:#393939; --l3:#525252; --hair:#2e2e2e; --line:#393939;
+        --t1:#f4f4f4; --t2:#c6c6c6; --t3:#8d8d8d; --act:#0d0d0d; --head:#161616;
+        --blue:#4589ff; --prim:#0f62fe; --sel:#353535; --field:#262626; --risk:#ff8389; --ok:#42be65; --warn:#f1c21b; --err:#fa4d56;
+        font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:13px; line-height:18px; letter-spacing:.16px;
+        color:var(--t1); background:var(--bg); border:1px solid #000; overflow:hidden; border-radius:2px; }
+  .tv * { box-sizing:border-box; }
+  .mono { font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0; }
+  .muted { color:var(--t2); } .faint { color:var(--t3); }
+  .row { display:flex; } .col { display:flex; flex-direction:column; } .grow { flex:1; min-width:0; }
+  .tag { display:inline-flex; align-items:center; height:18px; padding:0 8px; border-radius:9px; font-size:11px; font-weight:500; background:#510224; color:#ffafd2; }
+  .tag.gray { background:#393939; color:#e0e0e0; } .tag.green { background:#044317; color:#a7f0ba; } .tag.yellow { background:#483700; color:#fddc69; }
+  .dot { width:8px; height:8px; border-radius:1px; display:inline-block; flex:none; }
+  /* Carbon icons as masks, so they take the text colour */
+  .ci { width:16px; height:16px; display:inline-block; flex:none; background:currentColor;
+        -webkit-mask:var(--u) center/contain no-repeat; mask:var(--u) center/contain no-repeat; }
+  .ci.l { width:20px; height:20px; }
+  .btn { height:28px; padding:0 10px; display:inline-flex; align-items:center; gap:6px; font-size:13px; border:0; color:var(--t1); background:transparent; font-family:inherit; white-space:nowrap; }
+  .btn.primary { background:var(--prim); color:#fff; } .btn.sec { background:var(--l2); }
+  .btn.icon { width:28px; padding:0; justify-content:center; color:var(--t2); }
+  .btn.ghost { color:var(--t2); }
+  .section-label { font-size:11px; font-weight:600; letter-spacing:.32px; text-transform:uppercase; color:var(--t3); }
+  .tree-row { height:26px; display:flex; align-items:center; gap:8px; padding:0 12px 0 16px; white-space:nowrap; overflow:hidden; }
+  .tree-row.sel { background:var(--sel); box-shadow:inset 2px 0 0 var(--blue); }
+  .status { height:22px; display:flex; align-items:center; gap:16px; padding:0 10px; font-size:12px; background:var(--prim); color:#fff; }
+  .status span { opacity:.92; display:inline-flex; gap:5px; align-items:center }
+  h1.doc { font-size:20px; line-height:26px; font-weight:400; margin:0 0 4px; letter-spacing:0; }
+  .doc h3 { font-size:14px; font-weight:600; margin:20px 0 6px; }
+  .doc p { margin:0 0 8px; color:var(--t2); max-width:680px; }
+  table.risk { border-collapse:collapse; width:100%; max-width:760px; }
+  table.risk th { text-align:left; font-weight:600; color:var(--t2); background:var(--l1); height:32px; padding:0 12px; border-bottom:1px solid var(--line); }
+  table.risk td { height:36px; padding:0 12px; border-bottom:1px solid var(--hair); }
+  .sev { display:inline-flex; gap:6px; align-items:center; } .sev i { width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .ctab { height:36px; display:flex; align-items:flex-end; border-bottom:1px solid var(--hair); padding-left:24px; }
+  .ctab span { padding:0 14px 9px; color:var(--t2); } .ctab span.on { color:var(--t1); box-shadow:inset 0 -2px 0 var(--blue); font-weight:500; }
+  .act { width:64px; height:54px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--t3); position:relative; font-size:10px; letter-spacing:.2px; }
+  .act.on { color:var(--t1); } .act.on::before { content:''; position:absolute; left:0; top:8px; bottom:8px; width:2px; background:var(--blue); }
+  .kbd { font-family:'IBM Plex Mono',monospace; font-size:11px; padding:0 5px; border:1px solid var(--line); border-radius:2px; color:var(--t3); }
+  .badge { position:absolute; top:3px; right:2px; min-width:14px; height:14px; padding:0 3px; background:#da1e28; color:#fff; border-radius:7px; font-size:10px; line-height:14px; text-align:center; font-weight:600; }
+  /* chat */
+  .turn { max-width:760px; margin:0 auto 18px; }
+  .who { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-weight:600; font-size:12px; }
+  .avatar { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--l2); color:var(--t2); }
+  .avatar.ai { background:var(--prim); color:#fff; }
+  .body { color:var(--t1); padding-left:28px; } .body p { margin:0 0 8px; color:var(--t2); }
+  .tool { border:1px solid var(--line); background:var(--l1); margin:8px 0 10px 28px; }
+  .tool-head { height:32px; display:flex; align-items:center; gap:8px; padding:0 10px; }
+  .tool-out { border-top:1px solid var(--hair); background:#0d0d0d; padding:8px 12px; font-family:'IBM Plex Mono',monospace; font-size:12px; line-height:18px; color:#c6c6c6; white-space:pre; overflow:hidden; }
+  .tool-out .e { color:#ff8389 } .tool-out .p { color:#8d8d8d } .tool-out .g { color:#42be65 }
+  .chip { display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 8px; background:var(--l2); font-size:12px; color:var(--t1); }
+  .approval { border:1px solid #f1c21b; border-left:3px solid #f1c21b; background:#1c1a10; margin:8px 0 10px 28px; padding:10px 12px; }
+  .note { font-size:12px; color:#8d8d8d; margin:6px 0 0; }
+</style>
+<script>
+  // Carbon icons 11.53.0 (Apache-2.0) from unpkg, used as CSS masks.
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.ci[data-i]').forEach(el => {
+      el.style.setProperty('--u', `url(https://unpkg.com/@carbon/icons@11.53.0/svg/32/${el.dataset.i}.svg)`);
+    });
+  });
+</script>
+
+<h2>3 · Real icons, and the chat screen with tool calls</h2>
+<p class="subtitle">Carbon's icon set. Every icon has a tooltip; the left bar and the output actions also carry a label so nothing is guesswork.</p>
+
+<h3>Notebook</h3>
+<div class="tv" style="height:600px">
+  <div class="row" style="height:40px;align-items:center;background:var(--head);border-bottom:1px solid var(--line);padding:0 8px 0 12px;gap:12px">
+    <div style="width:18px;height:18px;background:var(--prim);border-radius:3px"></div><b style="font-weight:600">Tessivo</b>
+    <span style="width:1px;height:18px;background:var(--line)"></span>
+    <span class="faint">Notebooks <span style="margin:0 6px">/</span> <span class="muted">Change risk review</span></span>
+    <div class="grow" style="display:flex;justify-content:center">
+      <div style="width:460px;height:28px;background:var(--field);border-bottom:1px solid var(--l3);display:flex;align-items:center;gap:8px;padding:0 10px" class="faint"><span class="ci" data-i="search"></span>Search or run a command<span style="margin-left:auto" class="kbd">Ctrl K</span></div>
+    </div>
+    <button class="btn icon" title="Approvals waiting" style="position:relative"><span class="ci" data-i="task--approved"></span><span class="badge">1</span></button>
+    <button class="btn icon" title="Notifications"><span class="ci" data-i="notification"></span></button>
+    <button class="btn icon" title="Settings"><span class="ci" data-i="settings"></span></button>
+  </div>
+  <div class="row" style="height:536px">
+    <div class="col" style="width:64px;background:var(--act);border-right:1px solid var(--hair)">
+      <div class="act on" title="Notebooks"><span class="ci l" data-i="notebook"></span>Notebooks</div>
+      <div class="act" title="Research"><span class="ci l" data-i="microscope"></span>Research</div>
+      <div class="act" title="Chat"><span class="ci l" data-i="chat"></span>Chat</div>
+      <div class="act" title="Schedules"><span class="ci l" data-i="time"></span>Schedules</div>
+      <div class="act" title="Templates"><span class="ci l" data-i="template"></span>Templates</div>
+      <div style="flex:1"></div>
+      <div class="act" title="Account"><span class="ci l" data-i="user--avatar"></span></div>
+    </div>
+    <div class="col" style="width:236px;background:var(--l1);border-right:1px solid var(--hair)">
+      <div class="row" style="height:36px;align-items:center;padding:0 8px 0 16px"><span class="section-label grow">Notebooks</span><button class="btn icon" title="New notebook"><span class="ci" data-i="add"></span></button></div>
+      <div class="tree-row sel"><span class="dot" style="background:#ff7eb6"></span>Change risk review</div>
+      <div class="tree-row"><span class="dot" style="background:#3ddbd9"></span>Vendor contracts digest</div>
+      <div class="tree-row"><span class="dot" style="background:#78a9ff"></span>Payments service docs</div>
+      <div class="tree-row"><span class="dot" style="background:#be95ff"></span><span class="grow">Weekly ops report</span><span class="ci faint" data-i="time" style="width:12px;height:12px"></span><span class="faint mono" style="font-size:11px">Mon</span></div>
+      <div class="row" style="height:36px;align-items:center;padding:0 8px 0 16px;margin-top:8px;border-top:1px solid var(--hair)"><span class="section-label grow">Outputs</span></div>
+      <div class="tree-row" style="color:var(--t1)"><span class="ci" data-i="document"></span><span class="grow">PR #482 risk report</span><span class="faint mono" style="font-size:11px">v2</span></div>
+      <div class="tree-row muted"><span class="ci" data-i="document"></span><span class="grow">PR #482 risk report</span><span class="faint mono" style="font-size:11px">v1</span></div>
+      <div class="tree-row muted"><span class="ci" data-i="document"></span><span class="grow">PR #479 risk report</span><span class="faint mono" style="font-size:11px">v1</span></div>
+    </div>
+    <div class="col grow">
+      <div class="row" style="padding:16px 24px 0;align-items:center;gap:10px">
+        <span style="font-size:20px;line-height:26px">Change risk review</span><span class="tag">Analyze</span><span class="grow"></span>
+        <span class="faint" style="font-size:12px">≈ 51k tokens · smart</span>
+        <button class="btn sec" title="Agent mode lets the model use tools before it writes"><span class="ci" data-i="bot"></span>Agent off</button>
+        <button class="btn primary"><span class="ci" data-i="play"></span>Run</button>
+      </div>
+      <div class="ctab" style="margin-top:12px"><span class="on">Output</span><span>Sources · 3</span><span>Prompt</span><span>Memory · 2</span><span>Agent</span><span>Runs</span></div>
+      <div class="row" style="height:38px;align-items:center;padding:0 12px 0 24px;border-bottom:1px solid var(--hair);gap:0">
+        <span class="faint mono" style="margin-right:8px">v2</span><span class="grow">PR #482 risk report <span class="faint">· Today 22:01</span></span>
+        <button class="btn ghost" title="Run the same prompt again"><span class="ci" data-i="renew"></span>Run again</button>
+        <button class="btn ghost" title="Edit the fields and save a version"><span class="ci" data-i="edit"></span>Edit</button>
+        <button class="btn ghost" title="Compare with v1"><span class="ci" data-i="compare"></span>Compare</button>
+        <button class="btn ghost" title="Export as Markdown, Word or PDF"><span class="ci" data-i="download"></span>Export</button>
+        <button class="btn icon" title="Hide thread (Ctrl J)"><span class="ci" data-i="side-panel--close"></span></button>
+      </div>
+      <div style="padding:20px 32px;overflow:hidden" class="doc grow">
+        <h1 class="doc">PR #482 risk report</h1>
+        <p>Merging is <b style="color:var(--risk);font-weight:600">high risk</b> until the token expiry check is restored.</p>
+        <table class="risk"><tr><th style="width:110px">Severity</th><th>Finding</th><th style="width:170px">Evidence</th></tr>
+          <tr><td><span class="sev"><i style="background:#fa4d56"></i>High</span></td><td>Session token expiry check removed</td><td class="mono muted">auth/session.go:88</td></tr>
+          <tr><td><span class="sev"><i style="background:#f1c21b"></i>Medium</span></td><td>Retry loop has no upper bound</td><td class="mono muted">pay/client.go:142</td></tr>
+          <tr><td><span class="sev"><i style="background:#42be65"></i>Low</span></td><td>Log line includes order id</td><td class="mono muted">pay/log.go:31</td></tr></table>
+      </div>
+    </div>
+    <div class="col" style="width:290px;background:var(--l1);border-left:1px solid var(--hair)">
+      <div class="row" style="height:38px;align-items:center;padding:0 8px 0 16px"><span class="section-label grow">Thread</span><button class="btn ghost" title="Make a new version from this thread"><span class="ci" data-i="version"></span>New version</button></div>
+      <div style="padding:4px 12px" class="grow">
+        <div style="padding:8px 12px;border-left:2px solid var(--blue);margin-bottom:10px">Why is the auth risk rated high?</div>
+        <div style="padding:8px 12px;border-left:2px solid var(--line)"><span class="muted">The diff removes the expiry check in </span><span class="mono">auth/session.go:88</span><span class="muted">.</span></div>
+      </div>
+      <div style="margin:12px;border-bottom:1px solid var(--l3);background:var(--field);height:32px;display:flex;align-items:center;gap:8px;padding:0 10px" class="faint"><span class="grow">Ask about this output…</span><span class="ci" data-i="send"></span></div>
+    </div>
+  </div>
+  <div class="status"><span><span class="dot" style="background:#a7f0ba;border-radius:50%"></span>Core connected</span><span>smart → litellm/qwen3</span><span>Today 412k / 2M tokens</span><span style="flex:1"></span><span><span class="ci" data-i="time" style="width:12px;height:12px"></span>Next run Mon 08:00</span><span><span class="ci" data-i="task--approved" style="width:12px;height:12px"></span>1 approval waiting</span></div>
+</div>
+
+<h3 style="margin-top:28px">Chat, with tool calls</h3>
+<div class="tv" style="height:720px">
+  <div class="row" style="height:40px;align-items:center;background:var(--head);border-bottom:1px solid var(--line);padding:0 8px 0 12px;gap:12px">
+    <div style="width:18px;height:18px;background:var(--prim);border-radius:3px"></div><b style="font-weight:600">Tessivo</b>
+    <span style="width:1px;height:18px;background:var(--line)"></span>
+    <span class="faint">Chat <span style="margin:0 6px">/</span> <span class="muted">Why is CI failing on payments?</span></span>
+    <div class="grow" style="display:flex;justify-content:center">
+      <div style="width:460px;height:28px;background:var(--field);border-bottom:1px solid var(--l3);display:flex;align-items:center;gap:8px;padding:0 10px" class="faint"><span class="ci" data-i="search"></span>Search or run a command<span style="margin-left:auto" class="kbd">Ctrl K</span></div>
+    </div>
+    <button class="btn icon" title="Approvals waiting" style="position:relative"><span class="ci" data-i="task--approved"></span><span class="badge">1</span></button>
+    <button class="btn icon" title="Notifications"><span class="ci" data-i="notification"></span></button>
+    <button class="btn icon" title="Settings"><span class="ci" data-i="settings"></span></button>
+  </div>
+  <div class="row" style="height:656px">
+    <div class="col" style="width:64px;background:var(--act);border-right:1px solid var(--hair)">
+      <div class="act" title="Notebooks"><span class="ci l" data-i="notebook"></span>Notebooks</div>
+      <div class="act" title="Research"><span class="ci l" data-i="microscope"></span>Research</div>
+      <div class="act on" title="Chat"><span class="ci l" data-i="chat"></span>Chat</div>
+      <div class="act" title="Schedules"><span class="ci l" data-i="time"></span>Schedules</div>
+      <div class="act" title="Templates"><span class="ci l" data-i="template"></span>Templates</div>
+      <div style="flex:1"></div>
+      <div class="act" title="Account"><span class="ci l" data-i="user--avatar"></span></div>
+    </div>
+    <!-- chat list -->
+    <div class="col" style="width:236px;background:var(--l1);border-right:1px solid var(--hair)">
+      <div class="row" style="height:36px;align-items:center;padding:0 8px 0 16px"><span class="section-label grow">Chats</span><button class="btn icon" title="New chat (Ctrl N)"><span class="ci" data-i="add"></span></button></div>
+      <div style="padding:2px 16px 6px" class="section-label" >Pinned</div>
+      <div class="tree-row"><span class="ci faint" data-i="chat"></span>Release checklist</div>
+      <div style="padding:10px 16px 6px" class="section-label">Today</div>
+      <div class="tree-row sel"><span class="ci" data-i="chat"></span><span class="grow">Why is CI failing on payments?</span></div>
+      <div class="tree-row muted"><span class="ci faint" data-i="chat"></span>Summarise vendor SLA</div>
+      <div style="padding:10px 16px 6px" class="section-label">Last week</div>
+      <div class="tree-row muted"><span class="ci faint" data-i="chat"></span>Draft incident comms</div>
+      <div class="tree-row muted"><span class="ci faint" data-i="chat"></span>Q3 board pack notes</div>
+    </div>
+    <!-- conversation -->
+    <div class="col grow">
+      <div class="row" style="height:44px;align-items:center;padding:0 16px 0 24px;border-bottom:1px solid var(--hair);gap:8px">
+        <span class="grow" style="font-size:14px;font-weight:500">Why is CI failing on payments?</span>
+        <span class="tag gray">smart</span><span class="tag gray">thinking: medium</span>
+        <button class="btn ghost" title="Turn this chat into a notebook you can run again"><span class="ci" data-i="notebook"></span>Make repeatable</button>
+        <button class="btn icon" title="More"><span class="ci" data-i="settings"></span></button>
+      </div>
+      <div class="grow" style="overflow:hidden;padding:20px 24px 0">
+        <div class="turn">
+          <div class="who"><span class="avatar"><span class="ci" data-i="user--avatar" style="width:12px;height:12px"></span></span>You<span class="faint" style="font-weight:400">· 10:42</span></div>
+          <div class="body">Why is CI failing on the payments service? Check the tests and the open PR.
+            <div class="row" style="gap:6px;margin-top:8px"><span class="chip"><span class="ci" data-i="folder"></span>payments-service</span><span class="chip"><span class="ci" data-i="link"></span>ci.example.com/run/8812</span></div></div>
+        </div>
+        <div class="turn">
+          <div class="who"><span class="avatar ai"><span class="ci" data-i="bot" style="width:12px;height:12px"></span></span>Tessivo<span class="faint" style="font-weight:400">· litellm/qwen3 · 3 tools</span></div>
+          <div class="tool">
+            <div class="tool-head"><span class="ci" data-i="terminal"></span><span class="mono">go test ./pay/...</span><span class="grow"></span><span class="tag green" style="background:#044317">allow-listed</span><span class="tag" style="background:#520408;color:#ffb3b8">exit 1</span><span class="faint mono">4.2 s</span><span class="ci faint" data-i="chevron--right" style="transform:rotate(90deg)"></span></div>
+            <div class="tool-out"><span class="p">--- FAIL: TestChargeRetries (0.31s)</span>
+    client_test.go:142: <span class="e">retry loop did not stop after 5 attempts (ran 41)</span>
+<span class="p">FAIL	payments/pay	0.412s</span>
+<span class="g">ok  	payments/auth	0.208s</span></div>
+          </div>
+          <div class="tool">
+            <div class="tool-head"><span class="ci" data-i="tool-kit"></span><span>github</span><span class="faint">·</span><span class="mono">get_pull_request</span><span class="faint mono">#482</span><span class="grow"></span><span class="tag gray">MCP</span><span class="faint mono">0.6 s</span><span class="ci faint" data-i="chevron--right"></span></div>
+          </div>
+          <div class="body">
+            <p><b style="color:var(--t1);font-weight:600">One test fails:</b> <span class="mono">TestChargeRetries</span> expects the retry loop to stop after 5 attempts, but PR #482 removed the cap in <span class="mono">pay/client.go:142</span>, so it ran 41 times.</p>
+            <p>Restoring <span class="mono">maxRetries = 5</span> fixes it. I can leave a comment on the PR.</p>
+          </div>
+          <div class="approval">
+            <div class="row" style="align-items:center;gap:8px"><span class="ci" data-i="warning--alt" style="color:#f1c21b"></span><b style="font-weight:600">Allow github · create_comment?</b><span class="grow"></span><span class="faint" style="font-size:12px">Not allowed by a rule</span></div>
+            <div class="mono muted" style="margin:6px 0 10px 24px">{ "pr": 482, "body": "TestChargeRetries fails: the retry cap was removed…" }</div>
+            <div class="row" style="gap:8px;margin-left:24px"><button class="btn primary" style="height:26px">Allow once</button><button class="btn sec" style="height:26px">Always in this chat</button><button class="btn ghost" style="height:26px">Deny</button></div>
+          </div>
+        </div>
+      </div>
+      <!-- composer -->
+      <div style="padding:12px 24px 16px">
+        <div style="max-width:760px;margin:0 auto;background:var(--field);border-bottom:1px solid var(--l3)">
+          <div style="padding:10px 12px 4px" class="faint">Reply, or attach more context…</div>
+          <div class="row" style="align-items:center;gap:2px;padding:4px 6px 6px">
+            <button class="btn icon" title="Attach a file, folder, notebook or web page"><span class="ci" data-i="attachment"></span></button>
+            <button class="btn ghost" title="MCP servers this chat may use" style="height:24px"><span class="ci" data-i="tool-kit"></span>Tools · 1</button>
+            <button class="btn ghost" style="height:24px" title="Model">smart</button>
+            <span class="grow"></span><span class="faint" style="font-size:12px;margin-right:8px">≈ 12k tokens</span>
+            <button class="btn primary" style="height:28px" title="Send (Enter)"><span class="ci" data-i="send--alt"></span>Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- context panel -->
+    <div class="col" style="width:260px;background:var(--l1);border-left:1px solid var(--hair)">
+      <div class="row" style="height:44px;align-items:center;padding:0 8px 0 16px"><span class="section-label grow">In this chat</span><button class="btn icon" title="Hide (Ctrl J)"><span class="ci" data-i="side-panel--close"></span></button></div>
+      <div style="padding:0 16px 6px" class="section-label">Context · 2</div>
+      <div class="tree-row"><span class="ci" data-i="folder"></span><span class="grow">payments-service</span><span class="faint mono" style="font-size:11px">38k</span></div>
+      <div class="tree-row"><span class="ci" data-i="link"></span><span class="grow">ci.example.com/run/8812</span><span class="faint mono" style="font-size:11px">2k</span></div>
+      <div style="padding:14px 16px 6px" class="section-label">Tools · 1 server</div>
+      <div class="tree-row"><span class="ci" data-i="tool-kit"></span><span class="grow">github</span><span class="faint" style="font-size:11px">ask</span></div>
+      <div class="tree-row"><span class="ci" data-i="terminal"></span><span class="grow">Commands</span><span class="faint" style="font-size:11px">2 allowed</span></div>
+      <div style="padding:14px 16px 6px" class="section-label">Activity</div>
+      <div class="tree-row"><span class="ci" data-i="checkmark--filled" style="color:var(--ok)"></span><span class="grow mono" style="font-size:12px">go test ./pay/...</span></div>
+      <div class="tree-row"><span class="ci" data-i="checkmark--filled" style="color:var(--ok)"></span><span class="grow mono" style="font-size:12px">get_pull_request</span></div>
+      <div class="tree-row"><span class="ci" data-i="warning--alt" style="color:var(--warn)"></span><span class="grow mono" style="font-size:12px">create_comment</span><span class="faint" style="font-size:11px">waiting</span></div>
+    </div>
+  </div>
+  <div class="status"><span><span class="dot" style="background:#a7f0ba;border-radius:50%"></span>Core connected</span><span>smart → litellm/qwen3</span><span>Today 424k / 2M tokens</span><span style="flex:1"></span><span><span class="ci" data-i="task--approved" style="width:12px;height:12px"></span>1 approval waiting</span></div>
+</div>
+<p class="note">Tool calls sit in the reply where they happened: one line each, expandable. A command shows its terminal output; an MCP call shows its result; anything not allowed by a rule waits for your answer in place.</p>

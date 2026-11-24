@@ -1,0 +1,163 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Carbon Gray 100 (dark) and White (light) tokens */
+  .tv { --bg:#161616; --l1:#262626; --l2:#393939; --l3:#525252; --hair:#2e2e2e; --line:#393939;
+        --t1:#f4f4f4; --t2:#c6c6c6; --t3:#8d8d8d; --act:#0d0d0d; --head:#161616;
+        --blue:#4589ff; --prim:#0f62fe; --sel:#353535; --field:#262626; --risk:#ff8389;
+        --tag-a-bg:#510224; --tag-a:#ffafd2;
+        font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:13px; line-height:18px; letter-spacing:.16px;
+        color:var(--t1); background:var(--bg); border:1px solid #000; overflow:hidden; border-radius:2px; }
+  .tv.light { --bg:#ffffff; --l1:#f4f4f4; --l2:#e0e0e0; --l3:#c6c6c6; --hair:#e0e0e0; --line:#c6c6c6;
+        --t1:#161616; --t2:#525252; --t3:#6f6f6f; --act:#f4f4f4; --head:#ffffff;
+        --blue:#0f62fe; --prim:#0f62fe; --sel:#e0e0e0; --field:#f4f4f4; --risk:#da1e28;
+        --tag-a-bg:#ffd6e8; --tag-a:#9f1853; border-color:#c6c6c6; }
+  .tv * { box-sizing:border-box; }
+  .mono { font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0; }
+  .muted { color:var(--t2); } .faint { color:var(--t3); }
+  .row { display:flex; } .col { display:flex; flex-direction:column; } .grow { flex:1; min-width:0; }
+  .tag { display:inline-flex; align-items:center; height:18px; padding:0 8px; border-radius:9px; font-size:11px; font-weight:500; background:var(--tag-a-bg); color:var(--tag-a); }
+  .dot { width:8px; height:8px; border-radius:1px; display:inline-block; flex:none; }
+  .ico { width:16px; height:16px; display:inline-block; border:1.5px solid var(--t2); border-radius:2px; opacity:.8; flex:none; }
+  .btn { height:28px; padding:0 12px; display:inline-flex; align-items:center; gap:6px; font-size:13px; border:0; color:var(--t1); background:transparent; font-family:inherit; }
+  .btn.primary { background:var(--prim); color:#fff; } .btn.icon { width:28px; padding:0; justify-content:center; color:var(--t2); }
+  .btn.sec { background:var(--l2); }
+  .section-label { font-size:11px; font-weight:600; letter-spacing:.32px; text-transform:uppercase; color:var(--t3); }
+  .tree-row { height:24px; display:flex; align-items:center; gap:8px; padding:0 12px 0 16px; white-space:nowrap; overflow:hidden; }
+  .tree-row.sel { background:var(--sel); box-shadow:inset 2px 0 0 var(--blue); }
+  .sec-head { height:30px; display:flex; align-items:center; padding:0 12px; border-top:1px solid var(--hair); }
+  .status { height:22px; display:flex; align-items:center; gap:16px; padding:0 10px; font-size:12px; background:var(--prim); color:#fff; }
+  .status span { opacity:.9 }
+  h1.doc { font-size:20px; line-height:26px; font-weight:400; margin:0 0 4px; letter-spacing:0; }
+  .doc h3 { font-size:14px; font-weight:600; margin:20px 0 6px; }
+  .doc p { margin:0 0 8px; color:var(--t2); max-width:680px; }
+  table.risk { border-collapse:collapse; width:100%; max-width:760px; font-size:13px; }
+  table.risk th { text-align:left; font-weight:600; color:var(--t2); background:var(--l1); height:32px; padding:0 12px; border-bottom:1px solid var(--line); }
+  table.risk td { height:36px; padding:0 12px; border-bottom:1px solid var(--hair); }
+  .sev { display:inline-flex; gap:6px; align-items:center; } .sev i { width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .ctab { height:36px; display:flex; align-items:flex-end; border-bottom:1px solid var(--hair); padding-left:24px; }
+  .ctab span { padding:0 14px 9px; color:var(--t2); } .ctab span.on { color:var(--t1); box-shadow:inset 0 -2px 0 var(--blue); font-weight:500; }
+  .msg { padding:8px 12px; border-left:2px solid var(--line); margin-bottom:10px; }
+  .msg.you { border-left-color:var(--blue); }
+  .act-ico { width:48px; height:44px; display:flex; align-items:center; justify-content:center; position:relative; }
+  .act-ico.on::before { content:''; position:absolute; left:0; top:10px; bottom:10px; width:2px; background:var(--blue); }
+  .act-ico.on .ico { border-color:var(--t1); opacity:1; }
+  .kbd { font-family:'IBM Plex Mono',monospace; font-size:11px; padding:0 5px; border:1px solid var(--line); border-radius:2px; color:var(--t3); }
+  .note { font-size:12px; color:#8d8d8d; margin:6px 0 0; }
+</style>
+
+<h2>2 · Workbench + UI shell, combined</h2>
+<p class="subtitle">Carbon shell header on top (brand, breadcrumbs, command bar, global actions). Workbench below: activity bar, collapsible side bar, page header with tabs, collapsible thread, status bar. Shown dark and light.</p>
+
+<div class="tv" style="height:660px">
+  <!-- Carbon shell header -->
+  <div class="row" style="height:40px;align-items:center;background:var(--head);border-bottom:1px solid var(--line);padding:0 8px 0 12px;gap:12px">
+    <div style="width:18px;height:18px;background:var(--prim);border-radius:3px"></div><b style="font-weight:600">Tessivo</b>
+    <span style="width:1px;height:18px;background:var(--line)"></span>
+    <span class="faint">Notebooks <span style="margin:0 6px">/</span> <span class="muted">Change risk review</span></span>
+    <div class="grow" style="display:flex;justify-content:center">
+      <div style="width:460px;height:28px;background:var(--field);border-bottom:1px solid var(--l3);display:flex;align-items:center;gap:8px;padding:0 10px" class="faint">
+        <span class="ico" style="width:12px;height:12px;border-radius:50%"></span>Search or run a command<span style="margin-left:auto" class="kbd">Ctrl K</span></div>
+    </div>
+    <button class="btn icon" title="Approvals" style="position:relative"><span class="ico"></span><b style="position:absolute;top:2px;right:2px;width:7px;height:7px;background:#da1e28;border-radius:50%"></b></button>
+    <button class="btn icon" title="Notifications"><span class="ico"></span></button>
+    <button class="btn icon" title="Settings"><span class="ico"></span></button>
+  </div>
+  <div class="row" style="height:596px">
+    <!-- activity bar -->
+    <div class="col" style="width:48px;background:var(--act);border-right:1px solid var(--hair)">
+      <div class="act-ico on" title="Notebooks"><span class="ico"></span></div>
+      <div class="act-ico" title="Research"><span class="ico"></span></div>
+      <div class="act-ico" title="Chat"><span class="ico"></span></div>
+      <div class="act-ico" title="Schedules"><span class="ico"></span></div>
+      <div class="act-ico" title="Templates"><span class="ico"></span></div>
+      <div style="flex:1"></div>
+      <div class="act-ico" title="Account"><span class="ico" style="border-radius:50%"></span></div>
+    </div>
+    <!-- side bar -->
+    <div class="col" style="width:240px;background:var(--l1);border-right:1px solid var(--hair)">
+      <div class="row" style="height:36px;align-items:center;padding:0 8px 0 16px"><span class="section-label grow">Notebooks</span><button class="btn icon" title="New notebook">＋</button></div>
+      <div class="tree-row sel"><span class="dot" style="background:#ff7eb6"></span>Change risk review</div>
+      <div class="tree-row"><span class="dot" style="background:#3ddbd9"></span>Vendor contracts digest</div>
+      <div class="tree-row"><span class="dot" style="background:#78a9ff"></span>Payments service docs</div>
+      <div class="tree-row"><span class="dot" style="background:#be95ff"></span><span class="grow">Weekly ops report</span><span class="faint mono" style="font-size:11px">Mon 08:00</span></div>
+      <div class="row" style="height:36px;align-items:center;padding:0 8px 0 16px;margin-top:8px;border-top:1px solid var(--hair)"><span class="section-label grow">Outputs</span></div>
+      <div class="tree-row sel" style="background:transparent;box-shadow:none"><span class="faint mono" style="width:18px">v2</span>PR #482 risk report</div>
+      <div class="tree-row"><span class="faint mono" style="width:18px">v1</span><span class="muted">PR #482 risk report</span></div>
+      <div class="tree-row"><span class="faint mono" style="width:18px">v1</span><span class="muted">PR #479 risk report</span></div>
+      <div class="grow"></div>
+      <div class="row" style="height:32px;align-items:center;padding:0 16px;border-top:1px solid var(--hair)" class="faint"><span class="faint grow">Archived · 3</span></div>
+    </div>
+    <!-- main: Carbon page header + tabs, workbench editor below -->
+    <div class="col grow">
+      <div class="row" style="padding:16px 24px 0;align-items:center;gap:10px">
+        <span style="font-size:20px;line-height:26px">Change risk review</span><span class="tag">Analyze</span>
+        <span class="grow"></span>
+        <span class="faint" style="font-size:12px">≈ 51k tokens · smart</span>
+        <button class="btn sec">Agent off</button><button class="btn primary">Run <span class="kbd" style="color:#fff;border-color:rgba(255,255,255,.5)">Ctrl ↵</span></button>
+      </div>
+      <div class="ctab" style="margin-top:12px"><span class="on">Output</span><span>Sources · 3</span><span>Prompt</span><span>Memory · 2</span><span>Agent</span><span>Runs</span></div>
+      <div class="row" style="height:36px;align-items:center;padding:0 16px 0 24px;border-bottom:1px solid var(--hair);gap:2px">
+        <span class="faint mono" style="margin-right:8px">v2</span><span class="grow">PR #482 risk report <span class="faint">· Today 22:01 · litellm/qwen3</span></span>
+        <button class="btn icon" title="Run again">↻</button><button class="btn icon" title="Edit">✎</button><button class="btn icon" title="Compare with v1">⇄</button><button class="btn icon" title="Export">⤓</button>
+        <span style="width:6px"></span><button class="btn sec">New version</button>
+      </div>
+      <div style="padding:20px 32px;overflow:hidden" class="doc grow">
+        <h1 class="doc">PR #482 risk report</h1>
+        <p>Merging is <b style="color:var(--risk);font-weight:600">high risk</b> until the token expiry check is restored. Two other changes are low risk.</p>
+        <h3>Risks</h3>
+        <table class="risk"><tr><th style="width:110px">Severity</th><th>Finding</th><th style="width:170px">Evidence</th></tr>
+          <tr><td><span class="sev"><i style="background:#fa4d56"></i>High</span></td><td>Session token expiry check removed</td><td class="mono muted">auth/session.go:88</td></tr>
+          <tr><td><span class="sev"><i style="background:#f1c21b"></i>Medium</span></td><td>Retry loop has no upper bound</td><td class="mono muted">pay/client.go:142</td></tr>
+          <tr><td><span class="sev"><i style="background:#42be65"></i>Low</span></td><td>Log line includes order id</td><td class="mono muted">pay/log.go:31</td></tr>
+        </table>
+        <h3>Recommendation</h3><p>Restore the expiry check with a test, cap retries at 5, then merge.</p>
+      </div>
+    </div>
+    <!-- thread (collapsible) -->
+    <div class="col" style="width:300px;background:var(--l1);border-left:1px solid var(--hair)">
+      <div class="row" style="height:36px;align-items:center;padding:0 8px 0 16px"><span class="section-label grow">Thread</span><button class="btn icon" title="Hide thread">⟩</button></div>
+      <div style="padding:4px 12px" class="grow">
+        <div class="msg you">Why is the auth risk rated high?</div>
+        <div class="msg"><span class="muted">The diff removes the token expiry check in </span><span class="mono">auth/session.go:88</span><span class="muted"> with no replacement test.</span><div class="faint" style="font-size:11px;margin-top:4px">litellm/qwen3</div></div>
+        <div style="border:1px solid var(--line);padding:10px 12px;margin-top:6px;background:var(--bg)"><div style="font-weight:600;margin-bottom:4px">Suggested prompt change</div><div class="muted" style="font-size:12px">Add: “Cite the file and line behind each risk.”</div><div class="row" style="gap:6px;margin-top:10px;justify-content:flex-end"><button class="btn" style="height:24px">Dismiss</button><button class="btn primary" style="height:24px">Apply</button></div></div>
+      </div>
+      <div style="margin:12px;border-bottom:1px solid var(--l3);background:var(--field);height:32px;display:flex;align-items:center;padding:0 10px" class="faint">Ask about this output…</div>
+    </div>
+  </div>
+  <div class="status"><span>● Core connected</span><span>smart → litellm/qwen3</span><span>Today 412k / 2M tokens</span><span style="flex:1"></span><span>Next run Mon 08:00</span><span>1 approval waiting</span></div>
+</div>
+<p class="note">Tabs replace the four-column layout: sources, prompt and memory each get a full page instead of cards squeezed into a column. Side bar and thread collapse (Ctrl B / Ctrl J), like VS Code.</p>
+
+<h3 style="margin-top:28px">Same screen, light theme (Carbon White)</h3>
+<div class="tv light" style="height:430px">
+  <div class="row" style="height:40px;align-items:center;background:var(--head);border-bottom:1px solid var(--line);padding:0 8px 0 12px;gap:12px">
+    <div style="width:18px;height:18px;background:var(--prim);border-radius:3px"></div><b style="font-weight:600">Tessivo</b>
+    <span style="width:1px;height:18px;background:var(--line)"></span>
+    <span class="faint">Notebooks <span style="margin:0 6px">/</span> <span class="muted">Change risk review</span></span>
+    <div class="grow" style="display:flex;justify-content:center"><div style="width:460px;height:28px;background:var(--field);border-bottom:1px solid var(--l3);display:flex;align-items:center;gap:8px;padding:0 10px" class="faint">Search or run a command<span style="margin-left:auto" class="kbd">Ctrl K</span></div></div>
+    <button class="btn icon"><span class="ico"></span></button><button class="btn icon"><span class="ico"></span></button><button class="btn icon"><span class="ico"></span></button>
+  </div>
+  <div class="row" style="height:366px">
+    <div class="col" style="width:48px;background:var(--act);border-right:1px solid var(--hair)"><div class="act-ico on"><span class="ico"></span></div><div class="act-ico"><span class="ico"></span></div><div class="act-ico"><span class="ico"></span></div><div class="act-ico"><span class="ico"></span></div></div>
+    <div class="col" style="width:240px;background:var(--l1);border-right:1px solid var(--hair)">
+      <div class="row" style="height:36px;align-items:center;padding:0 8px 0 16px"><span class="section-label grow">Notebooks</span><button class="btn icon">＋</button></div>
+      <div class="tree-row sel"><span class="dot" style="background:#d02670"></span>Change risk review</div>
+      <div class="tree-row"><span class="dot" style="background:#007d79"></span>Vendor contracts digest</div>
+      <div class="tree-row"><span class="dot" style="background:#0f62fe"></span>Payments service docs</div>
+      <div class="tree-row"><span class="dot" style="background:#8a3ffc"></span>Weekly ops report</div>
+    </div>
+    <div class="col grow">
+      <div class="row" style="padding:16px 24px 0;align-items:center;gap:10px"><span style="font-size:20px;line-height:26px">Change risk review</span><span class="tag">Analyze</span><span class="grow"></span><button class="btn sec">Agent off</button><button class="btn primary">Run</button></div>
+      <div class="ctab" style="margin-top:12px"><span class="on">Output</span><span>Sources · 3</span><span>Prompt</span><span>Memory · 2</span><span>Agent</span><span>Runs</span></div>
+      <div style="padding:20px 32px" class="doc">
+        <h1 class="doc">PR #482 risk report</h1>
+        <p>Merging is <b style="color:var(--risk);font-weight:600">high risk</b> until the token expiry check is restored.</p>
+        <table class="risk" style="margin-top:10px"><tr><th style="width:110px">Severity</th><th>Finding</th><th style="width:170px">Evidence</th></tr>
+          <tr><td><span class="sev"><i style="background:#da1e28"></i>High</span></td><td>Session token expiry check removed</td><td class="mono muted">auth/session.go:88</td></tr>
+          <tr><td><span class="sev"><i style="background:#f1c21b"></i>Medium</span></td><td>Retry loop has no upper bound</td><td class="mono muted">pay/client.go:142</td></tr></table>
+      </div>
+    </div>
+  </div>
+  <div class="status"><span>● Core connected</span><span>smart → litellm/qwen3</span><span style="flex:1"></span><span>1 approval waiting</span></div>
+</div>
