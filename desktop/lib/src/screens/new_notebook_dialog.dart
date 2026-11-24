@@ -6,17 +6,20 @@ import '../core/models.dart';
 import '../widgets/work_type_badge.dart';
 
 /// Step 1 of creating a notebook: pick a work type and name it.
-Future<void> showNewNotebookDialog(BuildContext context, AppState state) {
+Future<void> showNewNotebookDialog(BuildContext context, AppState state, {bool research = false}) {
   return showDialog<void>(
     context: context,
-    builder: (_) => NewNotebookDialog(state: state),
+    builder: (_) => NewNotebookDialog(state: state, research: research),
   );
 }
 
 class NewNotebookDialog extends StatefulWidget {
-  const NewNotebookDialog({super.key, required this.state});
+  const NewNotebookDialog({super.key, required this.state, this.research = false});
 
   final AppState state;
+
+  /// Open on the Research choice (from the Research side bar).
+  final bool research;
 
   @override
   State<NewNotebookDialog> createState() => _NewNotebookDialogState();
@@ -24,7 +27,7 @@ class NewNotebookDialog extends StatefulWidget {
 
 class _NewNotebookDialogState extends State<NewNotebookDialog> {
   WorkTypeId _type = WorkTypeId.analyze;
-  bool _research = false;
+  late bool _research = widget.research;
   final _name = TextEditingController();
   final _description = TextEditingController();
   String? _error;

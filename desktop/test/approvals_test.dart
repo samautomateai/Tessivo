@@ -92,7 +92,7 @@ void main() {
     final (state, _) = await pumpWith(tester);
     expect(state.approvals, hasLength(1));
     expect(find.byKey(const Key('approvals-badge')), findsOneWidget);
-    expect(find.text('Approvals (1)'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('approvals-badge')), matching: find.text('1')), findsOneWidget);
   });
 
   testWidgets('allow once calls answerApproval and removes the item', (tester) async {
@@ -104,7 +104,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(core.answers.single, endsWith(':true:'));
     expect(state.approvals, isEmpty);
-    expect(find.byKey(const Key('approvals-badge')), findsNothing);
+    expect(find.descendant(of: find.byKey(const Key('approvals-badge')), matching: find.text('1')), findsNothing);
   });
 
   testWidgets('deny sends allow false', (tester) async {
@@ -224,7 +224,7 @@ void moreTests() {
     core.interrupted = true;
     await state.refreshApprovals();
     await tester.pumpAndSettle();
-    expect(find.text('Approvals (2)'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('approvals-badge')), matching: find.text('2')), findsOneWidget);
     await tester.tap(find.byKey(const Key('approvals-badge')));
     await tester.pumpAndSettle();
     expect(find.textContaining('Interrupted'), findsOneWidget);

@@ -340,6 +340,9 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
+  Future<UsageInfo> usage() async => UsageInfo.fromJson(await _json('GET', '/v1/usage'));
+
+  @override
   Future<List<ModelCheck>> testModel(String model) async =>
       modelChecksFromJson(await _json('POST', '/v1/models/test', body: {'model': model}));
 

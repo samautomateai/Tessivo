@@ -81,7 +81,7 @@ void main() {
 
   testWidgets('library filters by work type', (tester) async {
     await pumpApp(tester);
-    await tester.tap(find.text('Outputs library'));
+    await tester.tap(find.byKey(const Key('activity-library')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('output-o1')), findsOneWidget);
     expect(find.byKey(const Key('output-o2')), findsOneWidget);
@@ -110,6 +110,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('primary-model'), findsOneWidget);
     expect(find.text('Refresh'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('activity-notebooks')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Weekly ops report'));
     await tester.pumpAndSettle();
     expect(find.textContaining('No context yet'), findsOneWidget);

@@ -30,16 +30,16 @@ void main() {
     final core = await _open(tester);
     await tester.enterText(find.byKey(const Key('agent-max_steps')), '12');
     await tester.enterText(find.byKey(const Key('agent-max_tool_calls')), '30');
-    await tester.tap(find.byKey(const Key('tool-add')));
+    await tapVisible(tester, find.byKey(const Key('tool-add')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('tool-name-0')), 'read_file');
-    await tester.tap(find.byKey(const Key('tool-rule-0')));
+    await tapVisible(tester, find.byKey(const Key('tool-rule-0')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('allow').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('tool-add')));
+    await tapVisible(tester, find.byKey(const Key('tool-add')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('agent-save')));
+    await tapVisible(tester, find.byKey(const Key('agent-save')));
     await tester.pumpAndSettle();
     final d = SettingsDraft.fromJson((await core.getSettings()).raw);
     expect((d.agentLimit('max_steps'), d.agentLimit('max_tool_calls'), d.agentLimit('max_minutes')), (12, 30, null));
@@ -50,22 +50,29 @@ void main() {
   testWidgets('bad limits and duplicate rules are refused before saving', (tester) async {
     final core = await _open(tester);
     await tester.enterText(find.byKey(const Key('agent-max_steps')), 'many');
-    await tester.tap(find.byKey(const Key('agent-save')));
+    await tapVisible(tester, find.byKey(const Key('agent-save')));
     await tester.pumpAndSettle();
     expect(find.text('Limits must be whole numbers'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('agent-max_steps')), '');
     for (var i = 0; i < 2; i++) {
-      await tester.tap(find.byKey(const Key('tool-add')));
+      await tapVisible(tester, find.byKey(const Key('tool-add')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(Key('tool-name-$i')), 'grep');
     }
-    await tester.tap(find.byKey(const Key('agent-save')));
+    await tapVisible(tester, find.byKey(const Key('agent-save')));
     await tester.pumpAndSettle();
     expect(find.text('Tool "grep" has two rules'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('tool-remove-1')));
+    await tapVisible(tester, find.byKey(const Key('tool-remove-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('agent-save')));
+    await tapVisible(tester, find.byKey(const Key('agent-save')));
     await tester.pumpAndSettle();
     expect(SettingsDraft.fromJson((await core.getSettings()).raw).toolRules, {'grep': 'ask'});
   });
+}
+
+/// Scrolls a control into view, then taps it (the settings list is long).
+Future<void> tapVisible(WidgetTester tester, Finder f) async {
+  await tester.ensureVisible(f);
+  await tester.pumpAndSettle();
+  await tester.tap(f);
 }

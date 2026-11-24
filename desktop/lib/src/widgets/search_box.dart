@@ -5,7 +5,9 @@ import 'package:material_ui/material_ui.dart';
 import '../app_state.dart';
 import '../core/core_client.dart';
 import '../core/models.dart';
-import '../theme.dart';
+import '../design/colors.dart';
+import '../design/icons.dart';
+import '../design/type.dart';
 
 /// The sidebar search: Enter shows matches across notebooks, outputs,
 /// prompts and research notes; choosing one opens it.
@@ -38,14 +40,13 @@ class _SearchBoxState extends State<SearchBox> {
         controller: _text,
         textInputAction: TextInputAction.search,
         onSubmitted: (q) => unawaited(_search(q)),
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+        style: TvType.body.copyWith(color: TvColors.of(context).textPrimary),
         decoration: const InputDecoration(
           isDense: true,
-          hintText: 'Search',
-          hintStyle: TextStyle(color: Tokens.sidebarText),
-          prefixIcon: Icon(Icons.search, size: 18, color: Tokens.sidebarText),
-          border: OutlineInputBorder(borderSide: BorderSide(color: Tokens.sidebarSelected)),
-          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Tokens.sidebarSelected)),
+          hintText: 'Search notebooks, outputs and notes',
+          prefixIcon: Padding(padding: EdgeInsets.all(6), child: TvIconView(TvIcon.search)),
+          prefixIconConstraints: BoxConstraints(minWidth: 28, minHeight: 28),
+          contentPadding: EdgeInsets.symmetric(vertical: 7),
         ),
       ),
     );

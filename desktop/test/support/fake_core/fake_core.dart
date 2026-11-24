@@ -186,6 +186,9 @@ class FakeCoreClient
   /// Breaks the event stream, as when the core exits.
   void failEvents() => _events.addError(const CoreException(0, 'connection closed'));
 
+  @override
+  Future<UsageInfo> usage() async => const UsageInfo(tokens: 412000, dayLimit: 2000000);
+
   /// While true, calls that check the core fail (it is gone).
   bool offline = false;
 

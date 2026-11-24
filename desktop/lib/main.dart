@@ -12,7 +12,7 @@ import 'src/core/supervisor.dart';
 import 'src/design/colors.dart';
 import 'src/design/theme.dart';
 import 'src/design/zoom.dart';
-import 'src/shell.dart';
+import 'src/shell/workbench.dart';
 import 'src/tray.dart';
 import 'src/tray_plugins.dart';
 
@@ -78,7 +78,7 @@ class TessivoApp extends StatelessWidget {
           child: ZoomScope(factor: state.zoom, child: child!),
         );
       },
-      home: AppShell(state: state),
+      home: Workbench(state: state),
     ),
   );
 }

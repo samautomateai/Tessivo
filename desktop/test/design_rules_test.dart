@@ -25,7 +25,6 @@ const _notMovedYet = {
   'lib/src/widgets/research_chat.dart',
   'lib/src/widgets/research_notes.dart',
   'lib/src/widgets/research_sources.dart',
-  'lib/src/widgets/search_box.dart',
   'lib/src/widgets/settings_providers.dart',
   'lib/src/widgets/work_type_badge.dart',
 };

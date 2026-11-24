@@ -7,6 +7,7 @@ import 'models.dart';
 import 'prompt_library.dart';
 import 'research_models.dart';
 import 'thread_models.dart';
+import 'usage.dart';
 
 /// The desktop app's view of the Go core. `HttpCoreClient` talks to the local
 /// API (docs/api.md). Tests use a fake (test/support/fake_core).
@@ -66,6 +67,9 @@ abstract interface class CoreClient {
 
   /// The starter prompts, for one work type (analyze, summarize, …) or all.
   Future<List<LibraryPrompt>> promptLibrary({String? workType});
+
+  /// Today's token use and the limits.
+  Future<UsageInfo> usage();
 
   /// Sends one tiny request to every model behind an alias or provider/model.
   Future<List<ModelCheck>> testModel(String model);

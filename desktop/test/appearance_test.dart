@@ -6,7 +6,7 @@ import 'package:tessivo_desktop/src/core/settings_draft.dart';
 import 'package:tessivo_desktop/src/design/colors.dart';
 import 'package:tessivo_desktop/src/design/theme.dart';
 import 'package:tessivo_desktop/src/design/zoom.dart';
-import 'package:tessivo_desktop/src/shell.dart';
+import 'package:tessivo_desktop/src/shell/workbench.dart';
 
 import 'app_test.dart' show pumpApp;
 import 'support/fake_core/fake_core.dart';
@@ -48,14 +48,14 @@ void main() {
     final state = await pumpApp(tester);
     await state.setZoom(2.0);
     await tester.pumpAndSettle();
-    final size = MediaQuery.sizeOf(tester.element(find.byType(AppShell)));
+    final size = MediaQuery.sizeOf(tester.element(find.byType(Workbench)));
     expect(size, const Size(800, 500)); // the test window is 1600×1000
-    expect(TvZoom.of(tester.element(find.byType(AppShell))).factor, 2.0);
+    expect(TvZoom.of(tester.element(find.byType(Workbench))).factor, 2.0);
   });
 
   testWidgets('the theme menu switches the tokens at once', (tester) async {
     final state = await pumpApp(tester);
-    TvColors colors() => TvColors.of(tester.element(find.byType(AppShell)));
+    TvColors colors() => TvColors.of(tester.element(find.byType(Workbench)));
     expect(colors(), TvColors.light); // the test window reports a light OS
     await state.setThemeMode(TvThemeMode.dark);
     await tester.pumpAndSettle();

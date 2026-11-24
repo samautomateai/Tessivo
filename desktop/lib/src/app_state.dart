@@ -10,11 +10,13 @@ import 'core/settings_draft.dart';
 import 'design/theme.dart';
 import 'design/zoom.dart';
 import 'research_state.dart';
+import 'shell/layout_prefs.dart';
 import 'thread_state.dart';
 
 part 'app_state_extras.dart';
 part 'app_state_sources.dart';
 part 'app_state_appearance.dart';
+part 'app_state_layout.dart';
 
 enum Section { chat, notebooks, research, templates, schedules, library, settings }
 
@@ -92,6 +94,11 @@ class AppState extends ChangeNotifier {
   /// Theme and zoom from `desktop.theme` / `desktop.zoom` (Settings → Appearance).
   TvThemeMode themeMode = TvThemeMode.system;
   double zoom = 1;
+
+  /// Workbench panels (`desktop.layout`), the default model and today's usage for the status bar.
+  LayoutPrefs layout = const LayoutPrefs();
+  String? defaultModel;
+  UsageInfo? usage;
 
   /// Subscribes to core events and reconnects with capped backoff.
   void listenForEvents() {
@@ -176,6 +183,7 @@ class AppState extends ChangeNotifier {
     await loadPrompts();
     await loadResearch();
     await checkSetup();
+    await refreshUsage();
   }
 
   void go(Section s) {

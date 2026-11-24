@@ -205,6 +205,8 @@ void main() {
 
   testWidgets('new notebook dialog links to the gallery', (tester) async {
     final state = await pumpTemplates(tester);
+    await tester.tap(find.byKey(const Key('activity-notebooks')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('new-notebook')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('browse-templates')));

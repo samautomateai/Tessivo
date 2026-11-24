@@ -9,6 +9,7 @@ export 'model_check.dart';
 export 'prompt_library.dart';
 export 'research_models.dart';
 export 'thread_models.dart';
+export 'usage.dart';
 
 const builtInWorkTypes = <WorkType>[
   WorkType(

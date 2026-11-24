@@ -19,6 +19,8 @@ Future<AppState> _pump(WidgetTester tester, {double width = 1600, FakeCoreClient
 }
 
 Future<void> _openBoard(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('activity-research')));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const Key('research-board-papers')));
   await tester.pumpAndSettle();
 }
@@ -26,9 +28,11 @@ Future<void> _openBoard(WidgetTester tester) async {
 void main() {
   testWidgets('the dialog creates a research notebook listed under RESEARCH', (tester) async {
     final state = await _pump(tester);
+    await tester.tap(find.byKey(const Key('activity-research')));
+    await tester.pumpAndSettle();
     expect(find.text('RESEARCH'), findsOneWidget);
     expect(find.text('Board papers'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('new-notebook')));
+    await tester.tap(find.byKey(const Key('new-research')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('kind-research')));
     await tester.pumpAndSettle();
@@ -137,6 +141,8 @@ void main() {
   testWidgets('job notebooks still open the job page', (tester) async {
     final state = await _pump(tester);
     await _openBoard(tester);
+    await tester.tap(find.byKey(const Key('activity-notebooks')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Weekly ops report'));
     await tester.pumpAndSettle();
     expect(state.section, Section.notebooks);

@@ -17,7 +17,7 @@ class PaletteCommand {
 
 /// Keyboard shortcuts for the whole window. Each binds Ctrl and Cmd, so they
 /// work the same on every OS: K palette, N new notebook, comma settings,
-/// = / − / 0 zoom.
+/// = / − / 0 zoom, B side bar, J secondary panel.
 class AppShortcuts extends StatelessWidget {
   const AppShortcuts({super.key, required this.state, required this.child});
 
@@ -35,6 +35,8 @@ class AppShortcuts extends StatelessWidget {
         ...both(LogicalKeyboardKey.keyK, () => unawaited(showPalette(context, state))),
         ...both(LogicalKeyboardKey.keyN, () => unawaited(showNewNotebookDialog(context, state))),
         ...both(LogicalKeyboardKey.comma, () => state.go(Section.settings)),
+        ...both(LogicalKeyboardKey.keyB, () => unawaited(state.toggleSideBar())),
+        ...both(LogicalKeyboardKey.keyJ, () => unawaited(state.togglePanel())),
         ...both(LogicalKeyboardKey.equal, () => unawaited(state.stepZoom(1))),
         ...both(LogicalKeyboardKey.add, () => unawaited(state.stepZoom(1))),
         ...both(LogicalKeyboardKey.numpadAdd, () => unawaited(state.stepZoom(1))),

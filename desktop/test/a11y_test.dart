@@ -11,12 +11,12 @@ Future<void> checkScreen(WidgetTester tester) async {
 }
 
 void main() {
-  for (final section in ['Notebooks', 'Chat', 'Templates', 'Schedules', 'Outputs library', 'Settings']) {
+  for (final section in ['Notebooks', 'Chat', 'Templates', 'Schedules', 'Outputs', 'Settings']) {
     testWidgets('$section meets the accessibility guidelines', (tester) async {
       final handle = tester.ensureSemantics();
       await pumpApp(tester);
       if (section != 'Notebooks') {
-        await tester.tap(find.text(section).first);
+        await tester.tap(find.descendant(of: find.byKey(const Key('activity-bar')), matching: find.text(section)));
         await tester.pumpAndSettle();
       }
       await checkScreen(tester);
@@ -41,6 +41,8 @@ void main() {
   testWidgets('a research notebook meets the accessibility guidelines', (tester) async {
     final handle = tester.ensureSemantics();
     await pumpApp(tester);
+    await tester.tap(find.byKey(const Key('activity-research')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('research-board-papers')));
     await tester.pumpAndSettle();
     await checkScreen(tester);

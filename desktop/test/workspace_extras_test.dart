@@ -236,7 +236,7 @@ void main() {
 
   testWidgets('library opens an output', (tester) async {
     await pumpWorkspace(tester);
-    await tester.tap(find.text('Outputs library'));
+    await tester.tap(find.byKey(const Key('activity-library')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('output-o2')));
     await tester.pumpAndSettle();

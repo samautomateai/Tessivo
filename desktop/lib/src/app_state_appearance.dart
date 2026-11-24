@@ -8,6 +8,8 @@ extension AppearanceActions on AppState {
     try {
       final d = SettingsDraft.fromJson((await core.getSettings()).raw);
       themeMode = d.theme;
+      layout = LayoutPrefs.fromJson(d.layout);
+      defaultModel = d.defaults['model'] as String?;
       zoom = d.zoom;
     } on Object {
       return; // an older core or no core: keep the defaults
