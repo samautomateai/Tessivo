@@ -4,7 +4,8 @@ Analyze, summarize, document and report with the models you choose. A native des
 on one Go core. It works with any OpenAI-compatible endpoint, self-hosted (LiteLLM, vLLM, Ollama) or hosted, and
 with Anthropic and Gemini through their own APIs.
 
-> Status: feature-complete for the first release; see the [user guide](docs/user-guide.md) and the
+> Status: feature-complete for the first release, with a desktop app built on IBM Carbon in a VS Code style
+> workbench ([ADR 0009](docs/adr/0009-desktop-design-system.md)); see the [user guide](docs/user-guide.md) and the
 > [delivery checklist](docs/checklist.md).
 
 ## Concepts

@@ -36,10 +36,12 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Hardened HTTP: TLS 1.2+, no redirects, bounded timeouts, idle-stream timeout; plaintext to remote hosts refused | NFR Security | ☑ |
 | Parallel code-base extraction (bounded pool); benchmarks; fuzz targets for schema, CSV/JSON, Office, audit | NFR Performance | ☑ |
 | Desktop ↔ core contract: local JSON API + SSE (ADR 0004, docs/api.md) | — | ☑ |
-| Flutter desktop shell: theme, sidebar, workspace, new notebook, library, settings on a demo core | — | ☑ |
+| Flutter desktop shell: theme, sidebar, workspace, new notebook, library, settings (first version; replaced by the design system below) | — | ☑ |
 | Shared service layer; `tess serve` local API (token, origin/host checks, limits, SSE runs) | — | ☑ |
-| Flutter client for the local API (Unix socket/loopback, token, SSE, endpoint discovery, demo fallback) | — | ☑ |
+| Flutter client for the local API (Unix socket/loopback, token, SSE, endpoint discovery) | — | ☑ |
 | Desktop reuses a healthy core or starts `tess serve --exit-with-parent` (bundled binary or PATH), waits for health, stops it on exit; core exits if the app dies | — | ☑ |
+| Desktop design system (ADR 0009): IBM Carbon tokens and components in a VS Code workbench (activity bar, side bar, panel, status bar) under a Carbon header; IBM Plex type, Carbon icons, VS Code corners; system, light, dark and high-contrast themes; zoom 80–200 % and the OS text size; every page rebuilt on it (notebook tabs and thread panel, chat with tool calls and approvals in place, settings sections, research tabs, approvals page, schedules table, template and output galleries); a rules test keeps raw colours and font sizes out | NFR Usability | ☑ |
+| No demo data in the app: the fake core is test-only; connection screens (starting, can't reach the core with Retry and Copy details, reconnecting with back-off); `tess serve` starts on the default config on first run | NFR Usability | ☑ |
 | Extractors: DOCX (paragraphs, tables), XLSX (all sheets, computed stats), PPTX (slides + notes), PDF (pdfium in a WebAssembly sandbox, pages marked); zip-bomb, entry, size and XML-token limits; fuzzed | SRC-1 | ☑ |
 | OS keychain secrets, built in-house: `tess secret set/delete/check`; env then keychain lookup | SET-1 | ☑ |
 | Rename, archive (schedules paused) and delete notebooks; delete refused while a run is active, paused or interrupted (`tess notebook`, `PATCH|DELETE /v1/notebooks/{id}`, desktop notebook menu and Archived group) | NB-1 | ☑ |

@@ -27,9 +27,43 @@ Check a download against `SHA256SUMS`: `sha256sum -c SHA256SUMS --ignore-missing
 
 Linux tray icon: GNOME needs the AppIndicator extension.
 
+## The window
+
+Tessivo's window is laid out like a code editor:
+
+- **Header**: where you are (for example *Notebooks / Change risk review*), the search box, *Ctrl K* for the command
+  palette, approvals waiting and notifications.
+- **Activity bar** on the left: Notebooks, Research, Chat, Schedules, Templates, Outputs, and Settings at the bottom.
+- **Side bar**: the list for that section, for example your notebooks and the open notebook's outputs. Drag its
+  edge to resize it.
+- **Page**: the open notebook, chat or setting.
+- **Panel** on the right: the conversation about the open output, or *In this chat* on a chat.
+- **Status bar** at the bottom: whether the core is connected, the default model, today's tokens, the next
+  scheduled run and approvals waiting. Click an item to go there.
+
+| Keys (⌘ on macOS) | Does |
+| --- | --- |
+| Ctrl K | Command palette: commands, notebooks, and search for what you type |
+| Ctrl B | Show or hide the side bar |
+| Ctrl J | Show or hide the panel |
+| Ctrl N | New notebook |
+| Ctrl , | Settings |
+| Ctrl = / Ctrl - / Ctrl 0 | Zoom in, out, back to 100 % |
+
+The side bar, the panel and their widths are remembered. In a narrow window they close; Ctrl B and Ctrl J still
+open them. **Settings → Appearance** chooses the theme (system, light, dark or high contrast) and the zoom
+(80–200 %). Text also follows the text size you set in your operating system (on Windows, *Settings →
+Accessibility → Text size*).
+
+**When the core is not running.** The window says *Starting the Tessivo core…* while it starts. If it cannot start,
+the window says what happened, with *Retry*, *Copy details* for a bug report, and how to start it yourself with
+`tess serve`. If the core stops while you work, the status bar shows *Reconnecting…* and the app reconnects on its
+own; your work is kept.
+
 ## Set up a model
 
-Until a model is set up, a banner at the top points you to **Settings**. A notebook names an **alias** (for
+Until a model is set up, the Notebooks page shows *Connect a model*, which opens **Settings → Models**. A notebook
+names an **alias** (for
 example `smart`). The alias points to one or more models in order, so when a model is down, rate-limited or out
 of context, Tessivo tries the next one.
 
@@ -49,6 +83,9 @@ tess secret set TESSIVO_LITELLM_KEY    # reads the key from stdin into the keych
 tess models                            # lists what the providers offer
 tess config path                       # where the config file lives, to add providers by hand
 ```
+
+The app (and `tess serve`) starts on default settings when there is no config file yet; the first save in
+Settings writes it. Other commands ask you to run `tess config init` first.
 
 A provider in the config file looks like this; `kind` is `openai` (the default), `anthropic` or `gemini`, and the
 native kinds need no `base_url`:
@@ -75,12 +112,12 @@ all in one folder you can copy or put under version control.
 
 Create one with *New* in the app, start from a template, or run `tess new <dir> --type analyze`.
 
-The prompt menu next to the prompt box saves prompts, and *From the library…* fills the box with a starter prompt
+*Saved prompts* on the Prompt tab saves prompts, and *From the library…* fills the box with a starter prompt
 (change risk, triage, action items, status report and others; `tess prompt library` in the terminal).
 
 ### Sources
 
-Choose *Add* in the Sources pane, or open the menu next to it for more kinds:
+Choose *Add* on the Sources tab, or *More sources* for more kinds:
 
 - **Files and folders.** Files are copied into the notebook; folders and code bases are referenced in place and
   read on every run. Supported: text, Markdown, CSV, JSON, code, Word, Excel, PowerPoint, PDF, `.diff` and
@@ -111,9 +148,9 @@ output you can:
 ### Agent mode
 
 Agent mode lets the model explore code and documents and call MCP tools before it writes the output. Limits on
-steps, tool calls, tokens and time, and the default rule for each tool, are in **Settings → Agent mode**. Every tool
+steps, tool calls, tokens and time, and the default rule for each tool, are in **Settings → Agent**. Every tool
 has a rule: *allow*, *ask* or *block*. The agent can also run programs (`run_command`, without a shell); list the
-commands that may run without asking under **Agent commands** on the notebook page (`go test *`, where `*` is one
+commands that may run without asking on the notebook's **Agent** tab (`go test *`, where `*` is one
 argument), or with `tess notebook commands`. An *ask* pauses the run until you answer in the app or with
 `tess run approve|deny`, even if the run was scheduled.
 
@@ -126,15 +163,17 @@ it; the tray menu opens Tessivo again or quits it.
 
 ## Chat and research
 
-- **Chat** answers questions with attachments: files, folders, notebooks, outputs or web pages. Turn on MCP tools
-  for a chat with the tools button; tools that are not allowed by a rule ask you first. A good chat can become a
-  notebook (*Repeat*) or a saved output.
-- **Research notebooks** collect sources, summarize each one, and answer questions with citations. Keep the
-  answers you like as notes.
+- **Chat** answers questions with attachments: files, folders, notebooks, outputs or web pages (*Attach* in the
+  message box). Turn on MCP tools for a chat with *Tools* in the message box; tools that are not allowed by a rule
+  ask you first, right in the conversation. Each tool call shows as one line you can open to see its output, tagged
+  *allow-listed* when a rule let it run or *approved* when you did. The panel lists what the chat has read, its
+  tools and the tool activity. A good chat can become a notebook (*Make this repeatable*) or a saved output.
+- **Research notebooks** collect sources, summarize each one, and answer questions with citations. The tabs are
+  *Sources* (set each one to Full, Summary or Off), *Ask* and *Notes*. Keep the answers you like as notes.
+- **Approvals** (the header button or the status bar) lists every tool call waiting for you, with *Allow*, more
+  ways to allow, and *Deny*.
 - **Search** (the box at the top, or `tess search <words>`) looks through notebooks, outputs, prompts and research
   notes.
-
-Press **Ctrl+K** (⌘K on macOS) for the command palette. Every action can also be reached from the keyboard.
 
 ## Privacy and safety
 

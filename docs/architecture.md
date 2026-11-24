@@ -44,6 +44,23 @@
 | `notify` | OS notifications without a library: AppleScript on stdin (macOS), `notify-send` with `--` (Linux), a fixed PowerShell toast script reading environment variables (Windows); text cleaned and shortened; a queued, rate-limited dispatcher (5 per minute, extras summarized). |
 | `cli` | `tess` commands (including `tess serve`); `cmd/tess` only calls it. |
 
+## Desktop app (`desktop/lib`)
+
+The Flutter app is a client of the local API only; it holds no business logic. Its layers, from the bottom:
+
+| Folder | Holds |
+| --- | --- |
+| `src/core` | The API client (`HttpCoreClient`, `CoreClient`), models, JSON mapping and the settings draft. |
+| `src/*_state.dart` | `AppState` and its parts, `ChatState`, `ThreadState`, `ResearchState`: plain `ChangeNotifier`s. |
+| `src/connection.dart` | Starting, failing and reconnecting to the core (`ConnectionGate`, back-off 1, 2, 4, 8, then 15 s). |
+| `src/design` | The design system (ADR 0009): tokens (`TvColors`, `TvType`, `TvSize`, `TvSpace`, `TvRadius`), the theme, zoom, Carbon icons, and `components/` (buttons, tags, tabs, rows, headers, notices, fields, table, modal, menu, tool-call block, approval card, tiles, content switcher). |
+| `src/shell` | The workbench: header, activity bar, side bar frame, secondary panel, status bar, banners, and `sections.dart`, which maps each section to its page, side bar and panel. |
+| `src/screens` | One folder or file per page: `notebook/` (tabs Output, Sources, Prompt, Memory, Agent; thread panel), `chat/`, `settings/`, research, approvals, schedules, templates, library, connection. |
+| `src/widgets` | Pieces shared by pages: Markdown view, menus and dialogs. |
+
+Screens take colours and type only from `src/design`; `test/design_rules_test.dart` fails otherwise. Sample data
+lives only in `test/support/fake_core`, which the app never imports.
+
 ## Chat store
 
 ```
