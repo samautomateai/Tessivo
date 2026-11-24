@@ -67,6 +67,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     });
     try {
       await action();
+      if (mounted) unawaited(widget.state.refreshNextRun());
     } on Object catch (e) {
       _error = e is FormatException ? e.message : '$e';
     } finally {
