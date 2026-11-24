@@ -77,6 +77,8 @@ class ChatState extends ChangeNotifier {
   Future<void> select(String id) async {
     if (sending) await stop();
     pending = const [];
+    toolLog = const [];
+    approval = null;
     await _guard(() async {
       open = await core.getChat(id);
       _changed();
@@ -86,6 +88,8 @@ class ChatState extends ChangeNotifier {
   Future<void> newChat() async {
     if (sending) await stop();
     pending = const [];
+    toolLog = const [];
+    approval = null;
     await _guard(() async {
       open = await core.createChat();
       await refresh();

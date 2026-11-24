@@ -12,7 +12,7 @@ import '../../design/icons.dart';
 import '../../design/sizes.dart';
 import '../../design/type.dart';
 import '../../thread_state.dart';
-import '../../widgets/chat_widgets.dart';
+import '../chat/conversation.dart';
 
 /// The secondary panel on a notebook page: the open output's conversation,
 /// the suggestions it produced, and the box to ask about it.

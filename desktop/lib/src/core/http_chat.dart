@@ -77,6 +77,7 @@ mixin _HttpChat {
             tool: map['tool'] as String? ?? '',
             args: map['args'] as String? ?? '',
             summary: map['summary'] as String? ?? '',
+            by: map['by'] as String? ?? '',
           );
         case 'approval':
           yield ChatApprovalNeeded(

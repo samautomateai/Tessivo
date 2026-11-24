@@ -4,6 +4,8 @@ import '../app_state.dart';
 import '../chat_state.dart';
 import '../core/core_client.dart';
 import '../core/models.dart';
+import '../design/colors.dart';
+import '../design/type.dart';
 import '../theme.dart';
 import '../widgets/text_prompt_dialog.dart';
 
@@ -47,9 +49,9 @@ class _WorkTypeDialogState extends State<_WorkTypeDialog> {
             onSelectionChanged: (s) => setState(() => _type = s.first),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             "The model restructures the reply into this work type's format; it is checked before saving.",
-            style: TextStyle(color: Tokens.textMuted),
+            style: TvType.body.copyWith(color: TvColors.of(context).textSecondary),
           ),
         ],
       ),
@@ -154,15 +156,16 @@ class _RepeatDialogState extends State<_RepeatDialog> {
                 p.context.isEmpty ? 'No context to carry over.' : 'Context: ${p.context.length} item(s)',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              for (final c in p.context) Text(c, style: const TextStyle(fontSize: 12)),
+              for (final c in p.context)
+                Text(c, style: TvType.helper.copyWith(color: TvColors.of(context).textSecondary)),
               for (final s in p.skipped)
-                Text('Skipped: $s', style: const TextStyle(color: Tokens.textMuted, fontSize: 12)),
+                Text('Skipped: $s', style: TvType.helper.copyWith(color: TvColors.of(context).textHelper)),
               if (error != null) ...[
                 const SizedBox(height: 8),
                 Text(
                   error,
                   key: const Key('repeat-error'),
-                  style: const TextStyle(color: Colors.red),
+                  style: TvType.body.copyWith(color: TvColors.of(context).error),
                 ),
               ],
             ],
@@ -211,9 +214,9 @@ class _MemoryDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Facts every chat should know, like your role or preferences. Separate from notebook memory.',
-                style: TextStyle(color: Tokens.textMuted),
+                style: TvType.body.copyWith(color: TvColors.of(context).textSecondary),
               ),
               const SizedBox(height: 8),
               if (chat.memory.isEmpty) const Text('Nothing yet.'),
@@ -230,7 +233,7 @@ class _MemoryDialog extends StatelessWidget {
                     onPressed: () => chat.setMemory([...chat.memory]..removeAt(i)),
                   ),
                 ),
-              if (chat.error != null) Text(chat.error!, style: const TextStyle(color: Colors.red)),
+              if (chat.error != null) Text(chat.error!, style: TvType.body.copyWith(color: TvColors.of(context).error)),
             ],
           ),
         ),

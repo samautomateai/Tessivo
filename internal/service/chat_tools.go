@@ -25,11 +25,13 @@ const (
 )
 
 // ChatToolEvent reports a tool call in a chat: call, result, denied or blocked.
+// A result says who allowed the call: "rule" (an allow rule) or "you" (asked).
 type ChatToolEvent struct {
 	Kind    string `json:"kind"`
 	Tool    string `json:"tool"`
 	Args    string `json:"args,omitempty"`
 	Summary string `json:"summary,omitempty"`
+	By      string `json:"by,omitempty"`
 }
 
 // ChatToolRequest is a tool call waiting for the user's answer.
@@ -116,9 +118,9 @@ func (ct *chatTools) call(ctx context.Context, call llm.ToolCall) string {
 	}
 	args := capText(call.Arguments, 2000)
 	ct.emit(ChatToolEvent{Kind: "call", Tool: call.Name, Args: args})
-	decision := ct.policy.Decide(call.Name)
+	decision, by := ct.policy.Decide(call.Name), "rule"
 	if decision == agent.Ask {
-		decision = ct.ask(call)
+		decision, by = ct.ask(call), "you"
 	}
 	ct.s.auditChatTool(ct.chatID, call, string(decision))
 	switch decision {
@@ -139,7 +141,7 @@ func (ct *chatTools) call(ctx context.Context, call llm.ToolCall) string {
 		out = "The tool failed: " + ct.s.redactor()(err.Error())
 	}
 	out = capText(out, maxChatToolResult)
-	ct.emit(ChatToolEvent{Kind: "result", Tool: call.Name, Summary: capText(firstLine(out), 200)})
+	ct.emit(ChatToolEvent{Kind: "result", Tool: call.Name, Summary: capText(firstLine(out), 200), By: by})
 	return out
 }
 

@@ -19,6 +19,7 @@ enum TvIcon {
   add('add'),
   subtract('subtract'),
   close('close'),
+  more('overflow-menu--vertical'),
   run('play'),
   runAgain('renew'),
   edit('edit'),

@@ -17,6 +17,7 @@ class TvEmptyState extends StatelessWidget {
     this.onAction,
     this.secondaryLabel,
     this.onSecondary,
+    this.actionKey,
   });
 
   final TvIcon icon;
@@ -26,6 +27,9 @@ class TvEmptyState extends StatelessWidget {
   final VoidCallback? onAction;
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
+
+  /// The key of the primary action's button.
+  final Key? actionKey;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +59,8 @@ class TvEmptyState extends StatelessWidget {
               Wrap(
                 spacing: TvSpace.s8,
                 children: [
-                  if (actionLabel != null) TvButton(actionLabel!, kind: TvButtonKind.primary, onPressed: onAction),
+                  if (actionLabel != null)
+                    TvButton(actionLabel!, key: actionKey, kind: TvButtonKind.primary, onPressed: onAction),
                   if (secondaryLabel != null) TvButton(secondaryLabel!, onPressed: onSecondary),
                 ],
               ),

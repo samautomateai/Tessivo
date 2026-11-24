@@ -26,7 +26,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.byKey(const Key('approval-card')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('tool-allow')));
+    await tester.tap(find.text('Allow once'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('approval-card')), findsNothing);
     expect(find.textContaining('mcp__github__list_issues'), findsWidgets);

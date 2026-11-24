@@ -160,11 +160,14 @@ class ChatOutput {
 
 /// A tool the reply called, or its result (kind: call, result, denied or blocked).
 class ChatToolActivity extends ChatEvent {
-  const ChatToolActivity({required this.kind, required this.tool, this.args = '', this.summary = ''});
+  const ChatToolActivity({required this.kind, required this.tool, this.args = '', this.summary = '', this.by = ''});
   final String kind;
   final String tool;
   final String args;
   final String summary;
+
+  /// Who let a result run: "rule" (an allow rule) or "you" (approved).
+  final String by;
 }
 
 /// A tool call waiting for the user's answer (answer it with answerChatTool).

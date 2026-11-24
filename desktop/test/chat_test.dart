@@ -4,7 +4,8 @@ import 'package:tessivo_desktop/main.dart';
 import 'package:tessivo_desktop/src/app_state.dart';
 import 'package:tessivo_desktop/src/chat_state.dart';
 import 'package:tessivo_desktop/src/core/models.dart';
-import 'package:tessivo_desktop/src/widgets/chat_widgets.dart';
+import 'package:tessivo_desktop/src/design/components/buttons.dart';
+import 'package:tessivo_desktop/src/screens/chat/conversation.dart';
 
 import 'support/fake_core/fake_core.dart';
 
@@ -149,7 +150,7 @@ void main() {
     await tester.tap(find.text('Notebook: Change risk review'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('pending-nb-1')), findsOneWidget);
-    tester.widget<InputChip>(find.byKey(const Key('pending-nb-1'))).onDeleted!();
+    await tester.tap(find.descendant(of: find.byKey(const Key('pending-nb-1')), matching: find.byType(TvIconButton)));
     await tester.pumpAndSettle();
     expect(state.chat.pending, isEmpty);
 
@@ -166,7 +167,14 @@ void main() {
     await tester.tap(find.byKey(const Key('chat-attach-url')));
     await tester.pumpAndSettle();
     await answer(tester, 'https://status.example.com/today/');
-    expect(find.text('status.example.com/today'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(const Key('composer')), matching: find.text('status.example.com/today')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: find.byKey(const Key('chat-context')), matching: find.text('status.example.com/today')),
+      findsOneWidget,
+    );
     expect(state.chat.pending.single.kind, 'url');
   });
 
@@ -235,7 +243,7 @@ void main() {
     expect(state.chat.memory, ['Prefer tables']);
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
-    expect(find.text('Memory (1)'), findsOneWidget);
+    expect(find.text('Memory · 1'), findsOneWidget);
   });
 
   testWidgets('chat errors show in a banner', (tester) async {

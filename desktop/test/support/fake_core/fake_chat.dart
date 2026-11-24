@@ -54,6 +54,7 @@ mixin DemoChat {
     pinned: s.pinned,
     archived: _archived.contains(s.id),
     messageCount: s.messages.length,
+    updatedAt: DateTime.now().toUtc().toIso8601String(),
     preview: s.messages.isEmpty ? '' : s.messages.last.content.split('\n').first,
   );
 
@@ -199,8 +200,11 @@ extension on DemoChat {
   Stream<ChatEvent> _demoTool(String server) async* {
     final tool = 'mcp__${server}__list_issues';
     final answer = _toolAnswers['demo-call'] = Completer<bool>();
+    yield ChatToolActivity(kind: 'call', tool: tool, args: '{"state":"open"}');
     yield ChatApprovalNeeded(id: 'demo-call', tool: tool, args: '{"state":"open"}');
     final allowed = await answer.future;
-    yield ChatToolActivity(kind: allowed ? 'result' : 'denied', tool: tool, summary: allowed ? '3 open issues' : '');
+    yield allowed
+        ? ChatToolActivity(kind: 'result', tool: tool, summary: '3 open issues', by: 'you')
+        : ChatToolActivity(kind: 'denied', tool: tool);
   }
 }

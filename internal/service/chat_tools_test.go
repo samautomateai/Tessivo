@@ -70,7 +70,7 @@ func TestChatUsesAllowedMCPTools(t *testing.T) {
 	if r := last[len(last)-1]; r.Role != llm.RoleTool || !strings.Contains(r.Content, "hello") {
 		t.Fatalf("tool result not sent back: %+v", r)
 	}
-	if len(events) != 2 || events[0].Kind != "call" || events[1].Kind != "result" {
+	if len(events) != 2 || events[0].Kind != "call" || events[1].Kind != "result" || events[1].By != "rule" {
 		t.Fatalf("events %+v", events)
 	}
 	sess, _ := s.GetChat(id)
@@ -139,5 +139,18 @@ func TestChatMCPServersMustBeConfigured(t *testing.T) {
 	bad := []string{"nope"}
 	if _, err := s.UpdateChat(id, ChatPatch{MCPServers: &bad}); !IsInvalid(err) {
 		t.Fatalf("unknown server: %v", err)
+	}
+}
+
+func TestChatResultSaysWhoAllowedIt(t *testing.T) {
+	s, _, id := chatToolsEnv(t, echoCall("a"), llm.Response{Content: "ok"})
+	var events []ChatToolEvent
+	approve := func(ChatToolRequest) ChatToolAnswer { return ChatToolAnswer{Allow: true} }
+	send := ChatSend{Text: "one", Approve: approve, OnTool: func(e ChatToolEvent) { events = append(events, e) }}
+	if _, err := s.SendChat(context.Background(), id, send, nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 2 || events[1].Kind != "result" || events[1].By != "you" {
+		t.Fatalf("events %+v", events)
 	}
 }

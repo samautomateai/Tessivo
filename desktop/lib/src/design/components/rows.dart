@@ -16,6 +16,7 @@ class TvTreeRow extends StatelessWidget {
     this.selected = false,
     this.onTap,
     this.muted = false,
+    this.action,
   });
 
   final Widget leading;
@@ -26,6 +27,9 @@ class TvTreeRow extends StatelessWidget {
 
   /// Older or secondary items (earlier output versions) in secondary text.
   final bool muted;
+
+  /// A small button at the end of the row, such as its actions menu.
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +67,10 @@ class TvTreeRow extends StatelessWidget {
                 if (trailing != null) ...[
                   const SizedBox(width: TvSpace.s8),
                   Text(trailing!, style: TvType.helper.copyWith(color: c.textHelper)),
+                ],
+                if (action case final a?) ...[
+                  const SizedBox(width: TvSpace.s4),
+                  SizedBox.square(dimension: 22, child: FittedBox(child: a)),
                 ],
               ],
             ),
