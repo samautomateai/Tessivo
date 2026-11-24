@@ -17,8 +17,11 @@ class CoreStartException implements Exception {
   String toString() => 'CoreStartException: $message';
 }
 
-/// Finds the `tess` binary: bundled next to the app first, then on PATH.
-String findTessExecutable({String? resolvedExecutable, bool? isWindows}) {
+/// Finds the `tess` binary: [override] (the `TESSIVO_TESS` environment
+/// variable, set by `task desktop:run`) when that file exists, then the one
+/// bundled next to the app, then `tess` on PATH.
+String findTessExecutable({String? resolvedExecutable, bool? isWindows, String? override}) {
+  if (override != null && override.isNotEmpty && File(override).existsSync()) return override;
   final win = isWindows ?? Platform.isWindows;
   final name = win ? 'tess.exe' : 'tess';
   final exe = resolvedExecutable ?? Platform.resolvedExecutable;

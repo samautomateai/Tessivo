@@ -30,7 +30,7 @@ tasks:
   build:
     desc: Build the tess CLI
     cmds:
-      - go build -trimpath -o {{.BIN}}/tess ./cmd/tess
+      - go build -trimpath -o {{.BIN}}/tess{{exeExt}} ./cmd/tess
 
   fmt:
     desc: Format Go (gofmt -s, gofumpt, goimports) and Dart code
@@ -153,8 +153,11 @@ tasks:
         -platform {{.PLATFORM}} -arch {{.ARCH | default "amd64"}} -out ../dist
 
   desktop:run:
-    desc: Run the desktop app
+    desc: Run the desktop app on a freshly built tess (no demo data without a core)
+    deps: [build]
     dir: desktop
+    env:
+      TESSIVO_TESS: "{{.ROOT_DIR}}/{{.BIN}}/tess{{exeExt}}"
     cmds:
       - flutter run -d {{OS}}
 

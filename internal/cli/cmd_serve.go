@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -50,7 +51,7 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 		defer cancel()
 	}
 	*addr = defaultAddr(dir, *network, *addr)
-	f, err := loadConfig(env)
+	f, err := serveConfig(env)
 	if err != nil {
 		return err
 	}
@@ -202,4 +203,23 @@ func defaultAddr(dir, network, addr string) string {
 	default:
 		return filepath.Join(dir, "tessivo.sock")
 	}
+}
+
+// serveConfig is the config file, or the defaults on a first run: the desktop
+// app starts the core before anyone has set anything up, and its first-run
+// screens guide the user from there. The first settings change writes the file.
+func serveConfig(env Env) (config.File, error) {
+	p, err := configPath(env)
+	if err != nil {
+		return config.File{}, err
+	}
+	f, err := config.Load(p)
+	if errors.Is(err, os.ErrNotExist) {
+		_, _ = fmt.Fprintf(env.Stderr, "tess: no config at %s yet; starting with the defaults\n", p)
+		return config.Default(), nil
+	}
+	if err != nil {
+		return config.File{}, fmt.Errorf("config %s: %w", p, err)
+	}
+	return f, nil
 }

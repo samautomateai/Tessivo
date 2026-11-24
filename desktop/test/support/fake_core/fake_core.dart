@@ -183,6 +183,18 @@ class FakeCoreClient
   /// Emits a demo event (used by tests and the demo mode).
   void emit(CoreEvent e) => _events.add(e);
 
+  /// Breaks the event stream, as when the core exits.
+  void failEvents() => _events.addError(const CoreException(0, 'connection closed'));
+
+  /// While true, calls that check the core fail (it is gone).
+  bool offline = false;
+
+  @override
+  Future<SettingsInfo> getSettings() async {
+    if (offline) throw const CoreException(0, 'connection refused');
+    return super.getSettings();
+  }
+
   // One sample approval so demo mode shows the approvals flow.
   final List<PendingApproval> _approvals = [
     const PendingApproval(

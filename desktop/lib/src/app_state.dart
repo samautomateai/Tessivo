@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import 'chat_state.dart';
+import 'connection.dart';
 import 'core/core_client.dart';
 import 'core/models.dart';
 import 'research_state.dart';
 import 'thread_state.dart';
 
 part 'app_state_extras.dart';
+part 'app_state_sources.dart';
 
 enum Section { chat, notebooks, research, templates, schedules, library, settings }
 
@@ -77,14 +79,17 @@ class AppState extends ChangeNotifier {
   // Notifications from the core's event stream (newest last, capped).
   final List<String> notices = [];
   StreamSubscription<CoreEvent>? _events;
-  Duration _retry = const Duration(seconds: 2);
+  int _attempt = 0;
+
+  /// True while the core is unreachable (its event stream broke); the app
+  /// keeps retrying and clears it once the core answers again.
+  bool connectionLost = false;
 
   /// Subscribes to core events and reconnects with capped backoff.
   void listenForEvents() {
     unawaited(_events?.cancel());
     _events = core.events().listen(
       (e) {
-        _retry = const Duration(seconds: 2);
         if (e.isResearchEvent) return _researchEvent(e);
         if (e.isRunEvent || e.kind == 'schedule.paused') unawaited(refreshApprovals());
         if (e.kind == 'schedule.started' || e.kind == 'run.resumed') return; // only outcomes are worth a notice
@@ -99,10 +104,22 @@ class AppState extends ChangeNotifier {
   }
 
   void _reconnect() {
-    final wait = _retry;
-    _retry = _retry * 2 > const Duration(minutes: 1) ? const Duration(minutes: 1) : _retry * 2;
-    Future<void>.delayed(wait, () {
-      if (_events != null) listenForEvents();
+    if (!connectionLost) {
+      connectionLost = true;
+      notifyListeners();
+    }
+    final wait = reconnectDelay(_attempt++);
+    Future<void>.delayed(wait, () async {
+      if (_events == null) return;
+      try {
+        await core.getSettings(); // a quiet stream says nothing, so ask
+      } on Object {
+        return _reconnect();
+      }
+      _attempt = 0;
+      connectionLost = false;
+      notifyListeners();
+      listenForEvents();
     });
   }
 
@@ -185,65 +202,8 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Adds a file or folder by absolute path to the selected notebook.
-  Future<void> addContext(String path) async {
-    final nb = selected;
-    if (nb != null) _put(await core.addContext(nb.id, path));
-  }
-
-  /// Adds a web page to the selected notebook; it is fetched on every run.
-  Future<void> addUrlContext(String url) async {
-    final nb = selected;
-    if (nb != null) _put(await core.addUrlContext(nb.id, url));
-  }
-
-  /// Saves pasted text as a source of the selected notebook.
-  Future<void> addTextContext(String label, String text) async {
-    final nb = selected;
-    if (nb != null) _put(await core.addTextContext(nb.id, text, label: label));
-  }
-
-  /// Adds a repository's changes against [base] as a source, read with git on every run.
-  Future<void> addGitDiffContext(String repo, String base) async {
-    final nb = selected;
-    if (nb != null) _put(await core.addGitDiffContext(nb.id, repo, base));
-  }
-
   /// Configured MCP servers (loaded with the notebooks; refreshed on demand).
   List<McpServer> mcpServers = const [];
-
-  Future<void> refreshMcpServers() async {
-    try {
-      mcpServers = await core.listMcpServers();
-    } on Object {
-      mcpServers = const []; // an older core without MCP
-    }
-    if (!_disposed) notifyListeners();
-  }
-
-  /// Sets the MCP servers the selected notebook's agent runs may use.
-  /// Replaces the selected notebook's agent command allow-list.
-  Future<void> setNotebookCommands(List<CommandRule> commands) async {
-    final nb = selected;
-    if (nb != null) _put(await core.setNotebookCommands(nb.id, commands));
-  }
-
-  Future<void> setNotebookMcp(List<String> servers) async {
-    final nb = selected;
-    if (nb != null) _put(await core.setNotebookMcp(nb.id, servers));
-  }
-
-  /// Adds an MCP resource to the selected notebook's sources.
-  Future<void> addMcpContext(String server, String uri) async {
-    final nb = selected;
-    if (nb != null) _put(await core.addMcpContext(nb.id, server, uri));
-  }
-
-  /// Replaces the selected notebook's memory.
-  Future<void> setMemory(List<String> memory) async {
-    final nb = selected;
-    if (nb != null) _put(await core.setMemory(nb.id, memory));
-  }
 
   Future<void> createNotebook(String name, WorkTypeId type) async {
     final nb = await core.createNotebook(name: name, workType: type);

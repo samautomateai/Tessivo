@@ -42,6 +42,12 @@ class AppShell extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (state.connectionLost)
+                        const MaterialBanner(
+                          key: Key('reconnecting'),
+                          content: Text('Reconnecting to the Tessivo core…'),
+                          actions: [SizedBox.shrink()],
+                        ),
                       if (state.setupMessage != null) _SetupBanner(state: state),
                       if (state.notices.isNotEmpty) _NoticeBanner(state: state),
                       Expanded(child: _content()),
