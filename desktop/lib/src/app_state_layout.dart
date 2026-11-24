@@ -50,3 +50,11 @@ extension LayoutActions on AppState {
     _changed();
   }
 }
+
+/// Opening Settings at one of its sections.
+extension SettingsNavigation on AppState {
+  void openSettings([SettingsSection? at]) {
+    if (at != null) settingsSection = at;
+    go(Section.settings);
+  }
+}

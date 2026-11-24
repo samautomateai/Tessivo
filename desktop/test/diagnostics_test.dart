@@ -7,12 +7,14 @@ import 'package:tessivo_desktop/src/core/http_core_client.dart';
 
 import 'app_test.dart' show pumpApp;
 import 'support/real_http.dart';
+import 'support/settings_sections.dart';
 
 void main() {
   testWidgets('save diagnostics from settings', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
+    await openSettingsSection(tester, 'diagnostics');
     final dir = await tester.runAsync(() => Directory.systemTemp.createTemp('tessivo-diag'));
     addTearDown(() => dir!.deleteSync(recursive: true));
     final path = '${dir!.path}${Platform.pathSeparator}diag.zip';

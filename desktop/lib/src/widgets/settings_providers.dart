@@ -5,7 +5,12 @@ import 'package:material_ui/material_ui.dart';
 import '../core/core_client.dart';
 import '../core/models.dart';
 import '../core/settings_draft.dart';
-import '../theme.dart';
+import '../design/colors.dart';
+import '../design/components/buttons.dart';
+import '../design/components/notices.dart';
+import '../design/components/table.dart';
+import '../design/sizes.dart';
+import '../design/type.dart';
 import 'model_check_dialog.dart';
 
 /// A provider: its URL, whether its API key is set (never the key), a way to
@@ -61,8 +66,15 @@ class _ProviderCardState extends State<ProviderCard> {
   Widget build(BuildContext context) {
     final p = widget.provider;
     final models = _models;
-    return Card(
+    final c = TvColors.of(context);
+    return Container(
       key: Key('provider-${p.name}'),
+      margin: const EdgeInsets.only(bottom: TvSpace.s8),
+      decoration: BoxDecoration(
+        color: c.layer01,
+        border: Border.all(color: c.borderSubtle),
+        borderRadius: BorderRadius.circular(TvRadius.small),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -70,7 +82,9 @@ class _ProviderCardState extends State<ProviderCard> {
           children: [
             Row(
               children: [
-                Expanded(child: Text(p.name, style: Theme.of(context).textTheme.titleSmall)),
+                Expanded(
+                  child: Text(p.name, style: TvType.heading01.copyWith(color: c.textPrimary)),
+                ),
                 if (p.keyRef != null)
                   TextButton(key: Key('set-key-${p.name}'), onPressed: _setKey, child: const Text('Set API key…')),
                 TextButton(
@@ -83,7 +97,7 @@ class _ProviderCardState extends State<ProviderCard> {
             Text(p.baseUrl.isEmpty ? p.kindLabel : '${p.kindLabel} · ${p.baseUrl}'),
             FutureBuilder<bool>(future: _keySet, builder: (context, snap) => _keyStatus(context, p, snap)),
             if (p.keyRef != null)
-              Text('Stored in your OS keychain as ${p.keyRef}', style: const TextStyle(color: Tokens.textMuted)),
+              Text('Stored in your OS keychain as ${p.keyRef}', style: TvType.helper.copyWith(color: c.textHelper)),
             if (models != null) _ModelList(models),
           ],
         ),
@@ -98,7 +112,8 @@ class _ProviderCardState extends State<ProviderCard> {
         : !snap.hasData
         ? 'Checking key…'
         : (snap.data! ? 'Key set' : 'Key not set');
-    return Text(text, style: TextStyle(color: missing ? Theme.of(context).colorScheme.error : Tokens.textMuted));
+    final c = TvColors.of(context);
+    return Text(text, style: TvType.helper.copyWith(color: missing ? c.error : c.textHelper));
   }
 }
 
@@ -112,7 +127,10 @@ class _ModelList extends StatelessWidget {
     future: models,
     builder: (context, snap) {
       if (snap.hasError) {
-        return Text('Could not list models: ${snap.error}', style: const TextStyle(color: Colors.red));
+        return Text(
+          'Could not list models: ${snap.error}',
+          style: TvType.helper.copyWith(color: TvColors.of(context).error),
+        );
       }
       if (!snap.hasData) return const LinearProgressIndicator();
       if (snap.data!.isEmpty) return const Text('The provider reported no models.');
@@ -263,11 +281,11 @@ class _AddProviderDialogState extends State<AddProviderDialog> {
               ),
             ),
             if (native)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'Requests go straight to this cloud provider, not through your own proxy.',
-                  style: TextStyle(color: Tokens.textMuted),
+                  style: TvType.helper.copyWith(color: TvColors.of(context).textHelper),
                 ),
               ),
           ],
@@ -294,63 +312,68 @@ class _AddProviderDialogState extends State<AddProviderDialog> {
 String keyRefFor(String provider) => '${provider.toUpperCase().replaceAll(RegExp('[^A-Z0-9]+'), '_')}_KEY';
 
 /// An alias's fallback chain, editable as one "provider/model" per line.
-class AliasCard extends StatelessWidget {
-  const AliasCard({super.key, required this.alias, required this.settings, required this.onSave, this.onTest});
+/// The aliases as a data table: name, fallback chain, when it falls back, and
+/// Test and Edit… for each.
+class AliasesTable extends StatelessWidget {
+  const AliasesTable({super.key, required this.settings, required this.onSave, this.onTest});
 
-  final AliasInfo alias;
   final SettingsInfo settings;
   final Future<String?> Function(SettingsDraft draft) onSave;
 
   /// Checks each model in the chain; the Test button shows when it is set.
   final Future<List<ModelCheck>> Function(String model)? onTest;
 
-  Future<void> _edit(BuildContext context) async {
+  Future<void> _edit(BuildContext context, AliasInfo alias) async {
     final lines = await showDialog<List<String>>(
       context: context,
       builder: (_) => _ChainDialog(alias: alias),
     );
     if (lines == null || lines.isEmpty) return;
     final err = await onSave(SettingsDraft.fromJson(settings.raw)..setAliasChain(alias.name, lines));
-    if (err != null && context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+    if (err != null && context.mounted) showTvToast(context, err, kind: TvNoticeKind.error);
   }
 
   @override
-  Widget build(BuildContext context) => Card(
-    key: Key('alias-${alias.name}'),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text('Fallback chain for "${alias.name}"', style: Theme.of(context).textTheme.titleSmall),
-              ),
-              if (onTest != null)
-                TextButton(
-                  key: Key('test-alias-${alias.name}'),
-                  onPressed: () => unawaited(showModelCheck(context, alias.name, onTest!)),
-                  child: const Text('Test'),
+  Widget build(BuildContext context) {
+    final test = onTest;
+    return TvDataTable(
+      key: const Key('aliases-table'),
+      columns: const ['Alias', 'Fallback chain', 'Falls back on', ''],
+      flex: const [2, 5, 3, 3],
+      rows: [
+        for (final a in settings.aliases)
+          [
+            Text(a.name, key: Key('alias-${a.name}')),
+            Tooltip(message: a.chain.join('\n'), child: Text(a.chain.join('  →  '))),
+            Text(a.fallbackOn.isEmpty ? '—' : a.fallbackOn.join(', ')),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (test != null)
+                  Flexible(
+                    child: TvButton(
+                      'Test',
+                      key: Key('test-alias-${a.name}'),
+                      kind: TvButtonKind.ghost,
+                      dense: true,
+                      onPressed: () => unawaited(showModelCheck(context, a.name, test)),
+                    ),
+                  ),
+                Flexible(
+                  child: TvButton(
+                    'Edit…',
+                    key: Key('edit-alias-${a.name}'),
+                    kind: TvButtonKind.ghost,
+                    dense: true,
+                    onPressed: () => unawaited(_edit(context, a)),
+                  ),
                 ),
-              TextButton(
-                key: Key('edit-alias-${alias.name}'),
-                onPressed: () => unawaited(_edit(context)),
-                child: const Text('Edit…'),
-              ),
-            ],
-          ),
-          for (final (i, m) in alias.chain.indexed)
-            ListTile(
-              dense: true,
-              leading: CircleAvatar(radius: 11, child: Text('${i + 1}')),
-              title: Text(m),
+              ],
             ),
-          if (alias.fallbackOn.isNotEmpty) Text('Falls back on: ${alias.fallbackOn.join(', ')}'),
-        ],
-      ),
-    ),
-  );
+          ],
+      ],
+    );
+  }
 }
 
 class _ChainDialog extends StatefulWidget {

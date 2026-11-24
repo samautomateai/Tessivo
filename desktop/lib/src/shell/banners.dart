@@ -35,7 +35,7 @@ class WorkbenchBanners extends StatelessWidget {
               key: const Key('setup-open'),
               dense: true,
               kind: TvButtonKind.primary,
-              onPressed: () => state.go(Section.settings),
+              onPressed: () => state.openSettings(SettingsSection.models),
             ),
           ),
         if (state.notices.isNotEmpty)

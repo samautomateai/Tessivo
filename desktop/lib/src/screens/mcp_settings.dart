@@ -3,7 +3,12 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/core_client.dart';
-import '../theme.dart';
+import '../design/colors.dart';
+import '../design/components/buttons.dart';
+import '../design/components/table.dart';
+import '../design/icons.dart';
+import '../design/sizes.dart';
+import '../design/type.dart';
 
 /// Settings › MCP servers: list, add, test and remove servers notebooks can
 /// attach. Values never show credentials: the core refuses them as text.
@@ -57,65 +62,72 @@ class _McpServersSectionState extends State<McpServersSection> {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
+    final c = TvColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('MCP servers', style: text.titleMedium),
-            const Spacer(),
-            TextButton.icon(
-              key: const Key('mcp-add'),
-              onPressed: _add,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add server'),
+            Expanded(
+              child: Text(
+                'Attach a server to a notebook or chat to let it use the tools; every tool asks before it runs '
+                'unless a rule allows it.',
+                style: TvType.body.copyWith(color: c.textSecondary),
+              ),
             ),
+            const SizedBox(width: TvSpace.s16),
+            TvButton('Add server', key: const Key('mcp-add'), icon: TvIcon.add, dense: true, onPressed: _add),
           ],
         ),
-        const Text(
-          'Tools and resources from MCP servers. Attach a server to a notebook to let its agent runs use the tools; '
-          'every tool asks before it runs unless a rule allows it.',
-          style: TextStyle(color: Tokens.textMuted),
-        ),
-        const SizedBox(height: 8),
+        const SizedBox(height: TvSpace.s16),
         FutureBuilder<List<McpServer>>(
           future: _servers,
           builder: (context, snap) {
-            if (snap.hasError) return Text('Could not load MCP servers: ${snap.error}');
-            final list = snap.data ?? const <McpServer>[];
-            if (list.isEmpty) {
-              return const Text('No MCP servers yet.', style: TextStyle(color: Tokens.textMuted));
+            if (snap.hasError) {
+              return Text('Could not load MCP servers: ${snap.error}', style: TvType.body.copyWith(color: c.error));
             }
-            return Column(children: [for (final s in list) _serverTile(s)]);
+            final list = snap.data ?? const <McpServer>[];
+            if (list.isEmpty) return Text('No MCP servers yet.', style: TvType.body.copyWith(color: c.textSecondary));
+            return TvDataTable(
+              columns: const ['Server', 'Transport', 'Command or URL', ''],
+              flex: const [2, 2, 6, 2],
+              rows: [for (final s in list) _serverRow(s)],
+            );
           },
         ),
       ],
     );
   }
 
-  Widget _serverTile(McpServer s) => Card(
-    child: ListTile(
-      title: Text(s.name),
-      subtitle: Text('${s.transport} · ${s.target}', maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: Wrap(
-        spacing: 4,
-        children: [
-          TextButton(
-            key: Key('mcp-test-${s.name}'),
-            onPressed: () => unawaited(_test(s.name)),
-            child: const Text('Test'),
-          ),
-          IconButton(
-            key: Key('mcp-remove-${s.name}'),
-            tooltip: 'Remove',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => unawaited(_run(() => widget.core.removeMcpServer(s.name))),
-          ),
-        ],
-      ),
+  List<Widget> _serverRow(McpServer s) => [
+    Text(s.name),
+    Text(s.transport),
+    Tooltip(
+      message: s.target,
+      child: Text(s.target, style: TvType.code),
     ),
-  );
+    Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Flexible(
+          child: TvButton(
+            'Test',
+            key: Key('mcp-test-${s.name}'),
+            kind: TvButtonKind.ghost,
+            dense: true,
+            onPressed: () => unawaited(_test(s.name)),
+          ),
+        ),
+        TvIconButton(
+          TvIcon.close,
+          key: Key('mcp-remove-${s.name}'),
+          tooltip: 'Remove ${s.name}',
+          onPressed: () => unawaited(_run(() => widget.core.removeMcpServer(s.name))),
+        ),
+      ],
+    ),
+  ];
 }
 
 class _AddServerDialog extends StatefulWidget {
@@ -188,15 +200,15 @@ class _AddServerDialogState extends State<_AddServerDialog> {
             _field('mcp-url', _url, 'or URL (Streamable HTTP)', hint: 'https://mcp.example.com/mcp'),
             _field('mcp-env', _env, 'Environment (KEY=VALUE per line)', lines: 2),
             _field('mcp-headers', _headers, 'Headers (KEY=VALUE per line)', lines: 2),
-            const Text(
+            Text(
               r'Never paste a token here. Store it in your keychain or environment and write ${secret:NAME}, '
               r'for example Authorization=Bearer ${secret:GITHUB_TOKEN}.',
-              style: TextStyle(color: Tokens.textMuted, fontSize: 12),
+              style: TvType.helper.copyWith(color: TvColors.of(context).textHelper),
             ),
             if (_error case final e?)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text(e, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                child: Text(e, style: TvType.body.copyWith(color: TvColors.of(context).error)),
               ),
           ],
         ),
@@ -218,7 +230,7 @@ class _TestResultDialog extends StatelessWidget {
   Widget _section(BuildContext context, String title, List<McpEntry> items) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('$title (${items.length})', style: Theme.of(context).textTheme.titleSmall),
+      Text('$title (${items.length})', style: TvType.heading01.copyWith(color: TvColors.of(context).textPrimary)),
       for (final e in items)
         Padding(
           padding: const EdgeInsets.only(left: 8, top: 2),

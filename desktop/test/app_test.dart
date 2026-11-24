@@ -9,6 +9,7 @@ import 'package:tessivo_desktop/src/theme.dart';
 
 import 'support/fake_core/fake_core.dart';
 import 'support/notebook_tabs.dart';
+import 'support/settings_sections.dart';
 
 Future<AppState> pumpApp(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1600, 1000);
@@ -107,9 +108,11 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Fallback chain for "smart"'), findsOneWidget);
+    expect(find.byKey(const Key('alias-smart')), findsOneWidget);
+    await openSettingsSection(tester, 'defaults');
     expect(tester.widget<TextField>(find.byKey(const Key('default-model'))).controller!.text, 'smart');
     expect(find.text('Thinking: medium'), findsOneWidget);
+    await openSettingsSection(tester, 'models');
     expect(find.text('Stored in your OS keychain as TESSIVO_LITELLM_KEY'), findsOneWidget);
     expect(find.text('Key set'), findsOneWidget);
     await tester.tap(find.byKey(const Key('load-models-litellm')));

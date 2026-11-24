@@ -10,6 +10,7 @@ import 'package:tessivo_desktop/src/core/http_core_client.dart';
 import 'support/fake_core/fake_core.dart';
 import 'support/notebook_tabs.dart';
 import 'support/real_http.dart';
+import 'support/settings_sections.dart';
 
 const _server = {
   'name': 'fake',
@@ -130,6 +131,7 @@ void main() {
     await _pump(tester);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
+    await openSettingsSection(tester, 'mcp');
     await _toMcp(tester);
     await tester.tap(find.byKey(const Key('mcp-add')));
     await tester.pumpAndSettle();
@@ -153,6 +155,7 @@ void main() {
     await _pump(tester);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
+    await openSettingsSection(tester, 'mcp');
     await _toMcp(tester);
     await tester.tap(find.byKey(const Key('mcp-add')));
     await tester.pumpAndSettle();

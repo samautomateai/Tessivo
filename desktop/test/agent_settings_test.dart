@@ -5,6 +5,7 @@ import 'package:tessivo_desktop/src/app_state.dart';
 import 'package:tessivo_desktop/src/core/settings_draft.dart';
 
 import 'support/fake_core/fake_core.dart';
+import 'support/settings_sections.dart';
 
 Future<FakeCoreClient> _open(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1600, 1200);
@@ -17,6 +18,7 @@ Future<FakeCoreClient> _open(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.text('Settings'));
   await tester.pumpAndSettle();
+  await openSettingsSection(tester, 'agent');
   await tester.scrollUntilVisible(
     find.byKey(const Key('agent-save')),
     200,

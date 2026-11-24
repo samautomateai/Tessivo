@@ -10,6 +10,7 @@ import 'package:tessivo_desktop/src/shell/workbench.dart';
 
 import 'app_test.dart' show pumpApp;
 import 'support/fake_core/fake_core.dart';
+import 'support/settings_sections.dart';
 
 Future<Map<String, Object?>> desktopBlock(AppState state) async =>
     SettingsDraft.fromJson((await state.core.getSettings()).raw).desktop;
@@ -63,6 +64,7 @@ void main() {
     expect((await desktopBlock(state))['theme'], 'dark');
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
+    await openSettingsSection(tester, 'appearance');
     await tester.scrollUntilVisible(
       find.byKey(const Key('appearance-theme')),
       200,

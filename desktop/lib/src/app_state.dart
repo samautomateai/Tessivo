@@ -20,6 +20,9 @@ part 'app_state_layout.dart';
 
 enum Section { chat, notebooks, research, templates, schedules, library, settings }
 
+/// The parts of the Settings page, listed in its side bar.
+enum SettingsSection { models, defaults, agent, mcp, appearance, desktop, diagnostics }
+
 /// App-wide state on a plain [ChangeNotifier] (no state-management package).
 class AppState extends ChangeNotifier {
   AppState(this.core);
@@ -102,6 +105,9 @@ class AppState extends ChangeNotifier {
   /// it; not remembered.
   bool sideBarPeek = false;
   bool panelPeek = false;
+
+  /// The part of Settings that is open.
+  SettingsSection settingsSection = SettingsSection.models;
   String? defaultModel;
   UsageInfo? usage;
 

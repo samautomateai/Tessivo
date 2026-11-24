@@ -63,7 +63,7 @@ class StatusBar extends StatelessWidget {
             if (state.defaultModel case final m? when m.isNotEmpty)
               Flexible(
                 child: _Item(
-                  onTap: () => state.go(Section.settings),
+                  onTap: () => state.openSettings(SettingsSection.models),
                   tooltip: 'Default model (Settings)',
                   child: Text(m),
                 ),

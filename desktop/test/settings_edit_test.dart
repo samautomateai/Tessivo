@@ -10,6 +10,7 @@ import 'package:tessivo_desktop/src/core/settings_draft.dart';
 
 import 'support/fake_core/fake_core.dart';
 import 'support/real_http.dart';
+import 'support/settings_sections.dart';
 
 Future<(AppState, FakeCoreClient)> _pump(WidgetTester tester, {bool keySet = true}) async {
   tester.view.physicalSize = const Size(1600, 1200);
@@ -24,16 +25,17 @@ Future<(AppState, FakeCoreClient)> _pump(WidgetTester tester, {bool keySet = tru
   return (state, core);
 }
 
-Future<void> _openSettings(WidgetTester tester) async {
+Future<void> _openSettings(WidgetTester tester, [String section = 'models']) async {
   await tester.tap(find.text('Settings'));
   await tester.pumpAndSettle();
+  await openSettingsSection(tester, section);
 }
 
 void main() {
   trayToggleTests();
   testWidgets('edit run defaults and limits, then save', (tester) async {
     final (_, core) = await _pump(tester);
-    await _openSettings(tester);
+    await _openSettings(tester, 'defaults');
     await tester.enterText(find.byKey(const Key('default-model')), 'litellm/qwen');
     await tester.enterText(find.byKey(const Key('limit-day')), '50000');
     await tester.tap(find.byKey(const Key('save-defaults')));
@@ -171,7 +173,7 @@ void main() {
 void trayToggleTests() {
   testWidgets('the tray toggle saves desktop.close_to_tray', (tester) async {
     final (_, core) = await _pump(tester);
-    await _openSettings(tester);
+    await _openSettings(tester, 'desktop');
     await tester.scrollUntilVisible(
       find.byKey(const Key('close-to-tray')),
       200,
