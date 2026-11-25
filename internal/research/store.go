@@ -78,6 +78,8 @@ type Source struct {
 	AddedAt   string `json:"addedAt"`
 	Tokens    int    `json:"tokens,omitempty"`
 	TokensFor string `json:"tokensFor,omitempty"`
+	// NeedsRelink marks an in-place source whose path an import dropped.
+	NeedsRelink bool `json:"needsRelink,omitempty"`
 }
 
 // Manifest is research.json.

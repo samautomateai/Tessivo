@@ -13,27 +13,30 @@ const (
 	subUnpin   = "unpin"
 )
 
+// notebookSubs are the notebook subcommands with their own argument handling.
+var notebookSubs = map[string]func([]string, Env) error{
+	"import":   notebookImport,
+	"list":     notebookList,
+	"commands": notebookCommands,
+	"export":   notebookExport,
+	"tag":      notebookTag,
+	"delete":   notebookDelete,
+	subPin:     func(a []string, env Env) error { return notebookPin(a, true, env) },
+	subUnpin:   func(a []string, env Env) error { return notebookPin(a, false, env) },
+}
+
 // cmdNotebook renames, archives, restores or deletes a notebook folder.
 func cmdNotebook(args []string, env Env) error {
-	if len(args) > 0 && args[0] == "list" {
-		return notebookList(args[1:], env)
+	if len(args) > 0 {
+		if run, ok := notebookSubs[args[0]]; ok {
+			return run(args[1:], env)
+		}
 	}
 	if len(args) < 2 {
-		return usagef("notebook: want list or rename|archive|unarchive|pin|unpin|tag|delete|commands <notebook> ...")
+		return usagef("notebook: want list, import, or rename|archive|unarchive|pin|unpin|tag|export|delete|commands " +
+			"<notebook> ...")
 	}
 	sub := args[0]
-	if sub == "commands" {
-		return notebookCommands(args[1:], env)
-	}
-	if sub == "tag" {
-		return notebookTag(args[1:], env)
-	}
-	if sub == subPin || sub == subUnpin {
-		return notebookPin(args[1], sub == subPin, env)
-	}
-	if sub == "delete" {
-		return notebookDelete(args[1:], env)
-	}
 	nb, err := notebook.Open(args[1])
 	if err != nil {
 		return err

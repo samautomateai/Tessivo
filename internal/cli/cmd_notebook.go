@@ -33,6 +33,9 @@ func cmdContext(args []string, env Env) error {
 	if len(args) < 2 {
 		return usagef("context: want add|list|enable|disable <notebook> ...")
 	}
+	if args[0] == "relink" {
+		return contextRelink(args[1:], env)
+	}
 	sub, dir, rest := args[0], args[1], args[2:]
 	nb, err := notebook.Open(dir)
 	if err != nil {

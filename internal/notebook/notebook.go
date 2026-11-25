@@ -55,6 +55,9 @@ type ContextItem struct {
 	Kind   string `json:"kind,omitempty"`
 	Server string `json:"server,omitempty"`
 	URI    string `json:"uri,omitempty"`
+	// NeedsRelink marks a source that pointed at the sender's disk (an imported
+	// archive drops the path); it is left out of runs until relinked.
+	NeedsRelink bool `json:"needsRelink,omitempty"`
 }
 
 // KindMCPResource marks a context item read from an MCP server.

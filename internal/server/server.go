@@ -103,6 +103,7 @@ func (s *Server) Handler() http.Handler {
 	s.promptRoutes(mux)
 	s.settingsRoutes(mux)
 	s.researchRoutes(mux)
+	s.archiveRoutes(mux)
 	return s.secure(mux)
 }
 

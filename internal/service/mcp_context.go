@@ -28,7 +28,7 @@ func (s *Service) notebookDocs(ctx context.Context, nb *notebook.Notebook) ([]ex
 	}()
 	var docs []extract.Document
 	for _, c := range nb.Manifest.Context {
-		if !c.Enabled {
+		if !c.Enabled || c.NeedsRelink {
 			continue
 		}
 		d, err := s.itemDocs(ctx, clients, nb, c)

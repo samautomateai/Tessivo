@@ -34,7 +34,11 @@ func notebookTag(args []string, env Env) error {
 }
 
 // notebookPin pins or unpins a notebook.
-func notebookPin(path string, pin bool, env Env) error {
+func notebookPin(args []string, pin bool, env Env) error {
+	if len(args) != 1 {
+		return usagef("notebook pin|unpin: want <notebook>")
+	}
+	path := args[0]
 	nb, err := notebook.Open(path)
 	if err != nil {
 		return err

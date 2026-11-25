@@ -137,7 +137,7 @@ func (s *Service) runAgent(ctx context.Context, req RunRequest, spec executor.Sp
 func contextRoots(nb *notebook.Notebook) []string {
 	var roots []string
 	for _, c := range nb.Manifest.Context {
-		if !c.Enabled {
+		if !c.Enabled || c.NeedsRelink {
 			continue
 		}
 		if p := nb.ContextPath(c); fileExists(p) {
