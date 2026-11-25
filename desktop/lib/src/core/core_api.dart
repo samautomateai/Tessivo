@@ -165,6 +165,31 @@ abstract interface class CoreClient {
   /// Saves [data], the output's structured result as edited, as a new version (no model call).
   Future<OutputSummary> editOutput(String notebookId, String outputId, Map<String, Object?> data);
 
+  /// The tracker-ready issues an Analyze output's findings make (WT-5).
+  Future<List<IssueInfo>> outputIssues(String notebookId, String outputId);
+
+  /// Files findings ([findings]: indexes; empty: all) as issues; sent ones are skipped unless [again].
+  Future<PushResult> pushIssues(
+    String notebookId,
+    String outputId,
+    String integration, {
+    List<int> findings = const [],
+    bool again = false,
+  });
+
+  /// Publishes the output to a folder, Confluence or Notion.
+  Future<Delivery> publishOutput(String notebookId, String outputId, String integration);
+
+  /// What was sent from an output, oldest first.
+  Future<List<Delivery>> deliveries(String notebookId, String outputId);
+
+  Future<List<IntegrationInfo>> listIntegrations();
+  Future<IntegrationInfo> addIntegration(IntegrationInfo integration);
+  Future<void> removeIntegration(String name);
+
+  /// Checks an integration's connection and token; throws with the reason.
+  Future<void> testIntegration(String name);
+
   // MCP servers (docs/api.md, "MCP servers").
   Future<List<McpServer>> listMcpServers();
   Future<McpServer> addMcpServer(McpServer server);

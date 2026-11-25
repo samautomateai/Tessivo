@@ -23,7 +23,7 @@ part 'app_state_organize.dart';
 enum Section { chat, notebooks, research, templates, schedules, library, settings, approvals }
 
 /// The parts of the Settings page, listed in its side bar.
-enum SettingsSection { models, defaults, agent, mcp, packs, appearance, desktop, diagnostics }
+enum SettingsSection { models, defaults, agent, mcp, integrations, packs, appearance, desktop, diagnostics }
 
 /// App-wide state on a plain [ChangeNotifier] (no state-management package).
 class AppState extends ChangeNotifier {

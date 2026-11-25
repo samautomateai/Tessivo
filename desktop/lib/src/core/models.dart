@@ -7,6 +7,7 @@ import 'command_rule.dart';
 
 export 'command_rule.dart';
 export 'core_event.dart';
+export 'deliver_models.dart';
 export 'output_detail.dart';
 export 'saved_prompt.dart';
 

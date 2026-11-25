@@ -9,6 +9,7 @@ import 'package:tessivo_desktop/src/core/models.dart';
 
 import 'fake_archive.dart';
 import 'fake_chat.dart';
+import 'fake_deliver.dart';
 import 'fake_mcp.dart';
 import 'fake_packs.dart';
 import 'fake_prompts.dart';
@@ -21,7 +22,7 @@ export 'package:tessivo_desktop/src/core/core_client.dart';
 
 /// In-memory core with sample data, used when no core can be reached.
 class FakeCoreClient
-    with DemoChat, DemoThreads, DemoMcp, DemoPacks, DemoResearch, DemoArchive, DemoPrompts, DemoSettings
+    with DemoChat, DemoThreads, DemoDeliver, DemoMcp, DemoPacks, DemoResearch, DemoArchive, DemoPrompts, DemoSettings
     implements CoreClient {
   FakeCoreClient({Duration tick = const Duration(milliseconds: 40)}) : _tick = tick;
 

@@ -22,6 +22,7 @@ import '../../widgets/settings_defaults.dart';
 import '../../widgets/settings_providers.dart';
 import '../../widgets/text_prompt_dialog.dart';
 import '../mcp_settings.dart';
+import 'integrations_section.dart';
 import 'packs_section.dart';
 import 'settings_side_bar.dart';
 
@@ -33,6 +34,7 @@ String _helper(SettingsSection s) => switch (s) {
   SettingsSection.defaults => 'What runs use unless a notebook or prompt says otherwise, and the token limits.',
   SettingsSection.agent => 'How far an agent run may go, and which tools run without asking.',
   SettingsSection.mcp => 'Servers whose tools and resources notebooks and chats may use.',
+  SettingsSection.integrations => 'Trackers, wikis and folders outputs are sent to. Tokens stay in your OS keychain.',
   SettingsSection.packs => 'Templates, prompts and MCP servers your team shares from a folder, a .zip or a git repo.',
   SettingsSection.appearance => 'Theme and zoom. Text also follows the size set in your OS.',
   SettingsSection.desktop => 'How the app behaves on this computer.',
@@ -125,6 +127,7 @@ class _SettingsPageState extends State<SettingsPage> {
       SettingsSection.mcp => [
         McpServersSection(core: core, onChanged: () => unawaited(widget.state.refreshMcpServers())),
       ],
+      SettingsSection.integrations => [IntegrationsSection(state: widget.state)],
       SettingsSection.packs => [PacksSection(state: widget.state)],
       SettingsSection.appearance => [AppearanceSettings(state: widget.state)],
       SettingsSection.desktop => [

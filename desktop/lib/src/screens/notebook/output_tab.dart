@@ -17,6 +17,7 @@ import '../../widgets/export_menu.dart';
 import '../../widgets/markdown_view.dart';
 import '../../widgets/output_edit_form.dart';
 import '../../widgets/rerun_button.dart';
+import '../../widgets/send_menu.dart';
 import '../approvals_page.dart';
 
 /// Below this width the toolbar's actions show only their icons.
@@ -139,6 +140,13 @@ class _OutputToolbar extends StatelessWidget {
               notebookId: thread.notebookId,
               outputId: thread.outputId,
               title: thread.detail?.title ?? 'output',
+              compact: compact,
+            ),
+            SendMenu(
+              state: state,
+              notebookId: thread.notebookId,
+              outputId: thread.outputId,
+              workType: open?.workType,
               compact: compact,
             ),
             Container(width: 1, height: 16, margin: const EdgeInsets.symmetric(horizontal: 6), color: c.borderSubtle),
