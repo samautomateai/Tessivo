@@ -15,6 +15,7 @@ func (s *Server) mcpRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /v1/mcp/servers/{name}/trust", s.trustMCP)
 	mux.HandleFunc("PUT /v1/notebooks/{id}/mcp", s.setNotebookMCP)
 	mux.HandleFunc("PUT /v1/notebooks/{id}/agent/commands", s.setNotebookCommands)
+	s.integrationRoutes(mux) // outward connections, like MCP servers
 }
 
 func (s *Server) listMCP(w http.ResponseWriter, _ *http.Request) {

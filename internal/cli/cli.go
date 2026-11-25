@@ -75,9 +75,10 @@ Usage:
   tess run [<notebook>] [flags]             run a notebook, or pipe text: cat x | tess run --type summarize
   tess run pending|approve|deny|resume|cancel ...   agent runs waiting for approval (see 'tess run -h')
   tess outputs <notebook>                   list saved outputs, newest first
-  tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff|data|edit <notebook> <output-id> ...
+  tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff|data|edit|issues <notebook> <output-id> ...
                                             talk to an output, refine, export, run again, compare
   tess mcp add|list|test|remove ...        MCP servers notebooks can attach (see 'tess mcp -h')
+  tess integration add|list|remove ...     trackers, wikis and folders outputs are sent to (see 'tess integration')
   tess research new|list|show|delete|source|ask|note ...   research notebooks: summaries, cited answers
   tess models [--provider NAME]             list models from configured providers
   tess models test <alias|provider/model>   send each model one tiny request: does it answer?
@@ -182,6 +183,7 @@ var commands = map[string]handler{
 	"output":      cmdOutput,
 	"mcp":         cmdMCP,
 	"pack":        cmdPack,
+	"integration": cmdIntegration,
 	"research":    cmdResearch,
 	"worktypes":   func(_ context.Context, _ []string, env Env) error { return cmdWorkTypes(env) },
 }

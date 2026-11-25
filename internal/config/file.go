@@ -92,6 +92,8 @@ type File struct {
 	Desktop      DesktopConfig `json:"desktop,omitzero"`
 	// Packs are the team packs added (internal/pack); their content stays in the packs folder.
 	Packs []PackSource `json:"packs,omitempty"`
+	// Integrations are the trackers, wikis and folders outputs are sent to (integrations.go).
+	Integrations []Integration `json:"integrations,omitempty"`
 }
 
 // Default returns a starter config pointing at a local LiteLLM proxy.
@@ -200,7 +202,7 @@ func (f File) Validate() error {
 	if err := f.Defaults.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("defaults: %w", err))
 	}
-	errs = append(errs, f.Agent.Validate(), f.MCP.Check(), f.Desktop.Validate())
+	errs = append(errs, f.Agent.Validate(), f.MCP.Check(), f.Desktop.Validate(), CheckIntegrations(f.Integrations))
 	return errors.Join(errs...)
 }
 
