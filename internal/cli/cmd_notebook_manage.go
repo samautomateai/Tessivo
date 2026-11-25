@@ -7,16 +7,29 @@ import (
 	"github.com/samautomateai/tessivo/internal/notebook"
 )
 
-const subArchive = "archive"
+const (
+	subArchive = "archive"
+	subPin     = "pin"
+	subUnpin   = "unpin"
+)
 
 // cmdNotebook renames, archives, restores or deletes a notebook folder.
 func cmdNotebook(args []string, env Env) error {
+	if len(args) > 0 && args[0] == "list" {
+		return notebookList(args[1:], env)
+	}
 	if len(args) < 2 {
-		return usagef("notebook: want rename|archive|unarchive|delete|commands <notebook> ...")
+		return usagef("notebook: want list or rename|archive|unarchive|pin|unpin|tag|delete|commands <notebook> ...")
 	}
 	sub := args[0]
 	if sub == "commands" {
 		return notebookCommands(args[1:], env)
+	}
+	if sub == "tag" {
+		return notebookTag(args[1:], env)
+	}
+	if sub == subPin || sub == subUnpin {
+		return notebookPin(args[1], sub == subPin, env)
 	}
 	if sub == "delete" {
 		return notebookDelete(args[1:], env)

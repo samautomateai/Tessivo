@@ -34,6 +34,8 @@ type NotebookInfo struct {
 	MCPServers []string             `json:"mcpServers"` // servers agent runs may use
 	Commands   []config.CommandRule `json:"commands"`   // run_command allow-list
 	Archived   bool                 `json:"archived"`
+	Tags       []string             `json:"tags"`
+	Pinned     bool                 `json:"pinned"`
 	nb         *notebook.Notebook
 }
 
@@ -129,7 +131,7 @@ func (s *Service) ListNotebooks() ([]NotebookInfo, error) {
 		}
 		out = append(out, describe(e.Name(), nb, false))
 	}
-	sort.Slice(out, func(i, j int) bool { return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name) })
+	sortPinnedFirst(out, func(n NotebookInfo) (bool, string) { return n.Pinned, n.Name })
 	return out, nil
 }
 
@@ -151,6 +153,8 @@ func describe(id string, nb *notebook.Notebook, stats bool) NotebookInfo {
 		MCPServers: append([]string{}, nb.Manifest.Agent.MCPServers...),
 		Commands:   append([]config.CommandRule{}, nb.Manifest.Agent.Commands...),
 		Archived:   nb.Manifest.Archived,
+		Tags:       append([]string{}, nb.Manifest.Tags...),
+		Pinned:     nb.Manifest.Pinned,
 	}
 	for _, c := range nb.Manifest.Context {
 		ci := ContextInfo{ContextItem: c}
@@ -289,10 +293,12 @@ func (s *Service) Models(ctx context.Context, provider string) (map[string][]str
 	return out, nil
 }
 
-// NotebookUpdate changes a notebook's name or archived state; nil fields stay.
+// NotebookUpdate changes a notebook's name, archived state, tags or pin; nil fields stay.
 type NotebookUpdate struct {
-	Name     *string `json:"name,omitempty"`
-	Archived *bool   `json:"archived,omitempty"`
+	Name     *string   `json:"name,omitempty"`
+	Archived *bool     `json:"archived,omitempty"`
+	Tags     *[]string `json:"tags,omitempty"`
+	Pinned   *bool     `json:"pinned,omitempty"`
 }
 
 // UpdateNotebook renames, archives or restores a workspace notebook.
@@ -307,9 +313,21 @@ func (s *Service) UpdateNotebook(id string, in NotebookUpdate) (NotebookInfo, er
 			return NotebookInfo{}, &InvalidError{err.Error()}
 		}
 	}
+	var tags []string
+	if in.Tags != nil {
+		if tags, err = notebook.NormalizeTags(*in.Tags); err != nil {
+			return NotebookInfo{}, &InvalidError{err.Error()}
+		}
+	}
 	err = nb.Update(func(m *notebook.Manifest) error {
 		if in.Name != nil {
 			m.Name = clean
+		}
+		if in.Tags != nil {
+			m.Tags = tags
+		}
+		if in.Pinned != nil {
+			m.Pinned = *in.Pinned
 		}
 		if in.Archived != nil {
 			m.Archived = *in.Archived

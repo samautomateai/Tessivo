@@ -79,6 +79,8 @@ type Manifest struct {
 	Template      string             `json:"template,omitempty"` // "id@version" this notebook came from
 	Agent         AgentSettings      `json:"agent,omitzero"`
 	Archived      bool               `json:"archived,omitempty"` // listed apart; schedules do not run
+	Tags          []string           `json:"tags,omitempty"`     // NB-5; see NormalizeTags
+	Pinned        bool               `json:"pinned,omitempty"`   // listed first
 	// Revision counts saves, so a save of a stale copy is refused (lock.go).
 	Revision int `json:"revision,omitempty"`
 }

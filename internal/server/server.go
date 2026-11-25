@@ -134,6 +134,9 @@ func (s *Server) workTypes(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) listNotebooks(w http.ResponseWriter, r *http.Request) {
 	list, err := s.svc.ListNotebooks()
+	if tag := r.URL.Query().Get("tag"); tag != "" {
+		list, err = s.svc.ListNotebooksTagged(tag)
+	}
 	if err != nil {
 		s.fail(w, r, err)
 		return

@@ -36,6 +36,8 @@ type ResearchInfo struct {
 	Settings    config.RunSettings   `json:"settings"`
 	Sources     []ResearchSourceInfo `json:"sources"`
 	Notes       int                  `json:"notes"`
+	Tags        []string             `json:"tags"`
+	Pinned      bool                 `json:"pinned"`
 }
 
 // ResearchSourceInfo is a source with its summary state.
@@ -126,6 +128,7 @@ func (s *Service) ListResearch() ([]ResearchInfo, error) {
 	for _, nb := range nbs {
 		out = append(out, s.researchInfo(nb))
 	}
+	sortPinnedFirst(out, func(r ResearchInfo) (bool, string) { return r.Pinned, r.Name })
 	return out, nil
 }
 
@@ -238,6 +241,7 @@ func describeResearch(nb *research.Notebook, state func(research.Source) (string
 	info := ResearchInfo{
 		ID: nb.Manifest.ID, Name: nb.Manifest.Name, Description: nb.Manifest.Description,
 		CreatedAt: nb.Manifest.CreatedAt, Settings: nb.Manifest.Settings, Sources: []ResearchSourceInfo{},
+		Tags: append([]string{}, nb.Manifest.Tags...), Pinned: nb.Manifest.Pinned,
 	}
 	for _, src := range nb.Manifest.Sources {
 		st, msg := state(src)

@@ -74,7 +74,8 @@ func (s *Service) Search(query string, limit int) ([]SearchResult, error) {
 type matcher func(r SearchResult, text string) bool
 
 func searchNotebook(info NotebookInfo, add matcher) bool {
-	if !add(SearchResult{Kind: SearchNotebook, NotebookID: info.ID, Title: info.Name}, info.Name) {
+	text := info.Name + " " + strings.Join(info.Tags, " ")
+	if !add(SearchResult{Kind: SearchNotebook, NotebookID: info.ID, Title: info.Name}, text) {
 		return false
 	}
 	nb := info.nb

@@ -24,7 +24,7 @@ tess chat save <id> <message-id|last> --type T   save a reply as a validated out
 
 var chatCommands = map[string]func(context.Context, *service.Service, []string, Env) error{
 	subList: chatList, subShow: chatShow, "rename": chatRename, subDelete: chatDelete,
-	"pin": chatFlag, "unpin": chatFlag, "archive": chatFlag, "unarchive": chatFlag,
+	subPin: chatFlag, subUnpin: chatFlag, "archive": chatFlag, "unarchive": chatFlag,
 	"memory": chatMemory, "repeat": chatRepeat, subSave: chatSave,
 }
 

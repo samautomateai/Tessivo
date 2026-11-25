@@ -63,12 +63,18 @@ func (s *Server) updateResearch(w http.ResponseWriter, r *http.Request) {
 		Name        *string             `json:"name"`
 		Description *string             `json:"description"`
 		Settings    *config.RunSettings `json:"settings"`
+		Tags        *[]string           `json:"tags"`
+		Pinned      *bool               `json:"pinned"`
 	}
 	if err := decode(w, r, &body); err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	info, err := s.svc.UpdateResearch(r.PathValue("id"), body.Name, body.Description, body.Settings)
+	id := r.PathValue("id")
+	info, err := s.svc.UpdateResearch(id, body.Name, body.Description, body.Settings)
+	if err == nil && (body.Tags != nil || body.Pinned != nil) {
+		info, err = s.svc.OrganizeResearch(id, body.Tags, body.Pinned)
+	}
 	if err != nil {
 		s.fail(w, r, err)
 		return

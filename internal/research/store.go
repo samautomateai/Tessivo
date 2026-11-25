@@ -89,6 +89,8 @@ type Manifest struct {
 	CreatedAt     string             `json:"createdAt"`
 	Settings      config.RunSettings `json:"settings"`
 	Sources       []Source           `json:"sources"`
+	Tags          []string           `json:"tags,omitempty"`   // NB-5
+	Pinned        bool               `json:"pinned,omitempty"` // listed first
 	// Revision counts saves, so a save of a stale copy is refused (lock.go).
 	Revision int `json:"revision,omitempty"`
 }
