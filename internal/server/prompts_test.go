@@ -39,3 +39,21 @@ func TestSearchAPI(t *testing.T) {
 		t.Fatalf("blank: %d", code)
 	}
 }
+
+func TestPromptVersionsAPI(t *testing.T) {
+	ts, _ := newTestServer(t, summary)
+	call(t, ts, "POST", "/v1/notebooks", `{"name":"Ops","workType":"summarize"}`)
+	call(t, ts, "PUT", "/v1/notebooks/ops/prompts/weekly", `{"text":"first"}`)
+	call(t, ts, "PUT", "/v1/notebooks/ops/prompts/weekly", `{"text":"second"}`)
+	code, body := call(t, ts, "GET", "/v1/notebooks/ops/prompts/weekly/versions", "")
+	if code != 200 || !strings.Contains(body, `"version":2`) || !strings.Contains(body, `"text":"first"`) {
+		t.Fatalf("versions: %d %s", code, body)
+	}
+	code, body = call(t, ts, "POST", "/v1/notebooks/ops/prompts/weekly/versions/1/restore", "")
+	if code != 200 || !strings.Contains(body, `"text":"first"`) || !strings.Contains(body, `"version":3`) {
+		t.Fatalf("restore: %d %s", code, body)
+	}
+	if code, _ := call(t, ts, "POST", "/v1/notebooks/ops/prompts/weekly/versions/x/restore", ""); code != 400 {
+		t.Fatalf("bad version: %d", code)
+	}
+}

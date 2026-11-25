@@ -230,6 +230,11 @@ func RequiredOrder(wt worktype.WorkType) []string {
 // reach the right saved prompt or schedule.
 func (req RunRequest) decorate(r *notebook.Run) {
 	r.PromptName = req.PromptName
+	if req.Notebook != nil && req.PromptName != "" {
+		if p, err := req.Notebook.LoadPrompt(req.PromptName); err == nil {
+			r.PromptVersion = max(p.Version, 1)
+		}
+	}
 	if r.ScheduleID == "" {
 		r.ScheduleID = req.ScheduleID
 	}

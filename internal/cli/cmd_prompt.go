@@ -15,11 +15,11 @@ func cmdPrompt(args []string, env Env) error {
 		return promptLibrary(args[1:], env)
 	}
 	if len(args) < 2 {
-		return usagef("prompt: want list|show|save|rm <notebook> [name]")
+		return usagef("prompt: want list|show|save|rm|history|restore <notebook> [name]")
 	}
 	sub, dir, rest := args[0], args[1], args[2:]
 	switch sub {
-	case subList, subShow, subSave, "rm":
+	case subList, subShow, subSave, "rm", "history", "restore":
 	default:
 		return usagef("prompt: unknown subcommand %q", sub)
 	}
@@ -35,6 +35,10 @@ func cmdPrompt(args []string, env Env) error {
 		return promptList(nb, env)
 	case subShow:
 		return promptShow(nb, rest[0], env)
+	case "history":
+		return promptHistory(nb, rest[0], env)
+	case "restore":
+		return promptRestore(nb, rest, env)
 	case subSave:
 		return promptSave(nb, rest, env)
 	default:

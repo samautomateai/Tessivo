@@ -62,3 +62,34 @@ func (s *Service) DeletePrompt(id, name string) error {
 	}
 	return nil
 }
+
+// PromptVersions lists a saved prompt's versions, newest (the current one) first.
+func (s *Service) PromptVersions(id, name string) ([]notebook.PromptVersion, error) {
+	nb, err := s.OpenNotebook(id)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := nb.LoadPrompt(name); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("prompt %s: %w", name, ErrNotFound)
+		}
+		return nil, &InvalidError{err.Error()}
+	}
+	return nb.PromptVersions(name)
+}
+
+// RestorePromptVersion makes an earlier version current again (as a new
+// version, so nothing is lost) and returns the prompt.
+func (s *Service) RestorePromptVersion(id, name string, version int) (notebook.Prompt, error) {
+	if _, err := s.PromptVersions(id, name); err != nil {
+		return notebook.Prompt{}, err
+	}
+	nb, err := s.OpenNotebook(id)
+	if err != nil {
+		return notebook.Prompt{}, err
+	}
+	if err := nb.RestorePromptVersion(name, version); err != nil {
+		return notebook.Prompt{}, &InvalidError{err.Error()}
+	}
+	return nb.LoadPrompt(name)
+}

@@ -18,6 +18,8 @@ type Prompt struct {
 	Name     string             `json:"name"`
 	Text     string             `json:"text"`
 	Settings config.RunSettings `json:"settings"`
+	Version  int                `json:"version,omitempty"` // 1 for the first save; earlier ones in prompts/.history
+	SavedAt  string             `json:"savedAt,omitempty"`
 }
 
 // AttemptRecord is one model attempt within a run.
@@ -29,28 +31,29 @@ type AttemptRecord struct {
 
 // Run records exactly what a run used and produced.
 type Run struct {
-	ID          string            `json:"id"`
-	StartedAt   string            `json:"startedAt"`
-	DurationMS  int64             `json:"durationMs"`
-	WorkType    string            `json:"workType"`
-	Prompt      string            `json:"prompt"`
-	PromptName  string            `json:"promptName,omitempty"` // the saved prompt the run used, if any
-	Vars        map[string]string `json:"vars,omitempty"`
-	Context     []string          `json:"context"`
-	Settings    config.Effective  `json:"settings"`
-	ModelUsed   string            `json:"modelUsed"`
-	Attempts    []AttemptRecord   `json:"attempts"`
-	Strategy    string            `json:"strategy"` // full or map-reduce
-	TotalTokens int               `json:"totalTokens"`
-	Valid       bool              `json:"valid"`
-	Error       string            `json:"error,omitempty"`
-	OutputID    string            `json:"outputId,omitempty"`
-	Mode        string            `json:"mode,omitempty"`   // pipeline or agent
-	Status      string            `json:"status,omitempty"` // one of the Status constants
-	ScheduleID  string            `json:"scheduleId,omitempty"`
-	Steps       int               `json:"steps,omitempty"`
-	ToolCalls   []ToolCallRecord  `json:"toolCalls,omitempty"`
-	Approvals   []ApprovalRecord  `json:"approvals,omitempty"`
+	ID            string            `json:"id"`
+	StartedAt     string            `json:"startedAt"`
+	DurationMS    int64             `json:"durationMs"`
+	WorkType      string            `json:"workType"`
+	Prompt        string            `json:"prompt"`
+	PromptName    string            `json:"promptName,omitempty"`    // the saved prompt the run used, if any
+	PromptVersion int               `json:"promptVersion,omitempty"` // that prompt's version
+	Vars          map[string]string `json:"vars,omitempty"`
+	Context       []string          `json:"context"`
+	Settings      config.Effective  `json:"settings"`
+	ModelUsed     string            `json:"modelUsed"`
+	Attempts      []AttemptRecord   `json:"attempts"`
+	Strategy      string            `json:"strategy"` // full or map-reduce
+	TotalTokens   int               `json:"totalTokens"`
+	Valid         bool              `json:"valid"`
+	Error         string            `json:"error,omitempty"`
+	OutputID      string            `json:"outputId,omitempty"`
+	Mode          string            `json:"mode,omitempty"`   // pipeline or agent
+	Status        string            `json:"status,omitempty"` // one of the Status constants
+	ScheduleID    string            `json:"scheduleId,omitempty"`
+	Steps         int               `json:"steps,omitempty"`
+	ToolCalls     []ToolCallRecord  `json:"toolCalls,omitempty"`
+	Approvals     []ApprovalRecord  `json:"approvals,omitempty"`
 }
 
 // Run statuses.
@@ -145,6 +148,12 @@ func (n *Notebook) SavePrompt(p Prompt) error {
 	if err := p.Check(); err != nil {
 		return err
 	}
+	if err := n.keepVersion(&p); err != nil {
+		return err
+	}
+	if p.SavedAt == "" {
+		p.SavedAt = now()
+	}
 	return writeJSON(filepath.Join(n.Dir, PromptsDir, p.Name+".json"), p)
 }
 
@@ -166,6 +175,7 @@ func (n *Notebook) DeletePrompt(name string) error {
 	if err := os.Remove(filepath.Join(n.Dir, PromptsDir, name+".json")); err != nil {
 		return fmt.Errorf("delete prompt %s: %w", name, err)
 	}
+	_ = os.RemoveAll(n.historyDir(name))
 	return nil
 }
 
