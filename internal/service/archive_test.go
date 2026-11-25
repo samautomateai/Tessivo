@@ -188,3 +188,19 @@ func TestArchiveIsAudited(t *testing.T) {
 		t.Fatalf("audit must not hold paths: %s", log)
 	}
 }
+
+func TestImportChecksTheArchivedName(t *testing.T) {
+	s := newSvc(t, summary)
+	info, _ := s.CreateNotebook("Ops", "summarize")
+	nb, _ := s.OpenNotebook(info.ID)
+	if err := nb.Update(func(m *notebook.Manifest) error { m.Name = "evil\x1b[2Jname"; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	if err := s.ExportNotebook(info.ID, false, &buf); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ImportNotebook(bytes.NewReader(buf.Bytes()), int64(buf.Len())); !IsInvalid(err) {
+		t.Fatalf("a name with control characters must be refused: %v", err)
+	}
+}

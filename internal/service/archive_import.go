@@ -30,12 +30,13 @@ func (s *Service) ImportNotebook(r io.ReaderAt, size int64) (NotebookInfo, error
 		return NotebookInfo{}, invalidf("archive notebook: %v", err)
 	}
 	existing, _ := s.ListNotebooks()
-	name := nb.Manifest.Name
+	names := make([]string, 0, len(existing))
 	for _, e := range existing {
-		if strings.EqualFold(e.Name, name) {
-			name += " (imported)"
-			break
-		}
+		names = append(names, e.Name)
+	}
+	name, err := importName(nb.Manifest.Name, names)
+	if err != nil {
+		return NotebookInfo{}, err
 	}
 	id, err := freeID(s.Workspace, name)
 	if err != nil {
@@ -86,12 +87,13 @@ func (s *Service) ImportResearch(r io.ReaderAt, size int64) (ResearchInfo, error
 		return ResearchInfo{}, invalidf("archive research notebook: %v", err)
 	}
 	existing, _ := s.ListResearch()
-	name := nb.Manifest.Name
+	names := make([]string, 0, len(existing))
 	for _, e := range existing {
-		if strings.EqualFold(e.Name, name) {
-			name += " (imported)"
-			break
-		}
+		names = append(names, e.Name)
+	}
+	name, err := importName(nb.Manifest.Name, names)
+	if err != nil {
+		return ResearchInfo{}, err
 	}
 	id, err := freeID(root, name)
 	if err != nil {
@@ -205,4 +207,19 @@ func (s *Service) RelinkContext(id, contextID, path string) (NotebookInfo, error
 		return NotebookInfo{}, invalidf("no source %q needs relinking", contextID)
 	}
 	return describe(id, nb, false), nil
+}
+
+// importName checks an archived name like a typed one and adds "(imported)"
+// when a notebook of that name already exists.
+func importName(raw string, existing []string) (string, error) {
+	name, err := notebook.CheckName(raw)
+	if err != nil {
+		return "", invalidf("archive notebook name: %v", err)
+	}
+	for _, e := range existing {
+		if strings.EqualFold(e, name) {
+			return name + " (imported)", nil
+		}
+	}
+	return name, nil
 }
