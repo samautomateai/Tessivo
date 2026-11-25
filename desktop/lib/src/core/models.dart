@@ -63,6 +63,8 @@ class Notebook {
     this.mcpServers = const [],
     this.commands = const [],
     this.archived = false,
+    this.tags = const [],
+    this.pinned = false,
   });
 
   final String id;
@@ -83,6 +85,12 @@ class Notebook {
   /// Archived notebooks are listed apart and their schedules do not run.
   final bool archived;
 
+  /// Up to 10 tags, compared ignoring case (NB-5).
+  final List<String> tags;
+
+  /// Pinned notebooks are listed first.
+  final bool pinned;
+
   int get enabledTokens => context.where((c) => c.enabled).fold(0, (sum, c) => sum + c.estimatedTokens);
 
   Notebook copyWith({
@@ -92,6 +100,8 @@ class Notebook {
     List<CommandRule>? commands,
     String? name,
     bool? archived,
+    List<String>? tags,
+    bool? pinned,
   }) => Notebook(
     id: id,
     name: name ?? this.name,
@@ -102,6 +112,8 @@ class Notebook {
     mcpServers: mcpServers ?? this.mcpServers,
     commands: commands ?? this.commands,
     archived: archived ?? this.archived,
+    tags: tags ?? this.tags,
+    pinned: pinned ?? this.pinned,
   );
 }
 

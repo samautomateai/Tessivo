@@ -6,10 +6,13 @@ import '../../app_state.dart';
 import '../../core/models.dart';
 import '../../design/colors.dart';
 import '../../design/components/buttons.dart';
+import '../../design/components/fields.dart';
 import '../../design/components/headers.dart';
 import '../../design/components/rows.dart';
 import '../../design/components/tags.dart';
 import '../../design/icons.dart';
+import '../../design/sizes.dart';
+import '../../design/type.dart';
 import '../../design/work_types.dart';
 import '../new_notebook_dialog.dart';
 
@@ -32,7 +35,10 @@ class NotebookSideBar extends StatelessWidget {
       key: Key('nav-${nb.id}'),
       button: true,
       selected: nb.id == state.selectedId,
-      label: '${nb.name}, $tag notebook${nb.schedule == null ? '' : ', runs ${nb.schedule}'}',
+      label:
+          '${nb.name}, $tag notebook${nb.pinned ? ', pinned' : ''}'
+          '${nb.tags.isEmpty ? '' : ', tagged ${nb.tags.join(', ')}'}'
+          '${nb.schedule == null ? '' : ', runs ${nb.schedule}'}',
       excludeSemantics: true,
       onTap: () => state.select(nb.id),
       child: Builder(
@@ -49,7 +55,11 @@ class NotebookSideBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = TvColors.of(context);
     final archived = state.notebooks.where((n) => n.archived).toList();
+    final visible = state.notebooks.where((n) => !n.archived && state.matchesTagFilter(n)).toList();
+    final pinned = visible.where((n) => n.pinned).toList();
+    final tagged = state.notebooks.any((n) => n.tags.isNotEmpty);
     final outputs = state.selected == null ? const <OutputSummary>[] : state.outputs;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -65,11 +75,27 @@ class NotebookSideBar extends StatelessWidget {
             ),
           ],
         ),
+        if (tagged || state.tagFilter.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(TvSpace.s12, 0, TvSpace.s12, TvSpace.s8),
+            child: TextField(
+              key: const Key('tag-filter'),
+              style: TvType.body.copyWith(color: c.textPrimary),
+              cursorColor: c.interactive,
+              decoration: tvFieldDecoration(c, hint: 'Filter by tag'),
+              onChanged: state.setTagFilter,
+            ),
+          ),
         Expanded(
           child: ListView(
             children: [
-              for (final nb in state.notebooks)
-                if (!nb.archived) _row(nb),
+              if (pinned.isNotEmpty) ...[
+                const _GroupLabel('PINNED'),
+                for (final nb in pinned) _row(nb),
+                const _GroupLabel('NOTEBOOKS'),
+              ],
+              for (final nb in visible)
+                if (!nb.pinned) _row(nb),
               if (archived.isNotEmpty)
                 TvTreeRow(
                   key: const Key('archived-toggle'),
@@ -101,4 +127,16 @@ class NotebookSideBar extends StatelessWidget {
       ],
     );
   }
+}
+
+class _GroupLabel extends StatelessWidget {
+  const _GroupLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(TvSpace.s16, TvSpace.s8, TvSpace.s16, TvSpace.s4),
+    child: Text(text, style: TvType.caption.copyWith(color: TvColors.of(context).textHelper)),
+  );
 }

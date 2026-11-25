@@ -17,6 +17,7 @@ part 'app_state_extras.dart';
 part 'app_state_sources.dart';
 part 'app_state_appearance.dart';
 part 'app_state_layout.dart';
+part 'app_state_organize.dart';
 
 enum Section { chat, notebooks, research, templates, schedules, library, settings, approvals }
 
@@ -288,6 +289,9 @@ class AppState extends ChangeNotifier {
   /// Whether the sidebar lists archived notebooks.
   bool showArchived = false;
 
+  /// Text typed in the side bar's tag filter; not remembered.
+  String tagFilter = '';
+
   void toggleArchived() {
     showArchived = !showArchived;
     notifyListeners();
@@ -303,7 +307,7 @@ class AppState extends ChangeNotifier {
     try {
       final u = await action();
       final old = notebooks.where((n) => n.id == id).firstOrNull;
-      _put(old == null ? u : old.copyWith(name: u.name, archived: u.archived));
+      _put(old == null ? u : old.copyWith(name: u.name, archived: u.archived, tags: u.tags, pinned: u.pinned));
     } on CoreException catch (e) {
       _notice(e.message);
     }

@@ -22,6 +22,23 @@ class NotebookMenu extends StatelessWidget {
     if (name != null && name.trim().isNotEmpty) await state.renameNotebook(notebook.id, name.trim());
   }
 
+  /// Tags as one comma-separated line; up to 10, letters, digits, spaces, '-' and '_'.
+  Future<void> _tags(BuildContext context) async {
+    final line = await askText(
+      context,
+      title: 'Tags for "${notebook.name}"',
+      label: 'Tags, separated by commas',
+      initial: notebook.tags.join(', '),
+      maxLength: 400,
+    );
+    if (line == null) return;
+    final tags = [
+      for (final t in line.split(','))
+        if (t.trim().isNotEmpty) t.trim(),
+    ];
+    await state.setTags(notebook.id, tags);
+  }
+
   Future<void> _delete(BuildContext context) async {
     final ok = await showTvModal<bool>(
       context,
@@ -45,6 +62,12 @@ class NotebookMenu extends StatelessWidget {
     compact: true,
     items: [
       TvMenuItem('Rename…', key: const Key('notebook-rename'), onSelected: () => unawaited(_rename(context))),
+      TvMenuItem(
+        notebook.pinned ? 'Unpin' : 'Pin',
+        key: const Key('notebook-pin'),
+        onSelected: () => unawaited(state.setPinned(notebook.id, !notebook.pinned)),
+      ),
+      TvMenuItem('Edit tags…', key: const Key('notebook-tags'), onSelected: () => unawaited(_tags(context))),
       if (notebook.archived)
         TvMenuItem(
           'Restore from archive',

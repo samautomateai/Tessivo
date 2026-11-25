@@ -80,11 +80,33 @@ class FakeCoreClient
   }
 
   @override
-  Future<Notebook> updateNotebook(String notebookId, {String? name, bool? archived}) async {
+  Future<Notebook> updateNotebook(
+    String notebookId, {
+    String? name,
+    bool? archived,
+    List<String>? tags,
+    bool? pinned,
+  }) async {
     if (name != null && name.trim().isEmpty) throw const CoreException(400, 'name is required');
     final i = _notebooks.indexWhere((n) => n.id == notebookId);
     if (i < 0) throw CoreException(404, 'notebook $notebookId not found');
-    return _notebooks[i] = _notebooks[i].copyWith(name: name?.trim(), archived: archived);
+    final clean = tags == null ? null : _cleanTags(tags);
+    return _notebooks[i] = _notebooks[i].copyWith(name: name?.trim(), archived: archived, tags: clean, pinned: pinned);
+  }
+
+  /// The core's tag rules: trimmed, case-insensitive duplicates dropped, at
+  /// most 10 of 1–32 letters, digits, spaces, '-' and '_'.
+  static List<String> _cleanTags(List<String> tags) {
+    final out = <String>[];
+    for (final raw in tags) {
+      final t = raw.trim();
+      if (t.isEmpty || t.length > 32 || !RegExp(r'^[\p{L}\p{N} _-]+$', unicode: true).hasMatch(t)) {
+        throw CoreException(400, 'tag "$t": use letters, digits, spaces, \'-\' and \'_\'');
+      }
+      if (!out.any((o) => o.toLowerCase() == t.toLowerCase())) out.add(t);
+    }
+    if (out.length > 10) throw const CoreException(400, 'at most 10 tags');
+    return out;
   }
 
   @override

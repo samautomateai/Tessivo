@@ -13,6 +13,7 @@ export 'json_mapping.dart';
 part 'http_chat.dart';
 part 'http_mcp.dart';
 part 'http_research.dart';
+part 'http_sse.dart';
 part 'http_threads.dart';
 
 /// Connection details the core writes to `run/endpoint.json` (0600).
@@ -154,8 +155,19 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
-  Future<Notebook> updateNotebook(String notebookId, {String? name, bool? archived}) async =>
-      notebookFromJson(await _json('PATCH', _nb(notebookId), body: {'name': ?name, 'archived': ?archived}));
+  Future<Notebook> updateNotebook(
+    String notebookId, {
+    String? name,
+    bool? archived,
+    List<String>? tags,
+    bool? pinned,
+  }) async => notebookFromJson(
+    await _json(
+      'PATCH',
+      _nb(notebookId),
+      body: {'name': ?name, 'archived': ?archived, 'tags': ?tags, 'pinned': ?pinned},
+    ),
+  );
 
   @override
   Future<void> deleteNotebook(String notebookId) async {
@@ -468,31 +480,4 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
 
   /// Releases connections.
   void close() => _client.close(force: true);
-}
-
-/// One server-sent event.
-class SseEvent {
-  const SseEvent(this.event, this.data);
-  final String event;
-  final String data;
-}
-
-/// Parses a text/event-stream. Lines longer than [maxLine] are rejected.
-Stream<SseEvent> parseSse(Stream<String> chunks, {int maxLine = 4 * 1024 * 1024}) async* {
-  var event = 'message';
-  final data = StringBuffer();
-  await for (final line in chunks.transform(const LineSplitter())) {
-    if (line.length > maxLine) throw const CoreException(502, 'event too large');
-    if (line.isEmpty) {
-      if (data.isNotEmpty) yield SseEvent(event, data.toString());
-      event = 'message';
-      data.clear();
-    } else if (line.startsWith('event:')) {
-      event = line.substring(6).trim();
-    } else if (line.startsWith('data:')) {
-      if (data.isNotEmpty) data.write('\n');
-      data.write(line.substring(5).trimLeft());
-    }
-  }
-  if (data.isNotEmpty) yield SseEvent(event, data.toString());
 }

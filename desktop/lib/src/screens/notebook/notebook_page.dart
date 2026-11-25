@@ -93,7 +93,23 @@ class _NotebookPageState extends State<NotebookPage> {
       children: [
         TvPageHeader(
           title: nb.name,
-          tag: WorkTypeTag(nb.workType),
+          // At most three tags, in at most 320 px that scroll sideways; Edit tags… shows them all.
+          tag: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  WorkTypeTag(nb.workType),
+                  for (final t in nb.tags.take(3)) ...[
+                    const SizedBox(width: TvSpace.s4),
+                    TvTag(t, tone: TvTagTone.blue),
+                  ],
+                  if (nb.tags.length > 3) ...[const SizedBox(width: TvSpace.s4), TvTag('+${nb.tags.length - 3}')],
+                ],
+              ),
+            ),
+          ),
           meta: model == null || model.isEmpty ? tokens : '$tokens · $model',
           actions: [
             TvButton(

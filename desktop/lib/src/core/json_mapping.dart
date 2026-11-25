@@ -86,6 +86,8 @@ Notebook notebookFromJson(Map<String, Object?> j) => Notebook(
   mcpServers: _strings(j['mcpServers']),
   commands: commandRulesFromJson(j['commands']),
   archived: j['archived'] as bool? ?? false,
+  tags: _strings(j['tags']),
+  pinned: j['pinned'] as bool? ?? false,
 );
 
 ContextItem contextFromJson(Map<String, Object?> j) {

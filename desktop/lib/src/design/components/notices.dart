@@ -45,14 +45,18 @@ class TvInlineNotice extends StatelessWidget {
         children: [
           TvIconView(_kindIcon(kind), color: tone),
           const SizedBox(width: TvSpace.s8),
-          Text(title, style: TvType.heading01.copyWith(color: c.textPrimary)),
+          Flexible(
+            flex: message == null ? 1 : 2,
+            fit: message == null ? FlexFit.tight : FlexFit.loose,
+            child: Text(title, style: TvType.heading01.copyWith(color: c.textPrimary)),
+          ),
           if (message != null) ...[
             const SizedBox(width: TvSpace.s8),
             Expanded(
+              flex: 3,
               child: Text(message!, style: TvType.body.copyWith(color: c.textSecondary)),
             ),
-          ] else
-            const Spacer(),
+          ],
           ?action,
         ],
       ),

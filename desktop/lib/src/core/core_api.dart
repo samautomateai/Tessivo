@@ -17,7 +17,7 @@ abstract interface class CoreClient {
   Future<Notebook> createNotebook({required String name, required WorkTypeId workType});
 
   /// Renames, archives or restores a notebook; null fields stay.
-  Future<Notebook> updateNotebook(String notebookId, {String? name, bool? archived});
+  Future<Notebook> updateNotebook(String notebookId, {String? name, bool? archived, List<String>? tags, bool? pinned});
 
   /// Deletes a notebook and everything in it (409 while a run is active or paused).
   Future<void> deleteNotebook(String notebookId);
