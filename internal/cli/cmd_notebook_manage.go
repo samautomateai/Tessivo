@@ -21,6 +21,7 @@ var notebookSubs = map[string]func([]string, Env) error{
 	"export":   notebookExport,
 	"tag":      notebookTag,
 	"delete":   notebookDelete,
+	"watch":    notebookWatch,
 	subPin:     func(a []string, env Env) error { return notebookPin(a, true, env) },
 	subUnpin:   func(a []string, env Env) error { return notebookPin(a, false, env) },
 }
@@ -33,8 +34,8 @@ func cmdNotebook(args []string, env Env) error {
 		}
 	}
 	if len(args) < 2 {
-		return usagef("notebook: want list, import, or rename|archive|unarchive|pin|unpin|tag|export|delete|commands " +
-			"<notebook> ...")
+		return usagef("notebook: want list, import, or rename|archive|unarchive|pin|unpin|tag|watch|export|delete|" +
+			"commands <notebook> ...")
 	}
 	sub := args[0]
 	nb, err := notebook.Open(args[1])

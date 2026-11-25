@@ -159,6 +159,8 @@ func startBackground(ctx context.Context, svc *service.Service, api *server.Serv
 	send := noteSender(ctx, notes, env)
 	wireRunEvents(svc, api, send)
 	svc.StartSummaries(ctx) // research summaries run while the core runs
+	watcher := &service.Watcher{Svc: svc, OnChange: func(e service.SourcesChanged) { api.Events.Publish(e) }}
+	go watcher.Run(ctx) // watched folders (SRC-8)
 	if err := svc.Recover(); err != nil {
 		_, _ = fmt.Fprintf(env.Stderr, "tessivo: recovering agent runs: %v\n", err)
 	}

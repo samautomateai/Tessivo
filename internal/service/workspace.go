@@ -36,6 +36,7 @@ type NotebookInfo struct {
 	Archived   bool                 `json:"archived"`
 	Tags       []string             `json:"tags"`
 	Pinned     bool                 `json:"pinned"`
+	Watch      string               `json:"watch,omitempty"` // notify or run; empty is off
 	nb         *notebook.Notebook
 }
 
@@ -155,6 +156,7 @@ func describe(id string, nb *notebook.Notebook, stats bool) NotebookInfo {
 		Archived:   nb.Manifest.Archived,
 		Tags:       append([]string{}, nb.Manifest.Tags...),
 		Pinned:     nb.Manifest.Pinned,
+		Watch:      nb.Manifest.Watch,
 	}
 	for _, c := range nb.Manifest.Context {
 		ci := ContextInfo{ContextItem: c}
@@ -293,12 +295,13 @@ func (s *Service) Models(ctx context.Context, provider string) (map[string][]str
 	return out, nil
 }
 
-// NotebookUpdate changes a notebook's name, archived state, tags or pin; nil fields stay.
+// NotebookUpdate changes a notebook's name, archived state, tags, pin or watch mode; nil fields stay.
 type NotebookUpdate struct {
 	Name     *string   `json:"name,omitempty"`
 	Archived *bool     `json:"archived,omitempty"`
 	Tags     *[]string `json:"tags,omitempty"`
 	Pinned   *bool     `json:"pinned,omitempty"`
+	Watch    *string   `json:"watch,omitempty"` // off, notify or run
 }
 
 // UpdateNotebook renames, archives or restores a workspace notebook.
@@ -319,7 +322,14 @@ func (s *Service) UpdateNotebook(id string, in NotebookUpdate) (NotebookInfo, er
 			return NotebookInfo{}, &InvalidError{err.Error()}
 		}
 	}
+	watch, err := checkWatch(in.Watch)
+	if err != nil {
+		return NotebookInfo{}, err
+	}
 	err = nb.Update(func(m *notebook.Manifest) error {
+		if in.Watch != nil {
+			m.Watch = watch
+		}
 		if in.Name != nil {
 			m.Name = clean
 		}
@@ -338,6 +348,17 @@ func (s *Service) UpdateNotebook(id string, in NotebookUpdate) (NotebookInfo, er
 		return NotebookInfo{}, err
 	}
 	return describe(id, nb, false), nil
+}
+
+func checkWatch(mode *string) (string, error) {
+	if mode == nil {
+		return "", nil
+	}
+	w, err := notebook.CheckWatch(*mode)
+	if err != nil {
+		return "", &InvalidError{err.Error()}
+	}
+	return w, nil
 }
 
 // DeleteNotebook removes a workspace notebook and everything in it. A

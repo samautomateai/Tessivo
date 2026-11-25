@@ -84,6 +84,7 @@ type Manifest struct {
 	Archived      bool               `json:"archived,omitempty"` // listed apart; schedules do not run
 	Tags          []string           `json:"tags,omitempty"`     // NB-5; see NormalizeTags
 	Pinned        bool               `json:"pinned,omitempty"`   // listed first
+	Watch         string             `json:"watch,omitempty"`    // "", notify or run (watch.go)
 	// Revision counts saves, so a save of a stale copy is refused (lock.go).
 	Revision int `json:"revision,omitempty"`
 }
