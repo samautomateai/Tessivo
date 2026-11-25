@@ -170,3 +170,13 @@ func TestArchivesLeaveDeliveryRecordsBehind(t *testing.T) {
 		t.Fatal("the outputs are still in the archive")
 	}
 }
+
+func TestPushIsBounded(t *testing.T) {
+	many := make([]Issue, MaxPushIssues+1)
+	if _, err := pickIssues(many, nil); !IsInvalid(err) {
+		t.Fatalf("more than %d issues at once: %v", MaxPushIssues, err)
+	}
+	if got, err := pickIssues(many, []int{0, 1}); err != nil || len(got) != 2 {
+		t.Fatalf("a pick within the bound: %v %d", err, len(got))
+	}
+}

@@ -112,21 +112,8 @@ func (in Integration) checkRemote() error {
 
 func (in Integration) checkKind() error {
 	switch in.Kind {
-	case IntegrationGitHub:
-		if !githubRepo.MatchString(in.Project) {
-			return errors.New("project must be owner/repo")
-		}
-	case IntegrationGitLab:
-		if !gitlabProj.MatchString(in.Project) {
-			return errors.New("project must be a project path (group/name) or ID")
-		}
-	case IntegrationJira:
-		if !jiraKey.MatchString(in.Project) {
-			return errors.New("project must be a Jira project key such as OPS")
-		}
-		if in.IssueType != "" && !issueType.MatchString(in.IssueType) {
-			return errors.New("issue_type must be an issue type name such as Task")
-		}
+	case IntegrationGitHub, IntegrationGitLab, IntegrationJira:
+		return in.checkTracker()
 	case IntegrationConfluence:
 		if !spaceKey.MatchString(in.Space) {
 			return errors.New("space must be a Confluence space key")
@@ -140,6 +127,21 @@ func (in Integration) checkKind() error {
 		}
 	default:
 		return fmt.Errorf("kind %q: want github, gitlab, jira, confluence, notion or folder", in.Kind)
+	}
+	return nil
+}
+
+// checkTracker validates the project of an issue tracker.
+func (in Integration) checkTracker() error {
+	switch {
+	case in.Kind == IntegrationGitHub && (!githubRepo.MatchString(in.Project) || dotSegment(in.Project)):
+		return errors.New("project must be owner/repo")
+	case in.Kind == IntegrationGitLab && (!gitlabProj.MatchString(in.Project) || dotSegment(in.Project)):
+		return errors.New("project must be a project path (group/name) or ID")
+	case in.Kind == IntegrationJira && !jiraKey.MatchString(in.Project):
+		return errors.New("project must be a Jira project key such as OPS")
+	case in.Kind == IntegrationJira && in.IssueType != "" && !issueType.MatchString(in.IssueType):
+		return errors.New("issue_type must be an issue type name such as Task")
 	}
 	return nil
 }
@@ -169,4 +171,15 @@ func FindIntegration(list []Integration, name string) (Integration, bool) {
 		}
 	}
 	return Integration{}, false
+}
+
+// dotSegment reports whether a project path has a "." or ".." segment, which
+// would move the request to another path on the server.
+func dotSegment(project string) bool {
+	for _, s := range strings.Split(project, "/") {
+		if s == "." || s == ".." {
+			return true
+		}
+	}
+	return false
 }

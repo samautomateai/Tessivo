@@ -40,6 +40,8 @@ const (
 	maxParentHops  = 50   // versions walked back to find a page to replace
 	deliveryPage   = -1
 	deliveriesFile = ".delivered"
+	// MaxPushIssues bounds the issues one push creates.
+	MaxPushIssues  = 100
 	auditKeyOutput = "output"
 	auditKeyKind   = "kind"
 )
@@ -180,7 +182,13 @@ func (s *Service) PushIssues(ctx context.Context, notebookID, outputID, integrat
 
 func pickIssues(issues []Issue, indexes []int) ([]Issue, error) {
 	if len(indexes) == 0 {
-		return issues, nil
+		indexes = make([]int, len(issues))
+		for i := range indexes {
+			indexes[i] = i
+		}
+	}
+	if len(indexes) > MaxPushIssues {
+		return nil, invalidf("at most %d issues at once; pick the findings to send", MaxPushIssues)
 	}
 	var out []Issue
 	for _, i := range indexes {

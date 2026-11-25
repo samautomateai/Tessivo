@@ -31,6 +31,12 @@ func TestIntegrationCheck(t *testing.T) {
 	gl := func(base string) Integration {
 		return Integration{Name: "x", Kind: IntegrationGitLab, BaseURL: base, Project: "a", TokenRef: "T"}
 	}
+	gl2 := func(project string) Integration {
+		return Integration{
+			Name: "x", Kind: IntegrationGitLab, BaseURL: "https://g.test", Project: project,
+			TokenRef: "T",
+		}
+	}
 	bad := map[string]Integration{
 		"name":        {Name: "Bad Name", Kind: IntegrationGitHub, Project: "a/b", TokenRef: "T"},
 		"kind":        {Name: "x", Kind: "trello", Project: "a/b", TokenRef: "T"},
@@ -39,6 +45,8 @@ func TestIntegrationCheck(t *testing.T) {
 		"no token":    {Name: "x", Kind: IntegrationGitHub, Project: "a/b"},
 		"bad ref":     {Name: "x", Kind: IntegrationGitHub, Project: "a/b", TokenRef: "has space"},
 		"github repo": {Name: "x", Kind: IntegrationGitHub, Project: "just-a-name", TokenRef: "T"},
+		"github dots": {Name: "x", Kind: IntegrationGitHub, Project: "../x", TokenRef: "T"},
+		"gitlab dots": gl2("a/../b"),
 		"jira key": {
 			Name: "x", Kind: IntegrationJira, BaseURL: "https://j.test", Project: "ops team",
 			TokenRef: "T",
