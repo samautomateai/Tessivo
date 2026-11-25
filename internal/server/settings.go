@@ -15,6 +15,7 @@ func (s *Server) settingsRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /v1/secrets/{ref}", s.deleteSecret)
 	mux.HandleFunc("GET /v1/diagnostics", s.diagnostics)
 	mux.HandleFunc("POST /v1/models/test", s.testModel)
+	s.profileRoutes(mux)
 }
 
 func (s *Server) updateSettings(w http.ResponseWriter, r *http.Request) {

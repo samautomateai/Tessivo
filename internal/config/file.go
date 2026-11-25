@@ -94,6 +94,9 @@ type File struct {
 	Packs []PackSource `json:"packs,omitempty"`
 	// Integrations are the trackers, wikis and folders outputs are sent to (integrations.go).
 	Integrations []Integration `json:"integrations,omitempty"`
+	// Profiles are named sets of providers, aliases, defaults and limits; Profile is the active one (profiles.go).
+	Profiles []Profile `json:"profiles,omitempty"`
+	Profile  string    `json:"profile,omitempty"`
 }
 
 // Default returns a starter config pointing at a local LiteLLM proxy.
@@ -202,7 +205,8 @@ func (f File) Validate() error {
 	if err := f.Defaults.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("defaults: %w", err))
 	}
-	errs = append(errs, f.Agent.Validate(), f.MCP.Check(), f.Desktop.Validate(), CheckIntegrations(f.Integrations))
+	errs = append(errs, f.Agent.Validate(), f.MCP.Check(), f.Desktop.Validate(), CheckIntegrations(f.Integrations),
+		f.checkProfiles())
 	return errors.Join(errs...)
 }
 

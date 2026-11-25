@@ -82,6 +82,7 @@ Usage:
                                             trackers, wikis and folders outputs are sent to (see 'tess integration')
   tess research new|list|show|delete|source|ask|note ...   research notebooks: summaries, cited answers
   tess models [--provider NAME]             list models from configured providers
+  tess profile list|save|use|delete [name]   switch providers, aliases, defaults and limits in one step
   tess models test <alias|provider/model>   send each model one tiny request: does it answer?
   tess worktypes                            list work types
   tess audit verify|show [<notebook-or-file>] [--last N]   check or read the tamper-evident audit log
@@ -185,6 +186,7 @@ var commands = map[string]handler{
 	"mcp":         cmdMCP,
 	"pack":        cmdPack,
 	"integration": cmdIntegration,
+	"profile":     cmdProfile,
 	"research":    cmdResearch,
 	"worktypes":   func(_ context.Context, _ []string, env Env) error { return cmdWorkTypes(env) },
 }
