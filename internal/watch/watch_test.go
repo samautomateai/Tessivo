@@ -84,3 +84,22 @@ func TestFingerprintIsBounded(t *testing.T) {
 		t.Fatal(".git is not watched")
 	}
 }
+
+func TestFingerprintBoundsFoldersToo(t *testing.T) {
+	dir := t.TempDir()
+	defer func(n int) { maxEntries = n }(maxEntries)
+	maxEntries = 3
+	for i := range 5 {
+		if err := os.MkdirAll(filepath.Join(dir, fmt.Sprintf("d%d", i)), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	before, err := Fingerprint(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = os.WriteFile(filepath.Join(dir, "d4", "late.txt"), []byte("x"), 0o600)
+	if after, _ := Fingerprint(dir); after != before {
+		t.Fatal("the walk stops after maxEntries entries, folders included")
+	}
+}

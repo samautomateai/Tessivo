@@ -18,6 +18,10 @@ const MaxFiles = 5000
 
 var maxFiles = MaxFiles
 
+// maxEntries bounds the folders and files a walk visits, so a deep tree of
+// folders with few files is not walked in full every minute.
+var maxEntries = 4 * MaxFiles
+
 // skipDirs are folders whose churn is not a change to the sources.
 var skipDirs = map[string]bool{".git": true, "node_modules": true, ".venv": true, "__pycache__": true}
 
@@ -38,10 +42,13 @@ func Fingerprint(path string) (string, error) {
 		line(filepath.Base(path), info)
 		return hex.EncodeToString(h.Sum(nil)), nil
 	}
-	n := 0
+	n, seen := 0, 0
 	err = filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil //nolint:nilerr // an unreadable entry is skipped, not a failure of the whole folder
+		}
+		if seen++; seen > maxEntries {
+			return errEnough
 		}
 		if d.IsDir() && p != path && skipDirs[d.Name()] {
 			return filepath.SkipDir
