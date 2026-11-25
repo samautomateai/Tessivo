@@ -14,6 +14,7 @@ import '../../design/icons.dart';
 import '../../design/sizes.dart';
 import '../../design/type.dart';
 import '../../design/work_types.dart';
+import '../../widgets/export_notebook_dialog.dart';
 import '../new_notebook_dialog.dart';
 
 /// "v2 ← v1" for a revision whose parent is listed, else "vN".
@@ -72,6 +73,12 @@ class NotebookSideBar extends StatelessWidget {
               key: const Key('new-notebook'),
               tooltip: 'New notebook (Ctrl N)',
               onPressed: () => unawaited(showNewNotebookDialog(context, state)),
+            ),
+            TvIconButton(
+              TvIcon.folder,
+              key: const Key('import-notebook'),
+              tooltip: 'Import a notebook (.tessivo.zip)',
+              onPressed: () => unawaited(importArchiveDialog(context, state)),
             ),
           ],
         ),

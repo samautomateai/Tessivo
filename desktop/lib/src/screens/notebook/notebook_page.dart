@@ -19,6 +19,7 @@ import 'agent_tab.dart';
 import 'memory_tab.dart';
 import 'output_tab.dart';
 import 'prompt_tab.dart';
+import 'relink_notice.dart';
 import 'sources_tab.dart';
 
 /// The notebook page: header (title, work type, size and model, Run), tabs
@@ -122,6 +123,7 @@ class _NotebookPageState extends State<NotebookPage> {
             NotebookMenu(state: state, notebook: nb),
           ],
         ),
+        if (nb.context.any((c) => c.needsRelink)) RelinkNotice(state: state, notebook: nb),
         const SizedBox(height: TvSpace.s8),
         TvTabs(
           tabs: [

@@ -161,6 +161,13 @@ abstract interface class CoreClient {
   Future<Notebook> setNotebookCommands(String notebookId, List<CommandRule> commands);
   Future<Notebook> addMcpContext(String notebookId, String server, String uri);
 
+  // Archives (NB-4): the core builds and reads them; the app streams files.
+  Future<void> exportNotebook(String notebookId, String toPath, {bool outputs = false});
+  Future<Notebook> importNotebook(String fromPath);
+  Future<Notebook> relinkContext(String notebookId, String contextId, String path);
+  Future<void> exportResearch(String id, String toPath);
+  Future<ResearchNotebook> importResearch(String fromPath);
+
   // Research notebooks (docs/api.md, "Research notebooks").
   Future<List<ResearchNotebook>> listResearch();
   Future<ResearchNotebook> createResearch(String name, {String description});

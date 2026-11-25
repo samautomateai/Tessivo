@@ -8,6 +8,7 @@ import '../design/components/buttons.dart';
 import '../design/components/menu.dart';
 import '../design/components/modal.dart';
 import '../design/icons.dart';
+import 'export_notebook_dialog.dart';
 import 'text_prompt_dialog.dart';
 
 /// Rename, archive or restore, and delete for the open notebook.
@@ -68,6 +69,11 @@ class NotebookMenu extends StatelessWidget {
         onSelected: () => unawaited(state.setPinned(notebook.id, !notebook.pinned)),
       ),
       TvMenuItem('Edit tags…', key: const Key('notebook-tags'), onSelected: () => unawaited(_tags(context))),
+      TvMenuItem(
+        'Export…',
+        key: const Key('notebook-export'),
+        onSelected: () => unawaited(exportNotebookDialog(context, state, notebook)),
+      ),
       if (notebook.archived)
         TvMenuItem(
           'Restore from archive',

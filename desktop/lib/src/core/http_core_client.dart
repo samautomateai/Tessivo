@@ -10,6 +10,7 @@ import 'models.dart';
 export 'errors.dart';
 export 'json_mapping.dart';
 
+part 'http_archive.dart';
 part 'http_chat.dart';
 part 'http_mcp.dart';
 part 'http_research.dart';
@@ -75,7 +76,7 @@ String defaultEndpointPath(Map<String, String> env, {String? os}) {
 
 /// Talks to the Go core's local API (docs/api.md) over a Unix socket or a
 /// loopback port, with the session token on every request.
-class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch implements CoreClient {
+class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch, _HttpArchive implements CoreClient {
   HttpCoreClient(this.endpoint, {HttpClient? client}) : _client = client ?? HttpClient() {
     _client
       ..findProxy = ((_) => 'DIRECT')
@@ -99,11 +100,18 @@ class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch imple
   }
 
   @override
-  Future<HttpClientResponse> _send(String method, String path, {Object? body, Map<String, String>? query}) async {
+  @override
+  Future<HttpClientRequest> _open(String method, String path, {Map<String, String>? query}) async {
     final req = await _client.openUrl(method, _uri(path, query));
     req.headers
       ..set(HttpHeaders.authorizationHeader, 'Bearer ${endpoint.token}')
       ..set(HttpHeaders.acceptHeader, 'application/json, text/event-stream');
+    return req;
+  }
+
+  @override
+  Future<HttpClientResponse> _send(String method, String path, {Object? body, Map<String, String>? query}) async {
+    final req = await _open(method, path, query: query);
     if (body != null) {
       req.headers.contentType = ContentType.json;
       req.write(jsonEncode(body));

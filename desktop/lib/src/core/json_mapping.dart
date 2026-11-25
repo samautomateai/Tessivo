@@ -108,6 +108,7 @@ ContextItem contextFromJson(Map<String, Object?> j) {
     kind: kind,
     enabled: j['enabled'] as bool? ?? false,
     estimatedTokens: (j['estimatedTokens'] as num?)?.toInt() ?? 0,
+    needsRelink: j['needsRelink'] as bool? ?? false,
   );
 }
 

@@ -9,6 +9,7 @@ import '../design/components/headers.dart';
 import '../design/components/rows.dart';
 import '../design/icons.dart';
 import '../screens/new_notebook_dialog.dart';
+import '../widgets/export_notebook_dialog.dart';
 import 'layout_prefs.dart';
 
 /// The side bar's frame: [width] wide, its right edge dragged to resize.
@@ -82,6 +83,12 @@ class ResearchSideBar extends StatelessWidget {
             key: const Key('new-research'),
             tooltip: 'New research notebook',
             onPressed: () => unawaited(showNewNotebookDialog(context, state, research: true)),
+          ),
+          TvIconButton(
+            TvIcon.folder,
+            key: const Key('import-research'),
+            tooltip: 'Import a research notebook (.tessivo.zip)',
+            onPressed: () => unawaited(importArchiveDialog(context, state, research: true)),
           ),
         ],
       ),

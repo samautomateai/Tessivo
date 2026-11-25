@@ -34,6 +34,7 @@ class ContextItem {
     required this.kind,
     required this.enabled,
     required this.estimatedTokens,
+    this.needsRelink = false,
   });
 
   final String id;
@@ -42,14 +43,23 @@ class ContextItem {
   final bool enabled;
   final int estimatedTokens;
 
+  /// Came from an archive pointing at the sender's disk; off until relinked.
+  final bool needsRelink;
+
   /// True for a resource read from an MCP server at run time.
   bool get isMcp => kind.startsWith('MCP');
 
   /// Read when a run starts (an MCP resource or a web page), not from disk.
   bool get readAtRunTime => isMcp || kind == 'Web page' || kind == 'Git changes';
 
-  ContextItem copyWith({bool? enabled}) =>
-      ContextItem(id: id, label: label, kind: kind, enabled: enabled ?? this.enabled, estimatedTokens: estimatedTokens);
+  ContextItem copyWith({bool? enabled}) => ContextItem(
+    id: id,
+    label: label,
+    kind: kind,
+    enabled: enabled ?? this.enabled,
+    estimatedTokens: estimatedTokens,
+    needsRelink: needsRelink,
+  );
 }
 
 class Notebook {
