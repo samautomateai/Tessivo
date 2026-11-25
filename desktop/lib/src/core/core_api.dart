@@ -25,6 +25,7 @@ abstract interface class CoreClient {
     List<String>? tags,
     bool? pinned,
     String? watch,
+    WorkTypeId? workType,
   });
 
   /// Deletes a notebook and everything in it (409 while a run is active or paused).
@@ -189,6 +190,19 @@ abstract interface class CoreClient {
 
   /// Checks an integration's connection and token; throws with the reason.
   Future<void> testIntegration(String name);
+
+  /// Settings profiles (SET-10).
+  Future<ProfilesInfo> profiles();
+
+  /// Saves the current providers, aliases, defaults and limits as profile [name] and makes it active.
+  Future<ProfilesInfo> saveProfile(String name);
+
+  /// Switches to profile [name]; the active one keeps the current settings first.
+  Future<ProfilesInfo> useProfile(String name);
+  Future<ProfilesInfo> deleteProfile(String name);
+
+  /// The work type the notebook's sources point to (WT-7), while it has no outputs.
+  Future<WorkTypeSuggestion> workTypeSuggestion(String notebookId);
 
   // MCP servers (docs/api.md, "MCP servers").
   Future<List<McpServer>> listMcpServers();

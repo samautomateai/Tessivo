@@ -17,13 +17,14 @@ import 'thread_state.dart';
 part 'app_state_extras.dart';
 part 'app_state_sources.dart';
 part 'app_state_appearance.dart';
+part 'app_state_approvals.dart';
 part 'app_state_layout.dart';
 part 'app_state_organize.dart';
 
 enum Section { chat, notebooks, research, templates, schedules, library, settings, approvals }
 
 /// The parts of the Settings page, listed in its side bar.
-enum SettingsSection { models, defaults, agent, mcp, integrations, packs, appearance, desktop, diagnostics }
+enum SettingsSection { models, profiles, defaults, agent, mcp, integrations, packs, appearance, desktop, diagnostics }
 
 /// App-wide state on a plain [ChangeNotifier] (no state-management package).
 class AppState extends ChangeNotifier {
@@ -50,42 +51,6 @@ class AppState extends ChangeNotifier {
 
   // Approvals waiting across all notebooks (sidebar badge).
   List<PendingApproval> approvals = const [];
-
-  /// Reloads pending approvals; errors keep the last list.
-  Future<void> refreshApprovals() async {
-    try {
-      approvals = await core.pendingApprovals();
-    } on Object {
-      return;
-    }
-    if (!_disposed) notifyListeners();
-  }
-
-  /// Answers an approval. [remember] is `run` or `notebook`.
-  Future<void> answer(PendingApproval a, {required bool allow, String? remember}) =>
-      _act(() => core.answerApproval(a.runId, a.approvalId, allow: allow, remember: remember), a);
-
-  /// Resumes an interrupted run in the core.
-  Future<void> resumeRun(PendingApproval a) => _act(() => core.resumeRun(a.runId), a);
-
-  /// Cancels a paused or interrupted run.
-  Future<void> cancelRun(PendingApproval a) => _act(() => core.cancelRun(a.runId), a);
-
-  /// Runs an approval action; a refusal (expired, already answered, in use)
-  /// becomes a notice, and the list is reloaded either way.
-  Future<void> _act(Future<void> Function() action, PendingApproval a) async {
-    try {
-      await action();
-      paused = [
-        for (final p in paused)
-          if (p.runId != a.runId || p.approvalId != a.approvalId) p,
-      ];
-    } on CoreException catch (e) {
-      notices.add('Could not update ${a.tool.isEmpty ? 'the run' : a.tool}: ${e.message}');
-    }
-    await refreshApprovals();
-    notifyListeners();
-  }
 
   // Notifications from the core's event stream (newest last, capped).
   final List<String> notices = [];
@@ -115,6 +80,9 @@ class AppState extends ChangeNotifier {
 
   /// The next scheduled run: its notebook and when (as the core says it).
   ({String notebook, String at})? nextRun;
+
+  /// The active settings profile (SET-10); empty when none is.
+  String activeProfile = '';
 
   /// Subscribes to core events and reconnects with capped backoff.
   void listenForEvents() {
@@ -311,7 +279,14 @@ class AppState extends ChangeNotifier {
       _put(
         old == null
             ? u
-            : old.copyWith(name: u.name, archived: u.archived, tags: u.tags, pinned: u.pinned, watch: u.watch),
+            : old.copyWith(
+                name: u.name,
+                archived: u.archived,
+                tags: u.tags,
+                pinned: u.pinned,
+                watch: u.watch,
+                workType: u.workType,
+              ),
       );
     } on CoreException catch (e) {
       _notice(e.message);

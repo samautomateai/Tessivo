@@ -12,8 +12,10 @@ import 'fake_chat.dart';
 import 'fake_deliver.dart';
 import 'fake_mcp.dart';
 import 'fake_packs.dart';
+import 'fake_profiles.dart';
 import 'fake_prompts.dart';
 import 'fake_research.dart';
+import 'fake_schedules.dart';
 import 'fake_settings.dart';
 import 'fake_templates.dart';
 import 'fake_threads.dart';
@@ -22,7 +24,18 @@ export 'package:tessivo_desktop/src/core/core_client.dart';
 
 /// In-memory core with sample data, used when no core can be reached.
 class FakeCoreClient
-    with DemoChat, DemoThreads, DemoDeliver, DemoMcp, DemoPacks, DemoResearch, DemoArchive, DemoPrompts, DemoSettings
+    with
+        DemoChat,
+        DemoThreads,
+        DemoDeliver,
+        DemoMcp,
+        DemoPacks,
+        DemoResearch,
+        DemoArchive,
+        DemoPrompts,
+        DemoSettings,
+        DemoProfiles,
+        DemoSchedules
     implements CoreClient {
   FakeCoreClient({Duration tick = const Duration(milliseconds: 40)}) : _tick = tick;
 
@@ -34,19 +47,6 @@ class FakeCoreClient
   @override
   Duration get chatTick => _tick;
   int _nextId = 100;
-  final Map<String, List<ScheduleInfo>> _schedules = {
-    'nb-4': const [
-      ScheduleInfo(
-        id: 's1',
-        cron: '0 8 * * MON',
-        missed: 'run_once',
-        enabled: true,
-        prompt: "Produce this week's ops report",
-        nextRun: 'Mon 08:00',
-        history: [ScheduleRun(status: 'ok', startedAt: '2026-11-16 08:00')],
-      ),
-    ],
-  };
   final _events = StreamController<CoreEvent>.broadcast();
   final List<TemplateInfo> _templates = [...demoTemplates];
 
@@ -99,6 +99,7 @@ class FakeCoreClient
     List<String>? tags,
     bool? pinned,
     String? watch,
+    WorkTypeId? workType,
   }) async {
     if (name != null && name.trim().isEmpty) throw const CoreException(400, 'name is required');
     final i = _notebooks.indexWhere((n) => n.id == notebookId);
@@ -108,12 +109,16 @@ class FakeCoreClient
       throw CoreException(400, 'watch $watch: use off, notify or run');
     }
     final w = watch == null ? null : (watch == 'off' ? '' : watch);
+    if (workType != null && demoOutputs.any((o) => o.notebookId == notebookId)) {
+      throw const CoreException(409, 'the work type can change only while the notebook has no outputs');
+    }
     return _notebooks[i] = _notebooks[i].copyWith(
       name: name?.trim(),
       archived: archived,
       tags: clean,
       pinned: pinned,
       watch: w,
+      workType: workType,
     );
   }
 
@@ -181,47 +186,6 @@ class FakeCoreClient
         fallbackNote: 'smart fell back to model B (rate limit)',
       ),
     );
-  }
-
-  @override
-  Future<List<ScheduleInfo>> listSchedules(String notebookId) async =>
-      List.unmodifiable(_schedules[notebookId] ?? const <ScheduleInfo>[]);
-
-  @override
-  Future<ScheduleInfo> addSchedule(
-    String notebookId, {
-    required String cron,
-    String prompt = '',
-    String missed = 'skip',
-  }) async {
-    if (cron.trim().split(RegExp(r'\s+')).length != 5 && !cron.startsWith('@')) {
-      throw const FormatException('want 5 fields (minute hour day month weekday)');
-    }
-    final s = ScheduleInfo(
-      id: 's${_nextId++}',
-      cron: cron,
-      missed: missed,
-      enabled: true,
-      prompt: prompt,
-      nextRun: 'soon',
-    );
-    _schedules[notebookId] = [...?_schedules[notebookId], s];
-    return s;
-  }
-
-  @override
-  Future<ScheduleInfo> setScheduleEnabled(String notebookId, String scheduleId, {required bool enabled}) async {
-    final list = [...?_schedules[notebookId]];
-    final i = list.indexWhere((s) => s.id == scheduleId);
-    if (i < 0) throw StateError('unknown schedule $scheduleId');
-    list[i] = list[i].copyWith(enabled: enabled);
-    _schedules[notebookId] = list;
-    return list[i];
-  }
-
-  @override
-  Future<void> deleteSchedule(String notebookId, String scheduleId) async {
-    _schedules[notebookId] = [...?_schedules[notebookId]]..removeWhere((s) => s.id == scheduleId);
   }
 
   @override

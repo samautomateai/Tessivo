@@ -57,6 +57,15 @@ class StatusBar extends StatelessWidget {
                 ],
               ),
             ),
+            if (state.activeProfile.isNotEmpty)
+              Flexible(
+                child: _Item(
+                  key: const Key('status-profile'),
+                  onTap: () => state.openSettings(SettingsSection.profiles),
+                  tooltip: 'Settings profile (Settings)',
+                  child: Text('Profile: ${state.activeProfile}'),
+                ),
+              ),
             if (state.defaultModel case final m? when m.isNotEmpty)
               Flexible(
                 child: _Item(

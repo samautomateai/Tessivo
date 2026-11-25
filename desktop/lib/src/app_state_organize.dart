@@ -73,3 +73,17 @@ extension ArchiveActions on AppState {
     }
   }
 }
+
+/// Settings profiles (SET-10) and the work type a notebook's sources suggest (WT-7).
+extension ProfileActions on AppState {
+  /// Re-reads the active profile and default model after a switch, and re-checks the setup.
+  Future<void> refreshProfile() async {
+    await loadAppearance();
+    _changed();
+    await checkSetup();
+  }
+
+  /// Changes a notebook's work type (only while it has no outputs); a refusal becomes a notice.
+  Future<void> setWorkType(String id, WorkTypeId workType) =>
+      _manage(id, () => core.updateNotebook(id, workType: workType));
+}

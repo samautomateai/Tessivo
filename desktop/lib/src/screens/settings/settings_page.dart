@@ -24,6 +24,7 @@ import '../../widgets/text_prompt_dialog.dart';
 import '../mcp_settings.dart';
 import 'integrations_section.dart';
 import 'packs_section.dart';
+import 'profiles_section.dart';
 import 'settings_side_bar.dart';
 
 /// One line under each section's title.
@@ -31,6 +32,8 @@ String _helper(SettingsSection s) => switch (s) {
   SettingsSection.models =>
     'Notebooks and prompts use aliases, so you can swap models without editing them. '
         'API keys stay in your OS keychain and are never shown.',
+  SettingsSection.profiles =>
+    'Switch providers, aliases, defaults and limits in one step, e.g. Work, Personal, Offline.',
   SettingsSection.defaults => 'What runs use unless a notebook or prompt says otherwise, and the token limits.',
   SettingsSection.agent => 'How far an agent run may go, and which tools run without asking.',
   SettingsSection.mcp => 'Servers whose tools and resources notebooks and chats may use.',
@@ -128,6 +131,14 @@ class _SettingsPageState extends State<SettingsPage> {
         McpServersSection(core: core, onChanged: () => unawaited(widget.state.refreshMcpServers())),
       ],
       SettingsSection.integrations => [IntegrationsSection(state: widget.state)],
+      SettingsSection.profiles => [
+        ProfilesSection(
+          state: widget.state,
+          onChanged: () => setState(() {
+            _settings = core.getSettings();
+          }),
+        ),
+      ],
       SettingsSection.packs => [PacksSection(state: widget.state)],
       SettingsSection.appearance => [AppearanceSettings(state: widget.state)],
       SettingsSection.desktop => [

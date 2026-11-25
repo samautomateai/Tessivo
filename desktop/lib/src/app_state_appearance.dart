@@ -6,10 +6,12 @@ extension AppearanceActions on AppState {
   /// Reads `desktop.theme` and `desktop.zoom`; bad or missing values give the defaults.
   Future<void> loadAppearance() async {
     try {
-      final d = SettingsDraft.fromJson((await core.getSettings()).raw);
+      final raw = (await core.getSettings()).raw;
+      final d = SettingsDraft.fromJson(raw);
       themeMode = d.theme;
       layout = LayoutPrefs.fromJson(d.layout);
       defaultModel = d.defaults['model'] as String?;
+      activeProfile = raw['profile'] as String? ?? '';
       zoom = d.zoom;
     } on Object {
       return; // an older core or no core: keep the defaults
@@ -33,7 +35,8 @@ extension AppearanceActions on AppState {
 
   Future<void> _saveAppearance(void Function(SettingsDraft) edit) async {
     try {
-      final d = SettingsDraft.fromJson((await core.getSettings()).raw);
+      final raw = (await core.getSettings()).raw;
+      final d = SettingsDraft.fromJson(raw);
       edit(d);
       await core.updateSettings(d.toBody());
     } on Object {

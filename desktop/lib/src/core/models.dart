@@ -9,6 +9,7 @@ export 'command_rule.dart';
 export 'core_event.dart';
 export 'deliver_models.dart';
 export 'output_detail.dart';
+export 'profile_models.dart';
 export 'saved_prompt.dart';
 
 enum WorkTypeId { analyze, summarize, document, report }
@@ -119,10 +120,11 @@ class Notebook {
     List<String>? tags,
     bool? pinned,
     String? watch,
+    WorkTypeId? workType,
   }) => Notebook(
     id: id,
     name: name ?? this.name,
-    workType: workType,
+    workType: workType ?? this.workType,
     context: context ?? this.context,
     schedule: schedule,
     memory: memory ?? this.memory,

@@ -15,6 +15,7 @@ import '../../design/type.dart';
 import '../../widgets/git_diff_dialog.dart';
 import '../../widgets/paste_text_dialog.dart';
 import '../../widgets/text_prompt_dialog.dart';
+import '../../widgets/worktype_hint.dart';
 import 'tab_section.dart';
 
 /// What a source costs a run: its token estimate, or "read at run time".
@@ -75,6 +76,7 @@ class SourcesTab extends StatelessWidget {
     void more(String what) => unawaited(_addMore(context, what));
     return TabBody(
       children: [
+        WorkTypeHint(state: state, notebook: notebook),
         TabSection(
           title: 'Sources',
           helper: 'Included sources go with every run of this notebook.',

@@ -15,8 +15,10 @@ part 'http_chat.dart';
 part 'http_deliver.dart';
 part 'http_mcp.dart';
 part 'http_packs.dart';
+part 'http_profiles.dart';
 part 'http_prompt_history.dart';
 part 'http_research.dart';
+part 'http_schedules.dart';
 part 'http_sse.dart';
 part 'http_threads.dart';
 
@@ -80,7 +82,17 @@ String defaultEndpointPath(Map<String, String> env, {String? os}) {
 /// Talks to the Go core's local API (docs/api.md) over a Unix socket or a
 /// loopback port, with the session token on every request.
 class HttpCoreClient
-    with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch, _HttpArchive, _HttpPacks, _HttpPromptHistory, _HttpDeliver
+    with
+        _HttpChat,
+        _HttpThreads,
+        _HttpMcp,
+        _HttpResearch,
+        _HttpArchive,
+        _HttpPacks,
+        _HttpPromptHistory,
+        _HttpDeliver,
+        _HttpProfiles,
+        _HttpSchedules
     implements CoreClient {
   HttpCoreClient(this.endpoint, {HttpClient? client}) : _client = client ?? HttpClient() {
     _client
@@ -175,11 +187,19 @@ class HttpCoreClient
     List<String>? tags,
     bool? pinned,
     String? watch,
+    WorkTypeId? workType,
   }) async => notebookFromJson(
     await _json(
       'PATCH',
       _nb(notebookId),
-      body: {'name': ?name, 'archived': ?archived, 'tags': ?tags, 'pinned': ?pinned, 'watch': ?watch},
+      body: {
+        'name': ?name,
+        'archived': ?archived,
+        'tags': ?tags,
+        'pinned': ?pinned,
+        'watch': ?watch,
+        'workType': ?workType?.name,
+      },
     ),
   );
 
@@ -384,36 +404,6 @@ class HttpCoreClient
   Future<Map<String, List<String>>> listModels({String? provider}) async {
     final query = provider == null ? null : {'provider': provider};
     return modelsFromJson(await _json('GET', '/v1/models', query: query));
-  }
-
-  String _schedulesPath(String notebookId) => '/v1/notebooks/${Uri.encodeComponent(notebookId)}/schedules';
-
-  @override
-  Future<List<ScheduleInfo>> listSchedules(String notebookId) async {
-    final json = await _json('GET', _schedulesPath(notebookId));
-    return jsonList(json['schedules']).map(scheduleFromJson).toList();
-  }
-
-  @override
-  Future<ScheduleInfo> addSchedule(
-    String notebookId, {
-    required String cron,
-    String prompt = '',
-    String missed = 'skip',
-  }) async {
-    final body = {'cron': cron, 'prompt': prompt, 'missed': missed};
-    return scheduleFromJson(await _json('POST', _schedulesPath(notebookId), body: body));
-  }
-
-  @override
-  Future<ScheduleInfo> setScheduleEnabled(String notebookId, String scheduleId, {required bool enabled}) async {
-    final path = '${_schedulesPath(notebookId)}/${Uri.encodeComponent(scheduleId)}';
-    return scheduleFromJson(await _json('PATCH', path, body: {'enabled': enabled}));
-  }
-
-  @override
-  Future<void> deleteSchedule(String notebookId, String scheduleId) async {
-    await _json('DELETE', '${_schedulesPath(notebookId)}/${Uri.encodeComponent(scheduleId)}');
   }
 
   String _run(String id) => '/v1/runs/${Uri.encodeComponent(id)}';

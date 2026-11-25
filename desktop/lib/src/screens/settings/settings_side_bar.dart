@@ -7,6 +7,7 @@ import '../../design/components/rows.dart';
 /// Each section's name in the side bar and as the page title.
 String settingsLabel(SettingsSection s) => switch (s) {
   SettingsSection.models => 'Models',
+  SettingsSection.profiles => 'Profiles',
   SettingsSection.defaults => 'Defaults and limits',
   SettingsSection.agent => 'Agent',
   SettingsSection.mcp => 'MCP servers',
