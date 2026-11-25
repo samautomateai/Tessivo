@@ -76,6 +76,10 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Tags and pins for notebooks and research notebooks: pinned first, tag filter, search by tag (`tess notebook tag|pin|unpin|list --tag`, `PATCH` `tags`/`pinned`, desktop menu, side bar PINNED group and tag filter) | NB-5 | ☑ |
 | Team packs from a folder, a .zip or a git repo: templates, library prompts and MCP servers with required and recommended marks, refreshed at start, bad items reported (ADR 0010; `tess pack add|list|refresh|remove|init|export`, `/v1/packs`, Settings → Packs) | PR-5, TPL-7 | ☑ |
 | Pack MCP servers off until trusted one by one after seeing their command; trust tied to the entry's hash; a required untrusted server shows a banner (`tess mcp trust|untrust`, trust routes, Settings → MCP servers → Trust…) | MCP-5 | ☑ |
+| Per-source chains: run setting `chain: per_source` condenses each source on its own before writing the output (strategy `per-source`; layered like the other settings; pipeline runs only; desktop Prompt tab "Read each source on its own first", saved with a prompt) | RUN-4 | ☑ |
+| `{{previous}}`: the notebook's latest output as Markdown (cut at 32,000 characters) or "(there is no earlier output yet)"; an explicit value wins; starter prompt "Changes since last time" | MEM-3 | ☑ |
+| Prompt version history: a changed save keeps the old version (at most 50); runs record `promptVersion`; restore is a new save (`tess prompt history|restore`, `…/prompts/{name}/versions`, desktop Prompt tab History…); desktop Compare picks any other output | PR-4 | ☑ |
+| Watched folders: `watch` off, notify or run; `tess serve` fingerprints in-place sources every 60 s (metadata of ≤ 5,000 files, no OS watcher), reports a settled change as `sources.changed` and in run mode starts a run unless busy or archived (`tess notebook watch`, `PATCH` `watch`, desktop Sources tab) | SRC-8 | ☑ |
 
 ## M2: scheduling
 
@@ -108,7 +112,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 
 ## CLI reference (current)
 
-`tess new`, `tess notebook rename|archive|unarchive|delete --yes`, `tess prompt list|show|save|rm`, `tess usage`, `tess search`, `tess diagnostics`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
+`tess new`, `tess notebook rename|archive|unarchive|delete --yes|watch`, `tess prompt list|show|save|rm|history|restore`, `tess usage`, `tess search`, `tess diagnostics`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
 `--prompt-name`, `--var`, `--model`, `--thinking`, `--mode agent`, `--tool name=rule`, `--json`, `--out`, `--no-save`),
 `tess run pending|approve|deny|resume|cancel` (agent approvals; `--notebook DIR`, `--remember run|notebook`), `tess outputs`,
 `tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff <notebook> <output-id>` (output threads; `refine --from ID`; `export --format md|docx|pdf --out FILE`; `rerun --model M`; `diff --against ID`),

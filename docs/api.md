@@ -16,11 +16,13 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks?tag=` | — | `{"notebooks": [Notebook]}` (no context stats), pinned first; `tag` keeps those with that tag (any case) |
 | `POST /v1/notebooks` | `{name, workType}` or `{templateId, name?}` | `201 Notebook` |
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |
-| `PATCH /v1/notebooks/{id}` | `{name?, archived?, tags?, pinned?}` | `Notebook` (archived notebooks keep their schedules but do not run them; up to 10 tags of 1–32 letters, digits, spaces, `-` and `_`) |
+| `PATCH /v1/notebooks/{id}` | `{name?, archived?, tags?, pinned?, watch?}` | `Notebook` (archived notebooks keep their schedules but do not run them; up to 10 tags of 1–32 letters, digits, spaces, `-` and `_`; `watch`: `off`, `notify` or `run`, see Events stream) |
 | `DELETE /v1/notebooks/{id}` | — | `204`; `409` while a run is executing, paused for an approval or interrupted |
 | `GET /v1/notebooks/{id}/prompts` | — | `{"prompts": [Prompt]}` sorted by name |
 | `PUT /v1/notebooks/{id}/prompts/{name}` | `{text, settings?}` | `Prompt` (name: letters, digits, `.`, `_`, `-`; text 1 B–16 KiB) |
-| `DELETE /v1/notebooks/{id}/prompts/{name}` | — | `204`; `409` while a schedule runs it |
+| `DELETE /v1/notebooks/{id}/prompts/{name}` | — | `204` (its history goes too); `409` while a schedule runs it |
+| `GET /v1/notebooks/{id}/prompts/{name}/versions` | — | `{versions: [{version, savedAt?, text, settings}]}`, the current one first; at most 50 kept |
+| `POST /v1/notebooks/{id}/prompts/{name}/versions/{v}/restore` | — | `Prompt`: version `v` saved as the new current version (the one it replaces stays in the history) |
 | `GET /v1/usage` | — | `{day, tokens, dayLimit, runLimit}`: today's tokens across every model call, and `limits.max_tokens_per_day` / `max_tokens_per_run` (0: none) |
 | `GET /v1/search?q=&limit=` | — | `{"results": [{kind, notebookId, id?, title, snippet}]}`: notebooks, outputs (newest first), prompts, research notebooks and notes holding every word (case-insensitive), at most 100 |
 | `POST /v1/notebooks/{id}/context` | `{path}` (absolute), `{server, uri, label?}` for an MCP resource, `{url, label?}` for a web page fetched on every run (http/https, no credentials), `{text, label?}` for pasted text (≤ 2 MiB, saved as Markdown), or `{git: {repo, base}, label?}` for a repository's changes against `base`, read with git on every run | `Notebook` |
@@ -94,7 +96,7 @@ anything that looks like a credential is rejected.
 data?, markdown?}`. `version` is 1 for an original output and one more for each revision; `parentId` is the
 output a version revises and `fromThread` the thread reply it was made from.
 
-`Prompt`: `{name, text, settings: {model?, temperature?, max_output_tokens?, thinking_effort?}}`; a run or schedule given `promptName` uses its text and settings (layered between the notebook and the run).
+`Prompt`: `{name, text, settings: {model?, temperature?, max_output_tokens?, thinking_effort?, chain?}, version, savedAt?}`; a run or schedule given `promptName` uses its text and settings (layered between the notebook and the run). A save that changes the text or settings bumps `version` and keeps the old one; runs record `promptVersion`. `settings.chain: "per_source"` (also in run `overrides`) condenses each source on its own first; the run records `strategy: "per-source"`. The built-in variable `{{previous}}` holds the latest output's Markdown (cut at 32,000 characters) unless the run sets it.
 
 `Schedule`: `{id, cron, prompt, promptName, vars, overrides, maxTokens?, missed: "skip"|"run_once", enabled,
 createdAt, notebookId, nextRun, history: [{scheduledFor, startedAt, durationMs, status, runId,
@@ -111,6 +113,13 @@ at most 16 streams at once.
 
 Agent runs add events with `{kind, runId, notebookId, notebookName, scheduleId?, approvalId?, tool?, error?,
 time}` where `kind` is `run.approval_needed`, `run.resumed`, `run.finished`, `run.failed` or `run.cancelled`.
+
+Watched notebooks (`watch` `notify` or `run`) add `{kind: "sources.changed", notebookId, notebookName, sources:
+[label], ran?, error?, time}`. `tess serve` fingerprints their enabled in-place sources every 60 s (paths, sizes and
+modification times of at most 5,000 files per source; contents are not read) and reports a change once two checks in
+a row agree; the first check is the baseline. In `run` mode it also starts a run (the notebook's first schedule's
+prompt, else the work type's starter) and sets `ran`, or `error` when the notebook is busy. Archived notebooks and
+unreadable folders are skipped (logged once).
 
 ## Run stream
 

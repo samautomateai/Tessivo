@@ -131,6 +131,12 @@ Choose *Add* on the Sources tab, or *More sources* for more kinds:
 Untick a source to leave it out of runs without removing it. In the terminal:
 `tess context add <notebook> <path|url>`, `--text -`, or `--git-diff <repo> --base main`.
 
+**Watch.** The *Watch* select under the sources says what happens when folders and files used in place change:
+nothing (the default), *Tell me* (a notice), or *Tell me and run the notebook*. Tessivo checks them every minute
+while the app or `tess serve` runs, looking only at names, sizes and modification times, and waits until a change
+has settled. A notebook that is already running, or archived, is not run again. In the terminal:
+`tess notebook watch <notebook> off|notify|run`.
+
 ### Runs and outputs
 
 *Run* sends the prompt with the sources and pinned memory to the notebook's alias. The result is a structured
@@ -140,10 +146,16 @@ output you can:
 - **Talk to it.** Ask questions about it, refine it, and accept suggested improvements to the notebook's prompt or
   memory.
 - **Run it again**, on the same model or another one (*Run again*, or `tess output rerun --model`).
-- **Compare** it with the version it revised (*Compare*, or `tess output diff`).
+- **Compare** it with the version it revised or any other output of the notebook (*Compare*, or `tess output diff`).
 - **Edit** its fields in a form and save them as a new version, without running the model again (*Edit*, or
   `tess output data` and `tess output edit`).
 - **Export** it as Markdown, Word or PDF (`tess output export --format md|docx|pdf`).
+
+On the Prompt tab, *Read each source on its own first* condenses every source separately before the output is
+written; it helps when sources are long or very different. It is saved with a prompt. A saved prompt shows its
+version: every save that changes it keeps the previous version (up to 50), and *History…* (or
+`tess prompt history|restore`) brings an earlier one back as a new version. Put `{{previous}}` in a prompt to
+include the notebook's latest output, as the starter prompt *Changes since last time* does.
 
 ### Agent mode
 
