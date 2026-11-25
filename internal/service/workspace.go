@@ -301,7 +301,8 @@ type NotebookUpdate struct {
 	Archived *bool     `json:"archived,omitempty"`
 	Tags     *[]string `json:"tags,omitempty"`
 	Pinned   *bool     `json:"pinned,omitempty"`
-	Watch    *string   `json:"watch,omitempty"` // off, notify or run
+	Watch    *string   `json:"watch,omitempty"`    // off, notify or run
+	WorkType *string   `json:"workType,omitempty"` // only while the notebook has no outputs (WT-7)
 }
 
 // UpdateNotebook renames, archives or restores a workspace notebook.
@@ -310,44 +311,59 @@ func (s *Service) UpdateNotebook(id string, in NotebookUpdate) (NotebookInfo, er
 	if err != nil {
 		return NotebookInfo{}, err
 	}
-	clean := ""
-	if in.Name != nil {
-		if clean, err = notebook.CheckName(*in.Name); err != nil {
-			return NotebookInfo{}, &InvalidError{err.Error()}
-		}
-	}
-	var tags []string
-	if in.Tags != nil {
-		if tags, err = notebook.NormalizeTags(*in.Tags); err != nil {
-			return NotebookInfo{}, &InvalidError{err.Error()}
-		}
-	}
-	watch, err := checkWatch(in.Watch)
+	in, err = checkUpdate(nb, in)
 	if err != nil {
 		return NotebookInfo{}, err
 	}
 	err = nb.Update(func(m *notebook.Manifest) error {
-		if in.Watch != nil {
-			m.Watch = watch
-		}
-		if in.Name != nil {
-			m.Name = clean
-		}
-		if in.Tags != nil {
-			m.Tags = tags
-		}
-		if in.Pinned != nil {
-			m.Pinned = *in.Pinned
-		}
-		if in.Archived != nil {
-			m.Archived = *in.Archived
-		}
+		setIf(&m.WorkType, in.WorkType)
+		setIf(&m.Watch, in.Watch)
+		setIf(&m.Name, in.Name)
+		setIf(&m.Tags, in.Tags)
+		setIf(&m.Pinned, in.Pinned)
+		setIf(&m.Archived, in.Archived)
 		return nil
 	})
 	if err != nil {
 		return NotebookInfo{}, err
 	}
 	return describe(id, nb, false), nil
+}
+
+// checkUpdate validates a notebook update and returns it with names, tags and the watch mode normalized.
+func checkUpdate(nb *notebook.Notebook, in NotebookUpdate) (NotebookUpdate, error) {
+	if in.Name != nil {
+		clean, err := notebook.CheckName(*in.Name)
+		if err != nil {
+			return in, &InvalidError{err.Error()}
+		}
+		in.Name = &clean
+	}
+	if in.Tags != nil {
+		tags, err := notebook.NormalizeTags(*in.Tags)
+		if err != nil {
+			return in, &InvalidError{err.Error()}
+		}
+		in.Tags = &tags
+	}
+	if err := checkWorkTypeChange(nb, in.WorkType); err != nil {
+		return in, err
+	}
+	if in.Watch != nil {
+		watch, err := checkWatch(in.Watch)
+		if err != nil {
+			return in, err
+		}
+		in.Watch = &watch
+	}
+	return in, nil
+}
+
+// setIf sets *dst to *v when v is not nil.
+func setIf[T any](dst, v *T) {
+	if v != nil {
+		*dst = *v
+	}
 }
 
 func checkWatch(mode *string) (string, error) {

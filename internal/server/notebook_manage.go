@@ -15,6 +15,7 @@ func (s *Server) notebookManageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/run", s.outputRun)
 	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/diff", s.diffOutput)
 	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/issues", s.outputIssues)
+	mux.HandleFunc("GET /v1/notebooks/{id}/worktype-suggestion", s.workTypeSuggestion)
 	mux.HandleFunc("POST /v1/notebooks/{id}/outputs/{out}/edits", s.editOutput)
 }
 
@@ -96,4 +97,14 @@ func (s *Server) outputIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"issues": issues})
+}
+
+// workTypeSuggestion is the work type the sources point to, or {} (WT-7).
+func (s *Server) workTypeSuggestion(w http.ResponseWriter, r *http.Request) {
+	sug, err := s.svc.SuggestWorkType(r.PathValue("id"))
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, sug)
 }

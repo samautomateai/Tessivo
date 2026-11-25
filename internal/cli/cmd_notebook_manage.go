@@ -22,6 +22,7 @@ var notebookSubs = map[string]func([]string, Env) error{
 	"tag":      notebookTag,
 	"delete":   notebookDelete,
 	"watch":    notebookWatch,
+	"worktype": notebookWorkType,
 	subPin:     func(a []string, env Env) error { return notebookPin(a, true, env) },
 	subUnpin:   func(a []string, env Env) error { return notebookPin(a, false, env) },
 }

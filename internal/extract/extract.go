@@ -54,7 +54,7 @@ var codeExt = map[string]bool{
 
 var textExt = map[string]string{
 	".txt": KindText, ".log": KindText, ".md": KindMarkdown, ".markdown": KindMarkdown, ".rst": KindText,
-	".diff": KindText, ".patch": KindText,
+	".diff": KindText, ".patch": KindText, ".vtt": KindText, ".srt": KindText, // meeting transcripts and subtitles
 }
 
 // KindOf reports the extractor kind for a file name, or "" if unsupported.

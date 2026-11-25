@@ -191,3 +191,11 @@ func FuzzCSV(f *testing.F) {
 		_, _ = JSON("f.json", b)
 	})
 }
+
+func TestTranscriptsReadAsText(t *testing.T) {
+	for _, name := range []string{"standup.vtt", "call.SRT"} {
+		if KindOf(name) != KindText {
+			t.Errorf("%s: %q", name, KindOf(name))
+		}
+	}
+}

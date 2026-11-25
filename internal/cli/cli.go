@@ -61,6 +61,7 @@ Usage:
   tess notebook rename|archive|unarchive <notebook> [name]   tess notebook delete --yes <notebook>
   tess notebook commands <notebook> [add <program> [arg|*]... | remove N]   agent commands that run unasked
   tess notebook watch <notebook> off|notify|run   act when its folders change (while tess serve runs)
+  tess notebook worktype <notebook> [type]   the work type the sources suggest, or set it (no outputs yet)
   tess prompt library [--type T] | show <id>   starter prompts (pipe one into tess prompt save)
   tess prompt list|show|rm <notebook> [name]   tess prompt save <notebook> <name> [--model M] [text|stdin]
   tess usage                                today's token use and limits

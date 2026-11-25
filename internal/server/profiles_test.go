@@ -30,3 +30,18 @@ func TestProfilesAPI(t *testing.T) {
 		t.Fatalf("delete: %d %s", code, body)
 	}
 }
+
+func TestWorkTypeSuggestionAPI(t *testing.T) {
+	ts, _ := newTestServer(t, summary)
+	call(t, ts, "POST", "/v1/notebooks", `{"name":"Ops","workType":"summarize"}`)
+	if code, body := call(t, ts, "GET", "/v1/notebooks/ops/worktype-suggestion", ""); code != 200 || body != "{}\n" {
+		t.Fatalf("no sources, no suggestion: %d %q", code, body)
+	}
+	if code, body := call(t, ts, "PATCH", "/v1/notebooks/ops", `{"workType":"report"}`); code != 200 ||
+		!strings.Contains(body, `"workType":"report"`) {
+		t.Fatalf("switch: %d %s", code, body)
+	}
+	if code, _ := call(t, ts, "GET", "/v1/notebooks/nope/worktype-suggestion", ""); code != 404 {
+		t.Fatalf("unknown notebook: %d", code)
+	}
+}
