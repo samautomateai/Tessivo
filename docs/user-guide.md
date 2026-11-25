@@ -98,6 +98,12 @@ native kinds need no `base_url`:
 provider asks for (`Retry-After`) is honoured for up to 30 seconds, with jitter. A longer wait moves on to the next
 model. `max_concurrent` caps parallel calls to one provider.
 
+**Profiles.** If you switch between setups (a work proxy, a personal key, a laptop with only a local model),
+save each as a profile in **Settings → Profiles**: *Save current as…* keeps the providers, aliases, run defaults
+and token limits. *Use* switches in one step; changes you made since the last switch stay with the profile you
+leave. The status bar shows the active profile. Keys stay in your OS keychain. In the terminal:
+`tess profile save work`, `tess profile use home`, `tess profile list`.
+
 ## Notebooks
 
 A notebook is one recurring job: a work type, its sources, prompts, pinned memory, runs, outputs and schedules,
@@ -136,6 +142,10 @@ nothing (the default), *Tell me* (a notice), or *Tell me and run the notebook*. 
 while the app or `tess serve` runs, looking only at names, sizes and modification times, and waits until a change
 has settled. A notebook that is already running, or archived, is not run again. In the terminal:
 `tess notebook watch <notebook> off|notify|run`.
+
+If the sources point to another work type (git changes or a code base for Analyze, meeting transcripts or notes
+for Summarize, mostly spreadsheets for Report, a docs folder for Document), the Sources tab suggests it with
+*Switch to …*. A notebook's work type can change until it has its first output (`tess notebook worktype`).
 
 ### Runs and outputs
 

@@ -16,7 +16,8 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks?tag=` | — | `{"notebooks": [Notebook]}` (no context stats), pinned first; `tag` keeps those with that tag (any case) |
 | `POST /v1/notebooks` | `{name, workType}` or `{templateId, name?}` | `201 Notebook` |
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |
-| `PATCH /v1/notebooks/{id}` | `{name?, archived?, tags?, pinned?, watch?}` | `Notebook` (archived notebooks keep their schedules but do not run them; up to 10 tags of 1–32 letters, digits, spaces, `-` and `_`; `watch`: `off`, `notify` or `run`, see Events stream) |
+| `PATCH /v1/notebooks/{id}` | `{name?, archived?, tags?, pinned?, watch?, workType?}` | `Notebook` (archived notebooks keep their schedules but do not run them; up to 10 tags of 1–32 letters, digits, spaces, `-` and `_`; `watch`: `off`, `notify` or `run`, see Events stream; `workType` only while the notebook has no outputs, else `409`) |
+| `GET /v1/notebooks/{id}/worktype-suggestion` | — | `{workType?, reason?}`: the work type the enabled sources point to (fixed rules, no model call), only while the notebook has no outputs and when it differs; `{}` otherwise |
 | `DELETE /v1/notebooks/{id}` | — | `204`; `409` while a run is executing, paused for an approval or interrupted |
 | `GET /v1/notebooks/{id}/prompts` | — | `{"prompts": [Prompt]}` sorted by name |
 | `PUT /v1/notebooks/{id}/prompts/{name}` | `{text, settings?}` | `Prompt` (name: letters, digits, `.`, `_`, `-`; text 1 B–16 KiB) |
@@ -298,6 +299,21 @@ summary, then included notes; sources and notes may use 3/5 of the budget, large
 `[n]` or `[n:path]`; numbers it was not given are ignored, and a path outside the folder is dropped. Earlier answers
 are sent with their numbers replaced by labels. A source that cannot be read is skipped, and the stored answer
 starts with a line naming it.
+
+## Settings profiles
+
+`Profile`: `{name, providers, aliases, defaults, limits}`, saved in the config file under `profiles` (at most 10,
+names like MCP servers), with the active one in `profile`. A profile holds each provider's `api_key_ref`, never a
+key. MCP servers, integrations, agent rules and desktop preferences are not part of a profile.
+
+| Method and path | Body | Answer |
+| --- | --- | --- |
+| `GET /v1/profiles` | — | `{active, profiles: [{name, providers (count), defaultModel?}]}` |
+| `POST /v1/profiles` | `{name}` | the same, after saving the current providers, aliases, defaults and limits as `name` (replacing one of that name) and making it active |
+| `POST /v1/profiles/{name}/use` | — | the same, after storing the current settings in the active profile and applying `name`; `400` and no change when the result does not validate, `404` for an unknown name |
+| `DELETE /v1/profiles/{name}` | — | the same; deleting the active profile keeps the settings and leaves none active |
+
+Runs already going keep the settings they started with.
 
 ## Integrations and delivery
 

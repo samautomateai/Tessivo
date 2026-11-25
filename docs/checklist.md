@@ -84,6 +84,9 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Integrations: GitHub, GitLab, Jira, Confluence, Notion and folders, tokens by secret reference (`tess integration add|list|test|remove`, `/v1/integrations`, Settings → Integrations) | REP-4, REP-5 | ☑ |
 | Push findings as issues to GitHub, GitLab or Jira, recorded per output and skipped once sent unless asked again, audited (`tess output push`, `POST …/issues/push`, desktop Send → Create issues…) | REP-4 | ☑ |
 | Publish an output to a folder, Confluence (a newer version updates the page) or Notion (`tess output publish`, `POST …/publish`, desktop Send → Publish…) | REP-5 | ☑ |
+| Settings profiles: named sets of providers, aliases, run defaults and limits; save the current settings, switch in one step (edits kept in the profile you leave; an invalid profile changes nothing), delete; keys stay in the keychain (`tess profile`, `/v1/profiles`, Settings → Profiles, status bar) | SET-10 | ☑ |
+| Work type suggested from the sources by fixed rules (changes or code: Analyze; transcripts or notes: Summarize; mostly spreadsheets: Report; a docs folder: Document) while a notebook has no outputs, and the work type can change until the first output; `.vtt`/`.srt` read as text (`tess notebook worktype`, `GET …/worktype-suggestion`, `PATCH` `workType`, Sources tab notice) | WT-7 | ☑ |
+| Chat with a notebook to refine a report: covered by output threads (ask, suggestions, new versions; OUT-1 to OUT-4) | RUN-5 | ☑ |
 
 ## M2: scheduling
 
@@ -116,7 +119,7 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 
 ## CLI reference (current)
 
-`tess new`, `tess notebook rename|archive|unarchive|delete --yes|watch`, `tess prompt list|show|save|rm|history|restore`, `tess integration add|list|test|remove`, `tess usage`, `tess search`, `tess diagnostics`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
+`tess new`, `tess notebook rename|archive|unarchive|delete --yes|watch|worktype`, `tess prompt list|show|save|rm|history|restore`, `tess integration add|list|test|remove`, `tess profile list|save|use|delete`, `tess usage`, `tess search`, `tess diagnostics`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
 `--prompt-name`, `--var`, `--model`, `--thinking`, `--mode agent`, `--tool name=rule`, `--json`, `--out`, `--no-save`),
 `tess run pending|approve|deny|resume|cancel` (agent approvals; `--notebook DIR`, `--remember run|notebook`), `tess outputs`,
 `tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff|issues|push|publish <notebook> <output-id>` (output threads; `refine --from ID`; `export --format md|docx|pdf --out FILE`; `rerun --model M`; `diff --against ID`),
