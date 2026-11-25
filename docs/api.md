@@ -12,11 +12,11 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | --- | --- | --- |
 | `GET /v1/health` | — | `{"ok": true, "version": "…"}` |
 | `GET /v1/worktypes` | — | `{"workTypes": [{id, name, question, starterPrompt, suggestedContext, schema}]}` |
-| `GET /v1/prompt-library?workType=` | — | `{prompts: [{id, name, workType, text}]}`: the starter prompts, all or for one work type |
-| `GET /v1/notebooks` | — | `{"notebooks": [Notebook]}` (no context stats) |
+| `GET /v1/prompt-library?workType=` | — | `{prompts: [{id, name, workType, text, pack?, mark?}]}`: pack prompts (`<pack>/<name>`, required, then recommended, then the rest) and the starter prompts, all or for one work type |
+| `GET /v1/notebooks?tag=` | — | `{"notebooks": [Notebook]}` (no context stats), pinned first; `tag` keeps those with that tag (any case) |
 | `POST /v1/notebooks` | `{name, workType}` or `{templateId, name?}` | `201 Notebook` |
 | `GET /v1/notebooks/{id}` | — | `Notebook` with context stats |
-| `PATCH /v1/notebooks/{id}` | `{name?, archived?}` | `Notebook` (archived notebooks keep their schedules but do not run them) |
+| `PATCH /v1/notebooks/{id}` | `{name?, archived?, tags?, pinned?}` | `Notebook` (archived notebooks keep their schedules but do not run them; up to 10 tags of 1–32 letters, digits, spaces, `-` and `_`) |
 | `DELETE /v1/notebooks/{id}` | — | `204`; `409` while a run is executing, paused for an approval or interrupted |
 | `GET /v1/notebooks/{id}/prompts` | — | `{"prompts": [Prompt]}` sorted by name |
 | `PUT /v1/notebooks/{id}/prompts/{name}` | `{text, settings?}` | `Prompt` (name: letters, digits, `.`, `_`, `-`; text 1 B–16 KiB) |
@@ -255,7 +255,7 @@ are under `/v1/research`.
 | `GET /v1/research` | — | `{"notebooks": [Research]}` (no content checks) |
 | `POST /v1/research` | `{name, description?}` | `201 Research` |
 | `GET /v1/research/{id}` | — | `Research`; sources at full or summary are checked against their content, and changed or pending ones are queued for a summary |
-| `PATCH /v1/research/{id}` | `{name?, description?, settings?}` | `Research` |
+| `PATCH /v1/research/{id}` | `{name?, description?, settings?, tags?, pinned?}` | `Research` (pinned research notebooks list first) |
 | `DELETE /v1/research/{id}` | — | `204` |
 | `POST …/{id}/sources` | `{path}` (absolute file or folder) or `{server, uri}` (MCP resource) | `Research`; the summary runs in the background |
 | `GET …/{id}/sources/{sid}` | — | `{text, summary}` (folders: files joined with their paths) |
@@ -285,3 +285,34 @@ summary, then included notes; sources and notes may use 3/5 of the budget, large
 `[n]` or `[n:path]`; numbers it was not given are ignored, and a path outside the folder is dropped. Earlier answers
 are sent with their numbers replaced by labels. A source that cannot be read is skipped, and the stored answer
 starts with a line naming it.
+
+## Archives and packs
+
+ADR 0010. **Archives** (`.tessivo.zip`; see the ADR for what goes in and what never does):
+
+| Method and path | Body | Reply |
+| --- | --- | --- |
+| `GET /v1/notebooks/{id}/archive?outputs=1` | — | the archive (`application/zip`); outputs only with `outputs=1` |
+| `POST /v1/notebooks/import` | the archive, `Content-Type: application/zip`, ≤ 512 MB | `201 Notebook`: a new notebook, schedules off, sources from the sender's disk with `needsRelink: true` |
+| `POST /v1/notebooks/{id}/context/{ctx}/relink` | `{path}` (absolute) | `Notebook` with that source pointing at `path`, on again |
+| `GET /v1/research/{id}/archive` | — | the archive |
+| `POST /v1/research/import` | as above | `201 Research`; in-place sources come in `off` with `needsRelink` |
+
+A refused archive (bad format, unsafe name, too large) is `400`.
+
+**Packs**: `Pack` is `{id, name, description?, publisher?, version?, source, kind: folder|zip|git, branch?,
+fetchedAt?, error?, templates, prompts, servers, problems: [string], readme?}`.
+
+| Method and path | Body | Reply |
+| --- | --- | --- |
+| `GET /v1/packs` | — | `{packs: [Pack]}` |
+| `POST /v1/packs` | `{source, branch?}`: an absolute folder or `.zip` path, or an `https://` or `git@` URL | `201 Pack`; `409` when a pack with that ID is added; `400` for other URLs or an invalid pack |
+| `POST /v1/packs/refresh` | — | `{packs: [Pack]}` after fetching git packs; a failed one keeps its copy and sets `error` |
+| `DELETE /v1/packs/{id}` | — | `204`; deletes the copy (never a folder pack's own folder) and the trust given to its servers |
+| `POST /v1/mcp/servers/{pack%2Fserver}/trust` | — | `204`: trust a pack server as it is now |
+| `DELETE /v1/mcp/servers/{pack%2Fserver}/trust` | — | `204` |
+
+Pack templates appear in `GET /v1/templates` with IDs `<pack>/<id>` and `pack`, `mark` fields; they create
+notebooks like any template. `GET /v1/mcp/servers` adds every pack server as `<pack>/<server>` with `pack`,
+`trusted` and `mark` (your own servers have `trusted: true`); runs, chats and resources can use a pack server only
+while it is trusted and its entry is unchanged, otherwise they get `400` asking to trust it first.

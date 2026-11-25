@@ -175,6 +175,36 @@ it; the tray menu opens Tessivo again or quits it.
 - **Search** (the box at the top, or `tess search <words>`) looks through notebooks, outputs, prompts and research
   notes.
 
+## Share and organize
+
+**Tags and pins.** In the notebook menu, *Pin* keeps a notebook at the top of the side bar and *Edit tags…* gives it
+up to ten tags (for example `infra, Q3 review`). Type in the side bar's tag filter to show only notebooks with a
+tag. In the terminal: `tess notebook tag <notebook> add infra`, `tess notebook pin <notebook>`,
+`tess notebook list --tag infra`.
+
+**Hand a notebook to a colleague.** *Export…* in the notebook menu saves the notebook as one `.tessivo.zip` file: its
+prompts, memory, copied sources and schedules, and its outputs if you tick *Include outputs*. Run history, the audit
+log, conversations and keys never go in. Folders and code bases on your computer go in by name only. Your colleague
+uses *Import…* (the folder button at the top of the Notebooks side bar) and gets a new notebook with its schedules
+turned off; a notice lists the sources to *Relink…* to folders on their computer. Research notebooks work the same
+way. In the terminal: `tess notebook export <notebook> -o ops.tessivo.zip`, `tess notebook import ops.tessivo.zip`,
+`tess context relink <notebook> <source> <folder>`.
+
+**Team packs.** A pack shares templates, library prompts and MCP servers with a team. It is a folder with a
+`tessivo-pack.json` file; put it in a git repository or on a shared drive.
+
+1. Someone makes the pack: `tess pack init team-pack --id team --name "Team pack"`, or
+   `tess pack export team-pack --id team --name "Team pack" --templates risk-review --prompts <notebook> --mcp github`
+   to start from what they already use. They can mark items `required` or `recommended` in `tessivo-pack.json`, add
+   a `README.md`, and commit it.
+2. Everyone adds it once in **Settings → Packs** (*Add pack…*) or with `tess pack add <URL, folder or .zip>`. Git
+   packs use your own git sign-in and update when Tessivo starts or on *Refresh*.
+3. Pack templates show in Templates with the pack's name and a *Required* or *Recommended* tag; pack prompts show in
+   *Saved prompts → From the library…*.
+4. Pack MCP servers stay off until you trust them: **Settings → MCP servers → Trust…** shows exactly what will run
+   on your computer. If the pack later changes that command, Tessivo asks again. A required server you have not
+   trusted shows a banner (`tess mcp trust team/github` in the terminal).
+
 ## Privacy and safety
 
 - Sources are sent only to the models you configure. Nothing else leaves your machine, and there is no telemetry.

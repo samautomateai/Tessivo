@@ -72,6 +72,10 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | Per-source summaries in the background (≤ 2 at a time, fingerprinted, events) and context levels full, summary or off, with a context bar | RES-2 | ☑ |
 | Cited conversations (`[n]` / `[n:path]` resolved to sources and notes, References that open the source) and notes, human or saved from answers, in or out of the context | RES-3 | ☑ |
 | Code changes via ACP delegation to bundled nca in a worktree or snapshot; change sets and apply (phase 5) | WT/E11 | ☐ |
+| Notebook archives: export a notebook or research notebook as one `.tessivo.zip` (prompts, memory, copied sources, schedules, tags; outputs on request; never runs, audit log, threads, chats or secrets) and import it as a new notebook with schedules off and sources from the sender's disk to relink; hardened and fuzzed (ADR 0010; `tess notebook export|import`, `tess context relink`, `/archive` and `/import` routes, desktop Export…, Import… and the relink notice) | NB-4 | ☑ |
+| Tags and pins for notebooks and research notebooks: pinned first, tag filter, search by tag (`tess notebook tag|pin|unpin|list --tag`, `PATCH` `tags`/`pinned`, desktop menu, side bar PINNED group and tag filter) | NB-5 | ☑ |
+| Team packs from a folder, a .zip or a git repo: templates, library prompts and MCP servers with required and recommended marks, refreshed at start, bad items reported (ADR 0010; `tess pack add|list|refresh|remove|init|export`, `/v1/packs`, Settings → Packs) | PR-5, TPL-7 | ☑ |
+| Pack MCP servers off until trusted one by one after seeing their command; trust tied to the entry's hash; a required untrusted server shows a banner (`tess mcp trust|untrust`, trust routes, Settings → MCP servers → Trust…) | MCP-5 | ☑ |
 
 ## M2: scheduling
 

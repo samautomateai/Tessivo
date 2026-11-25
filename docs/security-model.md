@@ -8,7 +8,7 @@ holds credentials for model providers. Every control below exists in code and is
 | Threat | Control | Where |
 | --- | --- | --- |
 | Credential leak in config or argv | Config stores only `api_key_ref`; keys come from env or the OS keychain; keychain writes pass values via stdin (hex on macOS), never argv; terminal input has echo off; `config show` and `secret check` never print values | `config`, `secrets`, `keychain` |
-| Credential leak in logs, errors, audit | Value redaction plus pattern redaction (Bearer, `sk-…`, `api_key=`/`token=`/`password=`); provider error bodies redacted | `secrets`, `llm`, `audit` |
+| Credential leak in logs, errors, audit | Value redaction plus pattern redaction (Bearer, `sk-…`, GitHub `ghp_…`/`github_pat_…`, AWS `AKIA…`, Slack `xox…`, `api_key=`/`token=`/`password=`); provider error bodies redacted | `secrets`, `llm`, `audit` |
 | Key sent in clear text | Plain `http://` refused for non-loopback hosts unless `allow_insecure_http`; URLs with embedded credentials refused; TLS 1.2+ | `config`, `llm/transport.go` |
 | Headers or keys forwarded by redirects | All HTTP redirects refused | `llm/transport.go` |
 | Hung or slow provider | Bounded dial, TLS handshake and time-to-first-byte; whole-call timeout for non-streaming; idle timeout between stream chunks; response bodies capped (32 MiB, SSE line 4 MiB) | `llm` |
@@ -18,6 +18,9 @@ holds credentials for model providers. Every control below exists in code and is
 | Oversized inputs | Text files ≤ 2 MiB; code-base files ≤ 256 KiB, ≤ 2000 files; sheets ≤ 100k rows × 1000 cols; JSON ≤ 200k chars | `extract` |
 | Path tricks in archives | Zip entries are only looked up by cleaned name; nothing is written to disk | `extract/archive.go` |
 | Path tricks in notebook names | Prompt and file names restricted to `[A-Za-z0-9._-]`; copied context files renamed | `notebook` |
+| Hostile notebook archives | Entries bounded (≤ 5,000, ≤ 64 MB each, ≤ 512 MB total, counted while reading); absolute names, `..`, backslashes, drives and links refused; unpacked into a temporary folder renamed at the end; on import every source that could point outside the notebook is cleared and marked to be relinked, schedules turned off; export refuses files holding secrets; fuzzed (`FuzzExtract`) | `archive`, `service/archive*.go` |
+| Hostile team packs | Packs ≤ 4 MB (≤ 64 MB cloned with `.git`), 200 templates, 500 prompts, 50 servers; every item validated like the user's own plus the secret scanner; links skipped; git only over `https://`/`git@` with hooks, repository config and `ext::` off, 60 s per fetch; fuzzed (`FuzzLoadManifest`) | `pack` |
+| A pack running code without consent | Pack MCP servers are unusable until trusted one by one after seeing the exact command; trust is tied to the sha256 of the entry, so a changed command needs trust again; "required" never bypasses trust; trust decisions audited | `service/pack_contents.go` |
 | Untrusted model output | Validated against the work type's schema; invalid output is never saved as an output | `schema`, `executor` |
 | Repudiation / silent edits of history | Hash-chained, fsynced, 0600 audit log; prompts recorded as digests; `tess audit verify` | `audit` |
 | Local file exposure | Files written 0600, directories 0700/0750, atomic replace through a unique temporary file per writer (retried briefly while another process holds the target) | `atomicfile`, `config`, `notebook`, `audit` |
