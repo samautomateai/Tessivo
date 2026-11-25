@@ -53,6 +53,8 @@ TemplateInfo templateFromJson(Map<String, Object?> j) {
     name: j['name'] as String? ?? '',
     workType: workTypeFrom(j['workType']),
     source: j['source'] as String? ?? 'builtin',
+    pack: j['pack'] as String? ?? '',
+    mark: j['mark'] as String? ?? '',
     description: j['description'] as String? ?? '',
     version: (j['version'] as num?)?.toInt() ?? 1,
     parent: j['parent'] as String?,
@@ -288,6 +290,9 @@ McpServer mcpServerFromJson(Map<String, Object?> j) => McpServer(
   env: _stringMap(j['env']),
   headers: _stringMap(j['headers']),
   allowInsecureHttp: j['allow_insecure_http'] as bool? ?? false,
+  pack: j['pack'] as String? ?? '',
+  trusted: j['trusted'] as bool? ?? true,
+  mark: j['mark'] as String? ?? '',
 );
 
 McpTestResult mcpTestFromJson(Map<String, Object?> j) {

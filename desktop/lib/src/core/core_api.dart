@@ -4,6 +4,7 @@ import 'chat_models.dart';
 import 'mcp_models.dart';
 import 'model_check.dart';
 import 'models.dart';
+import 'pack_models.dart';
 import 'prompt_library.dart';
 import 'research_models.dart';
 import 'thread_models.dart';
@@ -167,6 +168,15 @@ abstract interface class CoreClient {
   Future<Notebook> relinkContext(String notebookId, String contextId, String path);
   Future<void> exportResearch(String id, String toPath);
   Future<ResearchNotebook> importResearch(String fromPath);
+
+  // Team packs (docs/api.md, "Packs"): templates, prompts and MCP servers a team shares.
+  Future<List<PackInfo>> listPacks();
+  Future<PackInfo> addPack(String source, {String branch = ''});
+  Future<List<PackInfo>> refreshPacks();
+  Future<void> removePack(String id);
+
+  /// Trusts or stops trusting a pack MCP server (`<pack>/<server>`).
+  Future<void> trustMcpServer(String name, {required bool trust});
 
   // Research notebooks (docs/api.md, "Research notebooks").
   Future<List<ResearchNotebook>> listResearch();

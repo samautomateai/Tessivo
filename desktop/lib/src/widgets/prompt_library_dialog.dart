@@ -15,7 +15,7 @@ class PromptLibraryDialog extends StatelessWidget {
 
   Widget _tile(BuildContext context, LibraryPrompt p) => ListTile(
     key: Key('library-${p.id}'),
-    title: Text(p.name),
+    title: Text(p.pack.isEmpty ? p.name : '${p.name}  ·  from ${p.pack}${p.mark.isEmpty ? '' : ' (${p.mark})'}'),
     subtitle: Text(p.text, maxLines: 2, overflow: TextOverflow.ellipsis),
     trailing: Text(p.workType, style: TvType.helper.copyWith(color: TvColors.of(context).textHelper)),
     onTap: () => Navigator.of(context).pop(p),

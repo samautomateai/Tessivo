@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/core_client.dart';
 import '../design/colors.dart';
 import '../design/components/buttons.dart';
+import '../design/components/modal.dart';
 import '../design/components/table.dart';
 import '../design/icons.dart';
 import '../design/sizes.dart';
@@ -13,9 +14,12 @@ import '../design/type.dart';
 /// Settings › MCP servers: list, add, test and remove servers notebooks can
 /// attach. Values never show credentials: the core refuses them as text.
 class McpServersSection extends StatefulWidget {
-  const McpServersSection({super.key, required this.core});
+  const McpServersSection({super.key, required this.core, this.onChanged});
 
   final CoreClient core;
+
+  /// Called after a change (the app refreshes its server list).
+  final VoidCallback? onChanged;
 
   @override
   State<McpServersSection> createState() => _McpServersSectionState();
@@ -36,6 +40,7 @@ class _McpServersSectionState extends State<McpServersSection> {
     try {
       await action();
       _reload();
+      widget.onChanged?.call();
     } on CoreException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     }
@@ -101,7 +106,7 @@ class _McpServersSectionState extends State<McpServersSection> {
   }
 
   List<Widget> _serverRow(McpServer s) => [
-    Text(s.name),
+    Text(s.pack.isEmpty ? s.name : '${s.name}${s.mark == 'required' ? ' · required' : ''}'),
     Text(s.transport),
     Tooltip(
       message: s.target,
@@ -110,24 +115,75 @@ class _McpServersSectionState extends State<McpServersSection> {
     Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Flexible(
-          child: TvButton(
-            'Test',
-            key: Key('mcp-test-${s.name}'),
-            kind: TvButtonKind.ghost,
-            dense: true,
-            onPressed: () => unawaited(_test(s.name)),
+        if (s.pack.isNotEmpty && !s.trusted)
+          Flexible(
+            child: TvButton(
+              'Trust…',
+              key: Key('mcp-trust-${s.name.replaceAll('/', '-')}'),
+              kind: TvButtonKind.primary,
+              dense: true,
+              onPressed: () => unawaited(_trust(s)),
+            ),
+          )
+        else ...[
+          Flexible(
+            child: TvButton(
+              'Test',
+              key: Key('mcp-test-${s.name}'),
+              kind: TvButtonKind.ghost,
+              dense: true,
+              onPressed: () => unawaited(_test(s.name)),
+            ),
           ),
-        ),
-        TvIconButton(
-          TvIcon.close,
-          key: Key('mcp-remove-${s.name}'),
-          tooltip: 'Remove ${s.name}',
-          onPressed: () => unawaited(_run(() => widget.core.removeMcpServer(s.name))),
-        ),
+          if (s.pack.isEmpty)
+            TvIconButton(
+              TvIcon.close,
+              key: Key('mcp-remove-${s.name}'),
+              tooltip: 'Remove ${s.name}',
+              onPressed: () => unawaited(_run(() => widget.core.removeMcpServer(s.name))),
+            )
+          else
+            TvIconButton(
+              TvIcon.close,
+              key: Key('mcp-untrust-${s.name.replaceAll('/', '-')}'),
+              tooltip: 'Stop trusting ${s.name}',
+              onPressed: () => unawaited(_run(() => widget.core.trustMcpServer(s.name, trust: false))),
+            ),
+        ],
       ],
     ),
   ];
+
+  /// Shows exactly what a pack server runs, and trusts it on a yes.
+  Future<void> _trust(McpServer s) async {
+    final c = TvColors.of(context);
+    final ok = await showTvModal<bool>(
+      context,
+      title: 'Trust ${s.name}?',
+      width: 560,
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'It comes from the "${s.pack}" pack. Once trusted, notebooks and chats that use it run this on '
+            'your computer. If the pack changes it, Tessivo asks again.',
+          ),
+          const SizedBox(height: TvSpace.s12),
+          Container(
+            padding: const EdgeInsets.all(TvSpace.s12),
+            color: c.background,
+            child: SelectableText(s.target, style: TvType.code.copyWith(color: c.textPrimary)),
+          ),
+        ],
+      ),
+      actions: const [
+        TvModalAction('Cancel', value: false, kind: TvButtonKind.ghost),
+        TvModalAction('Trust', value: true, kind: TvButtonKind.primary, key: Key('mcp-trust-confirm')),
+      ],
+    );
+    if (ok ?? false) await _run(() => widget.core.trustMcpServer(s.name, trust: true));
+  }
 }
 
 class _AddServerDialog extends StatefulWidget {

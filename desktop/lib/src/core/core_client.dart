@@ -6,6 +6,7 @@ export 'core_api.dart';
 export 'errors.dart';
 export 'mcp_models.dart';
 export 'model_check.dart';
+export 'pack_models.dart';
 export 'prompt_library.dart';
 export 'research_models.dart';
 export 'thread_models.dart';

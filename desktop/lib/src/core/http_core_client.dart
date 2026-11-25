@@ -13,6 +13,7 @@ export 'json_mapping.dart';
 part 'http_archive.dart';
 part 'http_chat.dart';
 part 'http_mcp.dart';
+part 'http_packs.dart';
 part 'http_research.dart';
 part 'http_sse.dart';
 part 'http_threads.dart';
@@ -76,7 +77,9 @@ String defaultEndpointPath(Map<String, String> env, {String? os}) {
 
 /// Talks to the Go core's local API (docs/api.md) over a Unix socket or a
 /// loopback port, with the session token on every request.
-class HttpCoreClient with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch, _HttpArchive implements CoreClient {
+class HttpCoreClient
+    with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch, _HttpArchive, _HttpPacks
+    implements CoreClient {
   HttpCoreClient(this.endpoint, {HttpClient? client}) : _client = client ?? HttpClient() {
     _client
       ..findProxy = ((_) => 'DIRECT')

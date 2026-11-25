@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
+import '../core/core_client.dart';
 import '../core/models.dart';
 import '../design/colors.dart';
 import '../design/components/buttons.dart';
@@ -33,6 +34,9 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
   String? _error;
   int _request = 0;
 
+  /// Pack names by ID, for the tiles of pack templates.
+  Map<String, String> _packNames = const {};
+
   /// The template shown in the detail panel.
   String? _open;
 
@@ -46,7 +50,13 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
     final req = ++_request;
     try {
       final items = await widget.state.core.listTemplates(workType: _filter);
-      if (mounted && req == _request) setState(() => _items = items);
+      final packs = await widget.state.core.listPacks().catchError((Object _) => const <PackInfo>[]); // older core
+      if (mounted && req == _request) {
+        setState(() {
+          _items = items;
+          _packNames = {for (final p in packs) p.id: p.name};
+        });
+      }
     } on Object catch (e) {
       if (mounted) setState(() => _error = '$e');
     }
@@ -159,6 +169,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
                                     onOpen: () => setState(() => _open = t.id == _open ? null : t.id),
                                     onUse: () => unawaited(_use(t)),
                                     onDelete: () => unawaited(_delete(t)),
+                                    packName: _packNames[t.pack],
                                   ),
                               ],
                             ),
@@ -189,6 +200,7 @@ class _TemplateTile extends StatelessWidget {
     required this.onOpen,
     required this.onUse,
     required this.onDelete,
+    this.packName,
   });
 
   final TemplateInfo template;
@@ -196,6 +208,9 @@ class _TemplateTile extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onUse;
   final VoidCallback onDelete;
+
+  /// The name of the pack the template comes from, if any.
+  final String? packName;
 
   @override
   Widget build(BuildContext context) {
@@ -211,8 +226,22 @@ class _TemplateTile extends StatelessWidget {
           Row(
             children: [
               WorkTypeTag(t.workType),
+              if (t.mark.isNotEmpty) ...[
+                const SizedBox(width: TvSpace.s4),
+                TvTag(
+                  t.mark == 'required' ? 'Required' : 'Recommended',
+                  tone: t.mark == 'required' ? TvTagTone.blue : TvTagTone.green,
+                ),
+              ],
               const Spacer(),
-              Text(t.isUser ? 'Yours' : 'Built-in', style: TvType.helper.copyWith(color: c.textHelper)),
+              Flexible(
+                child: Text(
+                  t.pack.isNotEmpty ? (packName ?? t.pack) : (t.isUser ? 'Yours' : 'Built-in'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TvType.helper.copyWith(color: c.textHelper),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: TvSpace.s12),

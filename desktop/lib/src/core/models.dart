@@ -350,6 +350,8 @@ class TemplateInfo {
     this.prompts = const [],
     this.slots = const [],
     this.scheduleCron,
+    this.pack = '',
+    this.mark = '',
   });
 
   final String id;
@@ -362,6 +364,10 @@ class TemplateInfo {
   final List<String> prompts; // prompt names
   final List<TemplateSlot> slots;
   final String? scheduleCron;
+
+  /// The team pack it comes from (its ID is `<pack>/<id>`), and required or recommended.
+  final String pack;
+  final String mark;
 
   bool get isUser => source == 'user';
 }

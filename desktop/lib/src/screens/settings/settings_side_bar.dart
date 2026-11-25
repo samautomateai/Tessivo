@@ -10,6 +10,7 @@ String settingsLabel(SettingsSection s) => switch (s) {
   SettingsSection.defaults => 'Defaults and limits',
   SettingsSection.agent => 'Agent',
   SettingsSection.mcp => 'MCP servers',
+  SettingsSection.packs => 'Packs',
   SettingsSection.appearance => 'Appearance',
   SettingsSection.desktop => 'Desktop',
   SettingsSection.diagnostics => 'Diagnostics',

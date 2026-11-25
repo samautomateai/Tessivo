@@ -10,6 +10,9 @@ class McpServer {
     this.env = const {},
     this.headers = const {},
     this.allowInsecureHttp = false,
+    this.pack = '',
+    this.trusted = true,
+    this.mark = '',
   });
 
   final String name;
@@ -19,6 +22,15 @@ class McpServer {
   final Map<String, String> env;
   final Map<String, String> headers;
   final bool allowInsecureHttp;
+
+  /// The team pack it comes from ('' for your own); its name is `<pack>/<server>`.
+  final String pack;
+
+  /// Your own servers always; a pack server only once you trusted it.
+  final bool trusted;
+
+  /// required or recommended by its pack.
+  final String mark;
 
   String get transport => url.isEmpty ? 'stdio' : 'http';
   String get target => url.isEmpty ? [command, ...args].join(' ') : url;

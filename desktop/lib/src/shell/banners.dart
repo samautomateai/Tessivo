@@ -38,6 +38,23 @@ class WorkbenchBanners extends StatelessWidget {
               onPressed: () => state.openSettings(SettingsSection.models),
             ),
           ),
+        if (state.mcpServers.where((s) => s.mark == 'required' && !s.trusted).toList() case final untrusted
+            when untrusted.isNotEmpty)
+          TvInlineNotice(
+            key: const Key('required-untrusted'),
+            kind: TvNoticeKind.warning,
+            title: untrusted.length == 1
+                ? 'A required MCP server is not trusted yet'
+                : '${untrusted.length} required MCP servers are not trusted yet',
+            message:
+                '${untrusted.map((s) => s.name).join(', ')}: your team pack needs it; it stays off until you trust it.',
+            action: TvButton(
+              'Review',
+              key: const Key('required-untrusted-open'),
+              dense: true,
+              onPressed: () => state.openSettings(SettingsSection.mcp),
+            ),
+          ),
         if (state.notices.isNotEmpty)
           TvInlineNotice(
             key: const Key('notice-banner'),
