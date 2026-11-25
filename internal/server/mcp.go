@@ -11,6 +11,8 @@ func (s *Server) mcpRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/mcp/servers", s.addMCP)
 	mux.HandleFunc("DELETE /v1/mcp/servers/{name}", s.removeMCP)
 	mux.HandleFunc("POST /v1/mcp/servers/{name}/test", s.testMCP)
+	mux.HandleFunc("POST /v1/mcp/servers/{name}/trust", s.trustMCP)
+	mux.HandleFunc("DELETE /v1/mcp/servers/{name}/trust", s.trustMCP)
 	mux.HandleFunc("PUT /v1/notebooks/{id}/mcp", s.setNotebookMCP)
 	mux.HandleFunc("PUT /v1/notebooks/{id}/agent/commands", s.setNotebookCommands)
 }
@@ -89,4 +91,14 @@ func (s *Server) setNotebookCommands(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, info)
+}
+
+// trustMCP trusts (POST) or stops trusting (DELETE) a pack server; its name
+// "<pack>/<server>" is sent URL-encoded.
+func (s *Server) trustMCP(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.TrustMCP(r.PathValue("name"), r.Method == http.MethodPost); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

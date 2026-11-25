@@ -22,6 +22,9 @@ const mcpTestTimeout = 60 * time.Second
 // MCPServerInfo is a configured server as the API shows it.
 type MCPServerInfo struct {
 	config.MCPServer
+	Pack    string `json:"pack,omitempty"` // the pack it comes from; its name is "<pack>/<server>"
+	Trusted bool   `json:"trusted"`        // own servers always; pack servers once trusted
+	Mark    string `json:"mark,omitempty"`
 }
 
 // MCP's own types stay inside the service; these describe what a server offers.
@@ -54,16 +57,28 @@ type MCPTestResult struct {
 // mcpConfig returns a copy of the configured servers.
 func (s *Service) mcpConfig() config.MCPConfig {
 	s.cfgMu.RLock()
-	defer s.cfgMu.RUnlock()
-	return config.MCPConfig{Servers: slices.Clone(s.Config.MCP.Servers)}
+	servers := slices.Clone(s.Config.MCP.Servers)
+	s.cfgMu.RUnlock()
+	for _, ps := range s.packServers() {
+		if ps.trusted { // an untrusted pack server is invisible to runs and chats
+			servers = append(servers, ps.srv)
+		}
+	}
+	return config.MCPConfig{Servers: servers}
 }
 
-// MCPServers lists the configured servers.
+// MCPServers lists the configured servers, then every pack server with
+// whether it is trusted.
 func (s *Service) MCPServers() []MCPServerInfo {
-	cfg := s.mcpConfig()
-	out := make([]MCPServerInfo, 0, len(cfg.Servers))
-	for _, srv := range cfg.Servers {
-		out = append(out, MCPServerInfo{MCPServer: srv})
+	s.cfgMu.RLock()
+	own := slices.Clone(s.Config.MCP.Servers)
+	s.cfgMu.RUnlock()
+	out := make([]MCPServerInfo, 0, len(own))
+	for _, srv := range own {
+		out = append(out, MCPServerInfo{MCPServer: srv, Trusted: true})
+	}
+	for _, ps := range s.packServers() {
+		out = append(out, MCPServerInfo{MCPServer: ps.srv, Pack: ps.pack, Trusted: ps.trusted, Mark: ps.mark})
 	}
 	return out
 }

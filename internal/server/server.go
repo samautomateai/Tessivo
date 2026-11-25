@@ -123,7 +123,7 @@ type workTypeJSON struct {
 
 // promptLibrary lists the starter prompts, for one work type with ?workType=.
 func (s *Server) promptLibrary(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"prompts": worktype.LibraryFor(r.URL.Query().Get("workType"))})
+	writeJSON(w, http.StatusOK, map[string]any{"prompts": s.svc.PromptLibrary(r.URL.Query().Get("workType"))})
 }
 
 func (s *Server) workTypes(w http.ResponseWriter, _ *http.Request) {

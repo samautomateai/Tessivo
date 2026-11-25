@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/pack"
 )
 
@@ -46,5 +47,30 @@ func TestPackCommands(t *testing.T) {
 		if code := h.run(args...); code != ExitUsage {
 			t.Errorf("%v: exit %d", args, code)
 		}
+	}
+}
+
+func TestMCPTrustCommands(t *testing.T) {
+	h := newHarness(t)
+	h.initConfig()
+	dir := filepath.Join(h.dir, "team-pack")
+	h.mustRun("pack", "init", dir, "--id", "team", "--name", "Team pack")
+	servers := []config.MCPServer{{Name: "github", Command: "npx"}}
+	if err := pack.Export(dir, pack.Manifest{ID: "team", Name: "Team pack"}, nil, nil, servers); err != nil {
+		t.Fatal(err)
+	}
+	h.mustRun("pack", "add", dir)
+	if out := h.mustRun("mcp", "list"); !strings.Contains(out, "team/github") || !strings.Contains(out, "not trusted") {
+		t.Fatalf("list: %q", out)
+	}
+	if out := h.mustRun("mcp", "trust", "team/github"); !strings.Contains(out, "npx") {
+		t.Fatalf("trust shows what it trusts: %q", out)
+	}
+	if out := h.mustRun("mcp", "list"); strings.Contains(out, "not trusted") {
+		t.Fatalf("after trust: %q", out)
+	}
+	h.mustRun("mcp", "untrust", "team/github")
+	if code := h.run("mcp", "trust", "nope"); code == ExitOK {
+		t.Fatal("trusting an unknown server must fail")
 	}
 }

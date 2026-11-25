@@ -277,7 +277,7 @@ func (s *Service) AddResearchSource(ctx context.Context, id, path, server, uri s
 	}
 	if server != "" {
 		if _, ok := s.mcpConfig().Find(server); !ok {
-			return ResearchInfo{}, invalidf("mcp server %q is not configured; add it first", server)
+			return ResearchInfo{}, s.mcpMissing(server)
 		}
 	} else if !filepath.IsAbs(path) {
 		return ResearchInfo{}, invalidf("source path must be absolute")

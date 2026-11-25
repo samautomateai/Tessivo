@@ -13,10 +13,16 @@ import (
 	"github.com/samautomateai/tessivo/internal/service"
 )
 
+const (
+	subTrust   = "trust"
+	subUntrust = "untrust"
+)
+
 const mcpHelp = `tess mcp add <name> (--command PROG [--arg A]... | --url URL) [--env K=V]... [--header K=V]...
     [--allow-insecure-http]     values may hold ${secret:NAME}; credentials are refused as text
 tess mcp list | test <name> | remove <name>
-tess mcp attach|detach <notebook> <name>   let the notebook's agent runs use the server's tools`
+tess mcp attach|detach <notebook> <name>   let the notebook's agent runs use the server's tools
+tess mcp trust|untrust <pack>/<server>     let a server from a team pack run (shows what it runs)`
 
 func cmdMCP(ctx context.Context, args []string, env Env) error {
 	if len(args) == 0 {
@@ -25,7 +31,7 @@ func cmdMCP(ctx context.Context, args []string, env Env) error {
 	sub, rest := args[0], args[1:]
 	run, ok := map[string]func(context.Context, *service.Service, []string, Env) error{
 		subAdd: mcpAdd, subList: mcpList, subTest: mcpTest, subRemove: mcpRemove,
-		subAttach: mcpAttach, subDetach: mcpAttach,
+		subAttach: mcpAttach, subDetach: mcpAttach, subTrust: mcpTrust, subUntrust: mcpTrust,
 	}[sub]
 	if !ok {
 		return usagef("mcp: unknown subcommand %q\n%s", sub, mcpHelp)
@@ -38,7 +44,7 @@ func cmdMCP(ctx context.Context, args []string, env Env) error {
 	if err != nil {
 		return err
 	}
-	if sub == subAttach || sub == subDetach {
+	if sub == subAttach || sub == subDetach || sub == subTrust || sub == subUntrust {
 		rest = append([]string{sub}, rest...)
 	}
 	return cliErr(run(ctx, svc, rest, env))
@@ -96,13 +102,20 @@ func mcpList(_ context.Context, svc *service.Service, args []string, env Env) er
 		return usagef("mcp list: no arguments")
 	}
 	tw := tabwriter.NewWriter(env.Stdout, 0, 4, 2, ' ', 0)
-	_, _ = fmt.Fprintln(tw, "NAME\tTRANSPORT\tTARGET")
+	_, _ = fmt.Fprintln(tw, "NAME\tTRANSPORT\tTARGET\tTRUST")
 	for _, s := range svc.MCPServers() {
 		transport, target := "stdio", strings.TrimSpace(s.Command+" "+strings.Join(s.Args, " "))
 		if s.URL != "" {
 			transport, target = "http", s.URL
 		}
-		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\n", s.Name, transport, target)
+		trust := "yours"
+		switch {
+		case s.Pack != "" && s.Trusted:
+			trust = "trusted"
+		case s.Pack != "":
+			trust = "not trusted (tess mcp trust " + s.Name + ")"
+		}
+		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", s.Name, transport, target, trust)
 	}
 	return wrapWrite(tw.Flush())
 }
@@ -189,3 +202,30 @@ const (
 	subAttach = "attach"
 	subDetach = "detach"
 )
+
+// mcpTrust trusts or stops trusting a pack server, showing exactly what runs:
+// tess mcp trust|untrust <pack>/<server>.
+func mcpTrust(_ context.Context, svc *service.Service, args []string, env Env) error {
+	if len(args) != 2 {
+		return usagef("mcp %s: want <pack>/<server>", args[0])
+	}
+	trust, name := args[0] == subTrust, args[1]
+	if err := svc.TrustMCP(name, trust); err != nil {
+		return err
+	}
+	if !trust {
+		_, err := fmt.Fprintf(env.Stdout, "%s is no longer trusted\n", name)
+		return wrapWrite(err)
+	}
+	for _, s := range svc.MCPServers() {
+		if s.Name == name {
+			what := s.URL
+			if what == "" {
+				what = strings.TrimSpace(s.Command + " " + strings.Join(s.Args, " "))
+			}
+			_, err := fmt.Fprintf(env.Stdout, "trusted %s: %s\n", name, what)
+			return wrapWrite(err)
+		}
+	}
+	return nil
+}

@@ -96,7 +96,7 @@ func (s *Service) AddMCPContext(notebookID, server, uri, label string) (Notebook
 		return NotebookInfo{}, err
 	}
 	if _, ok := s.mcpConfig().Find(server); !ok {
-		return NotebookInfo{}, invalidf("mcp server %q is not configured; add it first", server)
+		return NotebookInfo{}, s.mcpMissing(server)
 	}
 	if _, err := nb.AddMCPResource(server, uri, label); err != nil {
 		return NotebookInfo{}, &InvalidError{err.Error()}

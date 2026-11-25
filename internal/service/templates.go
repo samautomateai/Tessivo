@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/samautomateai/tessivo/internal/notebook"
@@ -14,6 +15,8 @@ type TemplateInfo struct {
 	template.Template
 	ParentUpdate   int      `json:"parentUpdate,omitempty"` // newer parent version, if any
 	ChangedPrompts []string `json:"changedPrompts,omitempty"`
+	Pack           string   `json:"pack,omitempty"` // the pack it comes from; its ID is "<pack>/<id>"
+	Mark           string   `json:"mark,omitempty"` // required or recommended by its pack
 }
 
 func (s *Service) templateErr(err error) error {
@@ -38,14 +41,20 @@ func (s *Service) ListTemplates(workType string) ([]TemplateInfo, error) {
 		info.ParentUpdate, info.ChangedPrompts, _ = s.Templates.ParentUpdate(t)
 		out = append(out, info)
 	}
+	out = append(out, s.packTemplates(workType)...)
+	slices.SortStableFunc(out, func(a, b TemplateInfo) int { return markRank(a.Mark) - markRank(b.Mark) })
 	return out, nil
 }
 
 // GetTemplate returns one template.
 func (s *Service) GetTemplate(id string) (TemplateInfo, error) {
-	t, err := s.Templates.Get(id)
+	t, packID, mark, err := s.findTemplate(id)
 	if err != nil {
 		return TemplateInfo{}, s.templateErr(err)
+	}
+	if packID != "" {
+		t.ID = packRef(packID, t.ID)
+		return TemplateInfo{Template: t, Pack: packID, Mark: mark}, nil
 	}
 	info := TemplateInfo{Template: t}
 	info.ParentUpdate, info.ChangedPrompts, _ = s.Templates.ParentUpdate(t)
@@ -54,7 +63,7 @@ func (s *Service) GetTemplate(id string) (TemplateInfo, error) {
 
 // CreateFromTemplate creates a workspace notebook set up from a template.
 func (s *Service) CreateFromTemplate(templateID, name string) (NotebookInfo, error) {
-	t, err := s.Templates.Get(templateID)
+	t, _, _, err := s.findTemplate(templateID)
 	if err != nil {
 		return NotebookInfo{}, s.templateErr(err)
 	}

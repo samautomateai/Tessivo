@@ -85,7 +85,7 @@ func (s *Service) checkMCPNames(names []string) error {
 	cfg := s.mcpConfig()
 	for _, name := range names {
 		if _, ok := cfg.Find(name); !ok {
-			return invalidf("mcp server %q is not configured; add it first", name)
+			return s.mcpMissing(name)
 		}
 	}
 	if len(names) > maxAttachedMCP {
@@ -105,7 +105,7 @@ func (s *Service) SetNotebookMCP(notebookID string, servers []string) (NotebookI
 	var list []string
 	for _, name := range servers {
 		if _, ok := cfg.Find(name); !ok {
-			return NotebookInfo{}, invalidf("mcp server %q is not configured; add it first", name)
+			return NotebookInfo{}, s.mcpMissing(name)
 		}
 		if !slices.Contains(list, name) {
 			list = append(list, name)
