@@ -205,8 +205,9 @@ func (s *Service) buildSpec(ctx context.Context, req RunRequest) (executor.Spec,
 		return executor.Spec{}, err
 	}
 	spec := executor.Spec{
-		WorkType: wt, Prompt: prompt, Vars: req.Vars, Documents: append(docs, req.Extra...),
-		Settings: config.Resolve(layers...),
+		WorkType: wt, Prompt: prompt, Vars: withPrevious(req.Notebook, prompt, req.Vars),
+		Documents: append(docs, req.Extra...),
+		Settings:  config.Resolve(layers...),
 	}
 	if req.Notebook != nil {
 		spec.Memory = req.Notebook.Manifest.Memory

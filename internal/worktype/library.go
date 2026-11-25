@@ -66,6 +66,12 @@ var Library = []LibraryPrompt{
 			"as the evidence shows, what was done to recover, and the follow-ups that would stop it happening " +
 			"again. Blameless and factual.",
 	},
+	{
+		ID: "changes-since-last-time", Name: "Changes since last time", WorkType: Report,
+		Text: "Compare the context with the previous report below and write what changed since then: what is " +
+			"new, what got better or worse, and what is still open. Keep anything that did not change short.\n\n" +
+			"Previous report:\n{{previous}}",
+	},
 }
 
 // LibraryFor returns the library prompts for a work type, or all when id is empty.
