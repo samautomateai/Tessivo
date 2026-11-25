@@ -16,6 +16,9 @@ const (
 const (
 	ModePipeline = "pipeline"
 	ModeAgent    = "agent"
+
+	// ChainPerSource condenses each source on its own first, then writes the output from the notes.
+	ChainPerSource = "per_source"
 )
 
 // RunSettings are the knobs that can be set at any layer. Nil or empty
@@ -27,6 +30,8 @@ type RunSettings struct {
 	ContextBudget   *int     `json:"context_budget,omitempty"`
 	ThinkingEffort  string   `json:"thinking_effort,omitempty"`
 	Mode            string   `json:"mode,omitempty"`
+	// Chain is "" (one call; condense only when sources do not fit) or ChainPerSource.
+	Chain string `json:"chain,omitempty"`
 }
 
 // Validate reports invalid values in a single layer.
@@ -40,6 +45,9 @@ func (s RunSettings) Validate() error {
 	case "", ModePipeline, ModeAgent:
 	default:
 		return fmt.Errorf("mode %q: want pipeline or agent", s.Mode)
+	}
+	if s.Chain != "" && s.Chain != ChainPerSource {
+		return fmt.Errorf("chain %q: want per_source or nothing", s.Chain)
 	}
 	if s.Temperature != nil && (*s.Temperature < 0 || *s.Temperature > 2) {
 		return fmt.Errorf("temperature %v: want 0 to 2", *s.Temperature)
@@ -85,6 +93,9 @@ func Resolve(layers ...Layer) Effective {
 		}
 		if s.ThinkingEffort != "" {
 			e.ThinkingEffort, e.Sources["thinking_effort"] = s.ThinkingEffort, l.Name
+		}
+		if s.Chain != "" {
+			e.Chain, e.Sources["chain"] = s.Chain, l.Name
 		}
 		if s.Mode != "" {
 			e.Mode, e.Sources["mode"] = s.Mode, l.Name

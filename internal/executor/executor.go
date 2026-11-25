@@ -53,6 +53,7 @@ const (
 const (
 	StrategyFull      = "full"
 	StrategyMapReduce = "map-reduce"
+	StrategyPerSource = "per-source"
 	StrategyAgent     = "agent"
 )
 

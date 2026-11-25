@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/samautomateai/tessivo/internal/config"
 	"github.com/samautomateai/tessivo/internal/extract"
 	"github.com/samautomateai/tessivo/internal/llm"
 	"github.com/samautomateai/tessivo/internal/schema"
@@ -45,7 +46,14 @@ func (p *Pipeline) Run(ctx context.Context, spec Spec, onEvent func(Event)) (Res
 		budget = *spec.Settings.ContextBudget
 	}
 	budget = reserveForRevision(budget, spec.Revise)
-	if contextTokens(docs) > budget {
+	switch {
+	case spec.Settings.Chain == config.ChainPerSource && len(docs) > 0:
+		res.Strategy = StrategyPerSource
+		emit(EventStatus, fmt.Sprintf("reading %d sources one by one", len(docs)))
+		if docs, err = p.mapStep(ctx, spec, prompt, docs, budget, &res); err != nil {
+			return res, err
+		}
+	case contextTokens(docs) > budget:
 		res.Strategy = StrategyMapReduce
 		emit(EventStatus, fmt.Sprintf("context is larger than %d tokens: condensing %d sources", budget, len(docs)))
 		if docs, err = p.mapStep(ctx, spec, prompt, docs, budget, &res); err != nil {
