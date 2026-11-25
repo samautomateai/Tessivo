@@ -22,7 +22,9 @@ tess output rerun <notebook> <output-id> [--model M]   run it again, optionally 
 tess output diff <notebook> <output-id> [--against ID]   lines changed since the version it revised
 tess output data <notebook> <output-id>                  print the structured result as JSON
 tess output edit <notebook> <output-id> FILE|-           save edited JSON as a new version (no model call)
-tess output issues <notebook> <output-id> [--json]       the tracker-ready issues an Analyze output's findings make`
+tess output issues <notebook> <output-id> [--json]       the tracker-ready issues an Analyze output's findings make
+tess output push <notebook> <output-id> --to NAME [--only 1,3] [--again]   file the findings as issues
+tess output publish <notebook> <output-id> --to NAME     publish to a folder, Confluence or Notion`
 
 // outputCommands maps each subcommand to its handler and the positional
 // arguments it needs after the notebook and output (-1: one or more).
@@ -38,6 +40,8 @@ var outputCommands = map[string]struct {
 	"data":    {outputData, 0},
 	"edit":    {outputEdit, 1},
 	"issues":  {outputIssues, 0},
+	"push":    {outputPush, 0},
+	"publish": {outputPublish, 0},
 }
 
 type outputArgs struct {
@@ -49,6 +53,9 @@ type outputArgs struct {
 	model   string   // rerun --model
 	against string   // diff --against
 	json    bool     // issues --json
+	to      string   // push, publish --to
+	only    string   // push --only
+	again   bool     // push --again
 }
 
 func cmdOutput(ctx context.Context, args []string, env Env) error {
@@ -67,6 +74,9 @@ func cmdOutput(ctx context.Context, args []string, env Env) error {
 	against := fs.String("against", "", "diff: the version to compare with (default: the one it revised)")
 	out := fs.String("out", "", "export: file to write (default: the output's title in this folder)")
 	jsonOut := fs.Bool("json", false, "issues: print JSON")
+	to := fs.String("to", "", "push, publish: the integration to send to")
+	only := fs.String("only", "", "push: the finding numbers to send, such as 1,3 (default: all)")
+	again := fs.Bool("again", false, "push: also send findings sent before")
 	pos, err := parse(fs, args[1:])
 	if err != nil {
 		return err
@@ -92,7 +102,7 @@ func cmdOutput(ctx context.Context, args []string, env Env) error {
 	svc.NotebookDirs = []string{dir}
 	a := outputArgs{
 		nb: dir, out: pos[1], rest: pos[2:], from: *from, format: *format, file: *out, model: *model, against: *against,
-		json: *jsonOut,
+		json: *jsonOut, to: *to, only: *only, again: *again,
 	}
 	return cliErr(c.run(ctx, svc, a, env))
 }

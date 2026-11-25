@@ -142,7 +142,8 @@ func copyParts(src, dst string, parts map[string]bool) error {
 		if d.IsDir() {
 			return os.MkdirAll(target, 0o700)
 		}
-		if !d.Type().IsRegular() {
+		// Records of what the sender sent (deliveries) stay home.
+		if !d.Type().IsRegular() || strings.HasSuffix(rel, deliveriesFile) {
 			return nil
 		}
 		b, err := os.ReadFile(path) //nolint:gosec // G304: a file of the notebook being exported

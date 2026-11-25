@@ -2,11 +2,15 @@ package cli
 
 import (
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/samautomateai/tessivo/internal/notebook"
+	"github.com/samautomateai/tessivo/internal/secrets"
 )
 
 const cliAnalysis = `{"title":"Review","summary":"s","risk_score":7,"risk_level":"high","findings":[{"title":` +
@@ -43,5 +47,41 @@ func TestOutputIssues(t *testing.T) {
 	if err := json.Unmarshal([]byte(h.mustRun("output", "issues", dir, out, "--json")), &issues); err != nil ||
 		len(issues) != 1 || issues[0]["title"] != "Retries double charge" {
 		t.Fatalf("--json: %v %v", err, issues)
+	}
+}
+
+func TestOutputPushAndPublish(t *testing.T) {
+	h, dir, out := analyzeHarness(t)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(201)
+		_, _ = io.WriteString(w, `{"number":9,"html_url":"https://gh.test/9"}`)
+	}))
+	defer ts.Close()
+	h.env.Secrets = secrets.Map{"TESSIVO_LITELLM_KEY": "k", "GH": "t"}
+	h.mustRun("integration", "add", "gh", "--kind", "github", "--url", ts.URL, "--project", "a/b", "--token-ref", "GH")
+	share := t.TempDir()
+	h.mustRun("integration", "add", "share", "--kind", "folder", "--path", share)
+	if got := h.mustRun("output", "push", dir, out, "--to", "gh", "--only", "1"); got != "1. https://gh.test/9\n" {
+		t.Fatalf("push: %q", got)
+	}
+	h.mustRun("output", "push", dir, out, "--to", "gh")
+	if !strings.Contains(h.errOut.String(), "skipped 1 finding") {
+		t.Fatalf("skipped note: %q", h.errOut)
+	}
+	if got := h.mustRun("output", "publish", dir, out, "--to", "share"); !strings.HasPrefix(got, "file:") {
+		t.Fatalf("publish: %q", got)
+	}
+	if got := h.mustRun("integration", "test", "share"); got != "share: ok\n" {
+		t.Fatalf("test: %q", got)
+	}
+	for _, args := range [][]string{
+		{"output", "push", dir, out},
+		{"output", "publish", dir, out},
+		{"output", "push", dir, out, "--to", "gh", "--only", "x"},
+		{"integration", "test"},
+	} {
+		if code := h.run(args...); code != ExitUsage {
+			t.Errorf("%v: exit %d", args, code)
+		}
 	}
 }

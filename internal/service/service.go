@@ -75,6 +75,7 @@ type Service struct {
 	usageMu   sync.Mutex // serializes usage.json updates in this process
 	jobsOnce  sync.Once
 	jobs      *jobTable
+	deliverMu sync.Mutex // serializes delivery records (deliver.go)
 }
 
 // DefaultModelFactory builds an llm.Router.

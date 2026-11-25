@@ -10,6 +10,7 @@ func (s *Server) integrationRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/integrations", s.listIntegrations)
 	mux.HandleFunc("POST /v1/integrations", s.addIntegration)
 	mux.HandleFunc("DELETE /v1/integrations/{name}", s.removeIntegration)
+	s.deliverRoutes(mux)
 }
 
 func (s *Server) listIntegrations(w http.ResponseWriter, _ *http.Request) {

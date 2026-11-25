@@ -32,6 +32,7 @@ const (
 	KindToolDecision = "tool.decision"
 	KindRunResume    = "run.resume"
 	KindSuggestApply = "suggestion.apply"
+	KindOutputSent   = "output.sent" // an output pushed or published to an integration
 )
 
 // Limits keep entries small and lines bounded.
