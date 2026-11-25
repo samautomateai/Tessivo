@@ -83,6 +83,10 @@ func Redact(s string, values ...string) string {
 var keyPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)(bearer\s+)[A-Za-z0-9._~+/=-]{8,}`),
 	regexp.MustCompile(`\bsk-[A-Za-z0-9_-]{8,}`),
+	regexp.MustCompile(`\bgh[pousr]_[A-Za-z0-9]{36,}`),   // GitHub tokens
+	regexp.MustCompile(`\bgithub_pat_[A-Za-z0-9_]{22,}`), // GitHub fine-grained tokens
+	regexp.MustCompile(`\b(?:AKIA|ASIA)[0-9A-Z]{16}\b`),  // AWS access key IDs
+	regexp.MustCompile(`\bxox[abprs]-[A-Za-z0-9-]{10,}`), // Slack tokens
 	regexp.MustCompile(`(?i)((?:api[_-]?key|token|secret|password)["']?\s*[:=]\s*["']?)[^\s"',;]{6,}`),
 }
 

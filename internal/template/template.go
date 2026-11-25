@@ -26,6 +26,7 @@ import (
 const (
 	SourceBuiltin = "builtin"
 	SourceUser    = "user"
+	SourcePack    = "pack" // from a team pack (internal/pack); read-only
 )
 
 // Limits keep templates small and safe to share.

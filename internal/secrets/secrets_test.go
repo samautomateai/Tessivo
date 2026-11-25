@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -52,5 +53,21 @@ func TestRedactPatterns(t *testing.T) {
 		if got := RedactPatterns(in); got != want {
 			t.Errorf("RedactPatterns(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestRedactPatternsCatchesWellKnownTokenFormats(t *testing.T) {
+	for _, s := range []string{
+		"ghp_" + strings.Repeat("a1B2", 9),
+		"github_pat_" + strings.Repeat("x", 40),
+		"AKIAIOSFODNN7EXAMPLE",
+		"xoxb-1234567890-abcdefghij",
+	} {
+		if got := RedactPatterns("use " + s + " here"); strings.Contains(got, s) {
+			t.Errorf("%s was not redacted: %q", s, got)
+		}
+	}
+	if got := RedactPatterns("ghp_short and AKIA-not"); got != "ghp_short and AKIA-not" {
+		t.Errorf("look-alikes changed: %q", got)
 	}
 }
