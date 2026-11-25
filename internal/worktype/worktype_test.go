@@ -31,7 +31,7 @@ func TestGet(t *testing.T) {
 		t.Fatalf("%v %+v", err, w)
 	}
 	s, _ := w.ParsedSchema()
-	good := `{"title":"t","summary":"s","risk_score":7,"risk_level":"high","impacted_areas":["a"],` +
+	good := `{"title":"t","summary":"s","risk_score":7,"risk_level":"high","findings":[],"impacted_areas":["a"],` +
 		`"evidence":[{"claim":"c","source":"f.go"}],"mitigations":[],"open_questions":[]}`
 	if err := s.ValidateJSON([]byte(good)); err != nil {
 		t.Fatal(err)

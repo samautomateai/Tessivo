@@ -14,6 +14,7 @@ func (s *Server) notebookManageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/export", s.exportOutput)
 	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/run", s.outputRun)
 	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/diff", s.diffOutput)
+	mux.HandleFunc("GET /v1/notebooks/{id}/outputs/{out}/issues", s.outputIssues)
 	mux.HandleFunc("POST /v1/notebooks/{id}/outputs/{out}/edits", s.editOutput)
 }
 
@@ -85,4 +86,14 @@ func (s *Server) editOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, info)
+}
+
+// outputIssues lists the tracker-ready issues an Analyze output's findings make.
+func (s *Server) outputIssues(w http.ResponseWriter, r *http.Request) {
+	issues, err := s.svc.Issues(r.PathValue("id"), r.PathValue("out"))
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"issues": issues})
 }

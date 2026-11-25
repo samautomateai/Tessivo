@@ -38,15 +38,19 @@ func (s *Service) EditOutput(notebookID, outputID string, data json.RawMessage) 
 	if err := json.Compact(&compact, data); err != nil {
 		return OutputInfo{}, invalidf("the edited output is not JSON: %v", err)
 	}
-	if err := sch.ValidateJSON(compact.Bytes()); err != nil {
+	body := compact.Bytes()
+	if wt.ID == worktype.Analyze {
+		body = withFindings(body)
+	}
+	if err := sch.ValidateJSON(body); err != nil {
 		return OutputInfo{}, invalidf("the edited output does not fit the %s structure: %v", wt.Name, err)
 	}
-	if bytes.Equal(compact.Bytes(), compactOrSelf(ref.out.Data)) {
+	if bytes.Equal(body, compactOrSelf(ref.out.Data)) {
 		return OutputInfo{}, invalidf("nothing changed")
 	}
 	out := notebook.Output{
-		ID: notebook.NewID(), RunID: ref.out.RunID, WorkType: ref.out.WorkType, Title: titleOf(compact.Bytes()),
-		CreatedAt: nowRFC3339(), Data: compact.Bytes(), ParentID: ref.out.ID,
+		ID: notebook.NewID(), RunID: ref.out.RunID, WorkType: ref.out.WorkType, Title: titleOf(body),
+		CreatedAt: nowRFC3339(), Data: body, ParentID: ref.out.ID,
 	}
 	md, err := render.Markdown(out.Data, RequiredOrder(wt))
 	if err != nil {

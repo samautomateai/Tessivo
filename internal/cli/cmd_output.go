@@ -21,7 +21,8 @@ tess output export <notebook> <output-id> [--format md|docx|pdf] [--out FILE]   
 tess output rerun <notebook> <output-id> [--model M]   run it again, optionally on another model
 tess output diff <notebook> <output-id> [--against ID]   lines changed since the version it revised
 tess output data <notebook> <output-id>                  print the structured result as JSON
-tess output edit <notebook> <output-id> FILE|-           save edited JSON as a new version (no model call)`
+tess output edit <notebook> <output-id> FILE|-           save edited JSON as a new version (no model call)
+tess output issues <notebook> <output-id> [--json]       the tracker-ready issues an Analyze output's findings make`
 
 // outputCommands maps each subcommand to its handler and the positional
 // arguments it needs after the notebook and output (-1: one or more).
@@ -36,6 +37,7 @@ var outputCommands = map[string]struct {
 	"diff":    {outputDiff, 0},
 	"data":    {outputData, 0},
 	"edit":    {outputEdit, 1},
+	"issues":  {outputIssues, 0},
 }
 
 type outputArgs struct {
@@ -46,6 +48,7 @@ type outputArgs struct {
 	file    string   // export --out
 	model   string   // rerun --model
 	against string   // diff --against
+	json    bool     // issues --json
 }
 
 func cmdOutput(ctx context.Context, args []string, env Env) error {
@@ -63,6 +66,7 @@ func cmdOutput(ctx context.Context, args []string, env Env) error {
 	model := fs.String("model", "", "rerun: the model to use (default: the settings that apply now)")
 	against := fs.String("against", "", "diff: the version to compare with (default: the one it revised)")
 	out := fs.String("out", "", "export: file to write (default: the output's title in this folder)")
+	jsonOut := fs.Bool("json", false, "issues: print JSON")
 	pos, err := parse(fs, args[1:])
 	if err != nil {
 		return err
@@ -88,6 +92,7 @@ func cmdOutput(ctx context.Context, args []string, env Env) error {
 	svc.NotebookDirs = []string{dir}
 	a := outputArgs{
 		nb: dir, out: pos[1], rest: pos[2:], from: *from, format: *format, file: *out, model: *model, against: *against,
+		json: *jsonOut,
 	}
 	return cliErr(c.run(ctx, svc, a, env))
 }

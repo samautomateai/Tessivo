@@ -57,7 +57,8 @@ const systemBase = "You are Tessivo, a careful analyst. Use only the provided co
 var builtins = map[string]WorkType{
 	Analyze: {
 		ID: Analyze, Name: "Analyze", Question: "What does this mean, and what's the risk?",
-		StarterPrompt:    "Assess the risk and impact described by the context. Explain your reasoning with evidence.",
+		StarterPrompt: "Assess the risk and impact described by the context. Explain your reasoning with evidence, " +
+			"and list each problem as a finding a team could file as an issue.",
 		SuggestedContext: []string{"code base", "diff or PR", "documents", "spreadsheet or CSV", "MCP server"},
 	},
 	Summarize: {

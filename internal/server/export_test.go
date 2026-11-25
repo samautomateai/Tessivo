@@ -67,3 +67,17 @@ func TestEditOutputAPI(t *testing.T) {
 		t.Fatalf("a result that does not fit the work type: %d", code)
 	}
 }
+
+func TestOutputIssuesAPI(t *testing.T) {
+	ts, s := newTestServer(t, summary)
+	call(t, ts, "POST", "/v1/notebooks", `{"name":"Ops","workType":"summarize"}`)
+	nb, _ := s.svc.OpenNotebook("ops")
+	out, err := s.svc.Run(context.Background(), service.RunRequest{Notebook: nb, Save: true}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code, body := call(t, ts, "GET", "/v1/notebooks/ops/outputs/"+out.OutputID+"/issues", ""); code != 400 ||
+		!strings.Contains(body, "only Analyze outputs") {
+		t.Fatalf("a summary has no issues: %d %s", code, body)
+	}
+}
