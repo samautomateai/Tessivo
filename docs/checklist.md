@@ -80,6 +80,10 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 | `{{previous}}`: the notebook's latest output as Markdown (cut at 32,000 characters) or "(there is no earlier output yet)"; an explicit value wins; starter prompt "Changes since last time" | MEM-3 | ☑ |
 | Prompt version history: a changed save keeps the old version (at most 50); runs record `promptVersion`; restore is a new save (`tess prompt history|restore`, `…/prompts/{name}/versions`, desktop Prompt tab History…); desktop Compare picks any other output | PR-4 | ☑ |
 | Watched folders: `watch` off, notify or run; `tess serve` fingerprints in-place sources every 60 s (metadata of ≤ 5,000 files, no OS watcher), reports a settled change as `sources.changed` and in run mode starts a run unless busy or archived (`tess notebook watch`, `PATCH` `watch`, desktop Sources tab) | SRC-8 | ☑ |
+| Analyze findings (title, severity, detail, steps, labels) as tracker-ready issues; older outputs become one issue (`tess output issues`, `GET …/outputs/{id}/issues`) | WT-5 | ☑ |
+| Integrations: GitHub, GitLab, Jira, Confluence, Notion and folders, tokens by secret reference (`tess integration add|list|test|remove`, `/v1/integrations`, Settings → Integrations) | REP-4, REP-5 | ☑ |
+| Push findings as issues to GitHub, GitLab or Jira, recorded per output and skipped once sent unless asked again, audited (`tess output push`, `POST …/issues/push`, desktop Send → Create issues…) | REP-4 | ☑ |
+| Publish an output to a folder, Confluence (a newer version updates the page) or Notion (`tess output publish`, `POST …/publish`, desktop Send → Publish…) | REP-5 | ☑ |
 
 ## M2: scheduling
 
@@ -112,10 +116,10 @@ Status: ☐ not started · ◐ in progress · ☑ done. Story IDs refer to the p
 
 ## CLI reference (current)
 
-`tess new`, `tess notebook rename|archive|unarchive|delete --yes|watch`, `tess prompt list|show|save|rm|history|restore`, `tess usage`, `tess search`, `tess diagnostics`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
+`tess new`, `tess notebook rename|archive|unarchive|delete --yes|watch`, `tess prompt list|show|save|rm|history|restore`, `tess integration add|list|test|remove`, `tess usage`, `tess search`, `tess diagnostics`, `tess context add|list|enable|disable`, `tess run` (notebook or piped stdin, `--prompt`,
 `--prompt-name`, `--var`, `--model`, `--thinking`, `--mode agent`, `--tool name=rule`, `--json`, `--out`, `--no-save`),
 `tess run pending|approve|deny|resume|cancel` (agent approvals; `--notebook DIR`, `--remember run|notebook`), `tess outputs`,
-`tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff <notebook> <output-id>` (output threads; `refine --from ID`; `export --format md|docx|pdf --out FILE`; `rerun --model M`; `diff --against ID`),
+`tess output ask|suggest|suggestions|apply|dismiss|refine|export|rerun|diff|issues|push|publish <notebook> <output-id>` (output threads; `refine --from ID`; `export --format md|docx|pdf --out FILE`; `rerun --model M`; `diff --against ID`),
 `tess schedule add|list|remove|enable|disable|next`,
 `tess research new|list|show|delete|source add|list|level|remove|refresh|ask|note add|list|rm`, `tess template`, `tess memory`, `tess serve`, `tess secret`, `tess audit`,
 `tess models`, `tess worktypes`, `tess config init|show|path|get|set|export|import`, `tess version`.

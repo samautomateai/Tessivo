@@ -202,6 +202,21 @@ turned off; a notice lists the sources to *Relink…* to folders on their comput
 way. In the terminal: `tess notebook export <notebook> -o ops.tessivo.zip`, `tess notebook import ops.tessivo.zip`,
 `tess context relink <notebook> <source> <folder>`.
 
+**Send results where your team works.** Add your tracker, wiki or a shared folder once in **Settings →
+Integrations**: GitHub, GitLab or Jira for issues; Confluence, Notion or a folder for pages. The token goes to your
+OS keychain; the config only names it. Then, on an output:
+
+- **Send → Create issues…** (Analyze outputs) lists the findings. Each becomes an issue with its severity, steps,
+  evidence and labels. Findings you already sent to that tracker are marked *Sent* and left unticked, so nothing is
+  filed twice by accident.
+- **Send → Publish…** puts the output on a Confluence page, a Notion page or a Markdown file in the folder.
+  Publishing a newer version later replaces the Confluence page or the file instead of making another one.
+
+Nothing is sent unless you choose to, and every send is written to the notebook's audit log. In the terminal:
+`tess integration add gh --kind github --project acme/shop --token-ref GH_TOKEN`, `tess secret set GH_TOKEN`,
+`tess output issues <notebook> <output>`, `tess output push <notebook> <output> --to gh`,
+`tess output publish <notebook> <output> --to wiki`.
+
 **Team packs.** A pack shares templates, library prompts and MCP servers with a team. It is a folder with a
 `tessivo-pack.json` file; put it in a git repository or on a shared drive.
 

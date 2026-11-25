@@ -33,6 +33,10 @@ Every request except `GET /v1/health` needs `Authorization: Bearer <token>`. Bod
 | `GET /v1/notebooks/{id}/outputs/{outputId}/export?format=md|docx|pdf` | — | the file (`Content-Disposition: attachment`): Markdown, or a Word document or PDF made with the standard library |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/run` | — | `{runId, prompt, promptName?, vars?, model, mode?}`: the run that made the output, to run it again (`POST …/runs` with `overrides.model` for another model) |
 | `GET /v1/notebooks/{id}/outputs/{outputId}/diff?against=` | — | `{from, to, lines: [{op, text}], counts: {added, removed}}`: the output against the version it revised (or `against`); `op` is the character code of `" "`, `"+"` or `"-"`; `400` for an original without `against` |
+| `GET /v1/notebooks/{id}/outputs/{outputId}/issues` | — | `{issues: [Issue]}`: the tracker-ready issues an Analyze output's findings make; `400` for other work types (see Integrations and delivery) |
+| `POST /v1/notebooks/{id}/outputs/{outputId}/issues/push` | `{integration, findings?: [index], again?}` | `{sent: [Delivery], skipped: [index]}` |
+| `POST /v1/notebooks/{id}/outputs/{outputId}/publish` | `{integration}` | `Delivery` |
+| `GET /v1/notebooks/{id}/outputs/{outputId}/deliveries` | — | `{deliveries: [Delivery]}`, oldest first |
 | `POST /v1/notebooks/{id}/outputs/{outputId}/edits` | `{data}` (the structured result, ≤ 1 MiB) | `201` + `Output` (the new version: `parentId`, `version`): checked against the work type's schema, rendered, audited by digest; no model call; `400` when it does not fit or nothing changed |
 | `GET /v1/settings` | — | config (key references only) |
 | `PUT /v1/settings` | `{providers, aliases, defaults, limits, desktop?, agent?}` | the config after the change; validated, saved to the config file and applied at once (MCP servers have their own routes). `desktop: {close_to_tray, theme (system/light/dark/high-contrast), zoom (0.8–2.0), layout: {side_bar_open, side_bar_width, panel_open, panel_width (180–480)}}` holds the desktop app's own preferences; leaving it out keeps them. `agent: {tools, max_steps, max_tool_calls, max_tokens, max_minutes, approval_expiry_days}` replaces the agent settings when present |
@@ -294,6 +298,41 @@ summary, then included notes; sources and notes may use 3/5 of the budget, large
 `[n]` or `[n:path]`; numbers it was not given are ignored, and a path outside the folder is dropped. Earlier answers
 are sent with their numbers replaced by labels. A source that cannot be read is skipped, and the stored answer
 starts with a line naming it.
+
+## Integrations and delivery
+
+Analyze outputs list `findings: [{title, severity: "low"|"medium"|"high"|"critical", detail, steps: [string],
+labels: [string]}]`. `Issue`: `{index, title, severity, body, labels}`: the finding's title, a Markdown body
+(detail, numbered steps, the output's evidence, a footer naming the notebook and output) and its labels plus
+`severity:<level>`. An Analyze output saved before findings existed is one issue (index 0) made from the whole
+output; editing it adds `findings: []`.
+
+`Integration`: `{name, kind, base_url?, project?, token_ref?, user?, issue_type?, space?, parent?, path?,
+allow_insecure_http?}`, saved in the config file under `integrations` (at most 32; names like MCP servers).
+
+| Kind | Needs | Sends |
+| --- | --- | --- |
+| `github` | `project` owner/repo, `token_ref`; `base_url` defaults to `https://api.github.com` | issues (Bearer) |
+| `gitlab` | `base_url`, `project` path or ID, `token_ref` | issues (`PRIVATE-TOKEN`) |
+| `jira` | `base_url`, `project` key, `token_ref`; `issue_type` (default Task); `user` for Basic auth (Cloud) | issues (REST v2) |
+| `confluence` | `base_url`, `space`, `token_ref`; `parent` page and `user` optional | pages (storage XHTML) |
+| `notion` | `parent` page ID, `token_ref`; `base_url` defaults to `https://api.notion.com` | pages (blocks) |
+| `folder` | `path`, absolute | `<title>.md` files (0600) |
+
+| Method and path | Body | Answer |
+| --- | --- | --- |
+| `GET /v1/integrations` | — | `{integrations: [Integration + {tokenSet}]}`; the token itself is never returned |
+| `POST /v1/integrations` | `Integration` | `201` with it; `409` for a name in use |
+| `DELETE /v1/integrations/{name}` | — | `204` |
+| `POST /v1/integrations/{name}/test` | — | `{ok: true}`, or `502` with the reason |
+
+Store a token with `PUT /v1/secrets/{token_ref}`. A missing token answers `400` saying how to set it. `Delivery`:
+`{integration, kind, finding (−1 for a page), id, url, at}`, kept in `outputs/<id>.delivered` (newest 1,000) and
+left out of archives. A push skips findings already sent to that integration unless `again`; publishing an output,
+or a newer version of it, to the same Confluence space or folder replaces the page or file it published before
+(Notion makes a new page). A failure of the remote service answers `502` (with `sent` and `skipped` when a push
+stopped part way); the text is cut to 300 characters and redacted. Each send is audited as `output.sent`. Pushes,
+publishes and tests take a run slot (`429` when all are busy).
 
 ## Archives and packs
 
