@@ -180,6 +180,7 @@ var commands = map[string]handler{
 	"notify":      cmdNotify,
 	"output":      cmdOutput,
 	"mcp":         cmdMCP,
+	"pack":        cmdPack,
 	"research":    cmdResearch,
 	"worktypes":   func(_ context.Context, _ []string, env Env) error { return cmdWorkTypes(env) },
 }

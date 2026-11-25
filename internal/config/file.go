@@ -90,6 +90,8 @@ type File struct {
 	Agent        AgentConfig   `json:"agent,omitzero"`
 	MCP          MCPConfig     `json:"mcp,omitzero"`
 	Desktop      DesktopConfig `json:"desktop,omitzero"`
+	// Packs are the team packs added (internal/pack); their content stays in the packs folder.
+	Packs []PackSource `json:"packs,omitempty"`
 }
 
 // Default returns a starter config pointing at a local LiteLLM proxy.
@@ -191,6 +193,9 @@ func (f File) Validate() error {
 	for _, a := range f.Aliases {
 		errs = append(errs, validateAlias(a, providers, aliases)...)
 		aliases[a.Name] = true
+	}
+	if err := CheckPacks(f.Packs); err != nil {
+		errs = append(errs, err)
 	}
 	if err := f.Defaults.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("defaults: %w", err))

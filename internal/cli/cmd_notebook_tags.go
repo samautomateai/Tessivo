@@ -9,7 +9,7 @@ import (
 
 // notebookTag adds or removes one tag: tess notebook tag <notebook> add|remove <tag>.
 func notebookTag(args []string, env Env) error {
-	if len(args) < 3 || (args[1] != "add" && args[1] != "remove") {
+	if len(args) < 3 || (args[1] != subAdd && args[1] != subRemove) {
 		return usagef("notebook tag: want <notebook> add|remove <tag>")
 	}
 	nb, err := notebook.Open(args[0])
@@ -23,7 +23,7 @@ func notebookTag(args []string, env Env) error {
 			next = append(next, t)
 		}
 	}
-	if args[1] == "add" {
+	if args[1] == subAdd {
 		next = append(next, tag)
 	}
 	if err := nb.SetTags(next); err != nil {

@@ -65,8 +65,10 @@ type Service struct {
 	// Now is the clock; nil means time.Now.
 	Now func() time.Time
 
-	cfgMu     sync.RWMutex // guards Config, which the API can change; read it through cfg()
-	sumOnce   sync.Once    // starts the research summary runner on first use
+	cfgMu     sync.RWMutex      // guards Config, which the API can change; read it through cfg()
+	packMu    sync.Mutex        // guards packErrs and pack refreshes
+	packErrs  map[string]string // the last refresh error of each pack
+	sumOnce   sync.Once         // starts the research summary runner on first use
 	sum       *summaryRunner
 	checkOnce sync.Once // creates checks on first use
 	checks    *checkTable

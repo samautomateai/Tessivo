@@ -81,6 +81,7 @@ func cmdServe(ctx context.Context, args []string, env Env) error {
 	api.SetLogger(slog.New(slog.NewTextHandler(logw, nil)))
 	api.Background = ctx // resumed runs stop (interrupted) when the core stops
 	schedDone := startBackground(ctx, svc, api, !*noSched, *notes, env)
+	go svc.RefreshPacks(ctx) // git packs catch up at start; each refresh is time-bounded
 	err = server.Serve(ctx, ln, api.Handler())
 	<-schedDone
 	api.Wait()

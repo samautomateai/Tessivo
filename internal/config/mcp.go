@@ -16,6 +16,9 @@ const MaxMCPServers = 50
 // MCPConfig lists the MCP servers notebooks can attach.
 type MCPConfig struct {
 	Servers []MCPServer `json:"servers,omitempty"`
+	// Trusted maps "<pack>/<server>" to the sha256 of the pack entry the user
+	// trusted; a pack server runs only while its entry still matches.
+	Trusted map[string]string `json:"trusted,omitempty"`
 }
 
 // MCPServer is one server: a program to start (stdio) or a URL (Streamable

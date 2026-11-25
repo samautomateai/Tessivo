@@ -105,3 +105,10 @@ func (l *limited) Write(p []byte) (int, error) {
 	}
 	return len(p), nil
 }
+
+// Run runs one git command in dir with the same hardening as Diff (no hooks,
+// no fsmonitor, no external diff or pager, no prompts) and returns its output,
+// cut at MaxBytes. Callers bound the time with ctx.
+func Run(ctx context.Context, dir string, args ...string) (string, error) {
+	return run(ctx, dir, args...)
+}

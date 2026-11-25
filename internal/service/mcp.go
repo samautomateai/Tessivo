@@ -101,7 +101,7 @@ func (s *Service) RemoveMCPServer(name string) error {
 			ErrConflict, name,
 			strings.Join(users, ", "))
 	}
-	next := config.MCPConfig{}
+	next := config.MCPConfig{Trusted: s.Config.MCP.Trusted}
 	for _, srv := range s.Config.MCP.Servers {
 		if srv.Name != name {
 			next.Servers = append(next.Servers, srv)
