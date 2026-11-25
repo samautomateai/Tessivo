@@ -29,7 +29,7 @@ func (c *Client) githubIssue(ctx context.Context, is Issue) (Ref, error) {
 		Number  int    `json:"number"`
 		HTMLURL string `json:"html_url"`
 	}
-	body := map[string]any{"title": is.Title, "body": is.Body, fieldLabels: nonNil(is.Labels)}
+	body := map[string]any{keyTitle: is.Title, "body": is.Body, fieldLabels: nonNil(is.Labels)}
 	if err := c.do(ctx, http.MethodPost, "/repos/"+c.in.Project+"/issues", body, &out); err != nil {
 		return Ref{}, err
 	}
@@ -45,7 +45,7 @@ func (c *Client) gitlabIssue(ctx context.Context, is Issue) (Ref, error) {
 	for _, l := range is.Labels {
 		labels = append(labels, strings.ReplaceAll(l, ",", " "))
 	}
-	body := map[string]any{"title": is.Title, "description": is.Body, fieldLabels: strings.Join(labels, ",")}
+	body := map[string]any{keyTitle: is.Title, "description": is.Body, fieldLabels: strings.Join(labels, ",")}
 	if err := c.do(ctx, http.MethodPost, c.gitlabProject()+"/issues", body, &out); err != nil {
 		return Ref{}, err
 	}
