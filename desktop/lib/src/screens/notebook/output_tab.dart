@@ -125,11 +125,13 @@ class _OutputToolbar extends StatelessWidget {
           actions: [
             RerunButton(state: state, outputId: thread.outputId, enabled: idle, compact: compact),
             EditOutputButton(state: state, enabled: idle, compact: compact),
-            if (open?.parentId != null)
+            if (state.outputs.any((o) => o.id != thread.outputId))
               CompareButton(
                 core: state.core,
                 notebookId: thread.notebookId,
                 outputId: thread.outputId,
+                others: state.outputs,
+                parentId: open?.parentId,
                 compact: compact,
               ),
             ExportMenu(

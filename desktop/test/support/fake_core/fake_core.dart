@@ -27,6 +27,9 @@ class FakeCoreClient
 
   final Duration _tick;
 
+  /// The chain setting the last run asked for.
+  String? lastRunChain;
+
   @override
   Duration get chatTick => _tick;
   int _nextId = 100;
@@ -94,12 +97,23 @@ class FakeCoreClient
     bool? archived,
     List<String>? tags,
     bool? pinned,
+    String? watch,
   }) async {
     if (name != null && name.trim().isEmpty) throw const CoreException(400, 'name is required');
     final i = _notebooks.indexWhere((n) => n.id == notebookId);
     if (i < 0) throw CoreException(404, 'notebook $notebookId not found');
     final clean = tags == null ? null : _cleanTags(tags);
-    return _notebooks[i] = _notebooks[i].copyWith(name: name?.trim(), archived: archived, tags: clean, pinned: pinned);
+    if (watch != null && !const ['off', 'notify', 'run'].contains(watch)) {
+      throw CoreException(400, 'watch $watch: use off, notify or run');
+    }
+    final w = watch == null ? null : (watch == 'off' ? '' : watch);
+    return _notebooks[i] = _notebooks[i].copyWith(
+      name: name?.trim(),
+      archived: archived,
+      tags: clean,
+      pinned: pinned,
+      watch: w,
+    );
   }
 
   /// The core's tag rules: trimmed, case-insensitive duplicates dropped, at
@@ -148,7 +162,9 @@ class FakeCoreClient
     required Map<String, String> vars,
     String? promptName,
     String? model,
+    String? chain,
   }) async* {
+    lastRunChain = chain;
     yield const RunStatus('Generating output');
     const parts = ['# Risk report\n\n', '## Risk score\n\n7 of 10, high\n\n', '## Mitigations\n\n- Add idempotency\n'];
     for (final p in parts) {

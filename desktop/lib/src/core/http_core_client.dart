@@ -14,6 +14,7 @@ part 'http_archive.dart';
 part 'http_chat.dart';
 part 'http_mcp.dart';
 part 'http_packs.dart';
+part 'http_prompt_history.dart';
 part 'http_research.dart';
 part 'http_sse.dart';
 part 'http_threads.dart';
@@ -78,7 +79,7 @@ String defaultEndpointPath(Map<String, String> env, {String? os}) {
 /// Talks to the Go core's local API (docs/api.md) over a Unix socket or a
 /// loopback port, with the session token on every request.
 class HttpCoreClient
-    with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch, _HttpArchive, _HttpPacks
+    with _HttpChat, _HttpThreads, _HttpMcp, _HttpResearch, _HttpArchive, _HttpPacks, _HttpPromptHistory
     implements CoreClient {
   HttpCoreClient(this.endpoint, {HttpClient? client}) : _client = client ?? HttpClient() {
     _client
@@ -172,11 +173,12 @@ class HttpCoreClient
     bool? archived,
     List<String>? tags,
     bool? pinned,
+    String? watch,
   }) async => notebookFromJson(
     await _json(
       'PATCH',
       _nb(notebookId),
-      body: {'name': ?name, 'archived': ?archived, 'tags': ?tags, 'pinned': ?pinned},
+      body: {'name': ?name, 'archived': ?archived, 'tags': ?tags, 'pinned': ?pinned, 'watch': ?watch},
     ),
   );
 
@@ -203,36 +205,18 @@ class HttpCoreClient
   }
 
   @override
-  Future<List<SavedPrompt>> listPrompts(String notebookId) async =>
-      jsonList((await _json('GET', '${_nb(notebookId)}/prompts'))['prompts']).map(SavedPrompt.fromJson).toList();
-
-  @override
-  Future<SavedPrompt> savePrompt(String notebookId, SavedPrompt prompt) async => SavedPrompt.fromJson(
-    await _json('PUT', '${_nb(notebookId)}/prompts/${Uri.encodeComponent(prompt.name)}', body: prompt.toBody()),
-  );
-
-  @override
-  Future<void> deletePrompt(String notebookId, String name) async {
-    await _json('DELETE', '${_nb(notebookId)}/prompts/${Uri.encodeComponent(name)}');
-  }
-
-  @override
   Stream<RunEvent> startRun({
     required String notebookId,
     required String prompt,
     required Map<String, String> vars,
     String? promptName,
     String? model,
+    String? chain,
   }) async* {
     final resp = await _send(
       'POST',
       '/v1/notebooks/${Uri.encodeComponent(notebookId)}/runs',
-      body: {
-        'prompt': prompt,
-        'vars': vars,
-        'promptName': ?promptName,
-        if (model != null && model.isNotEmpty) 'overrides': {'model': model},
-      },
+      body: {'prompt': prompt, 'vars': vars, 'promptName': ?promptName, 'overrides': ?_overrides(model, chain)},
     );
     if (resp.statusCode >= 400) {
       final text = await _readLimited(resp);
@@ -266,6 +250,14 @@ class HttpCoreClient
   }
 
   String _nb(String id) => '/v1/notebooks/${Uri.encodeComponent(id)}';
+
+  static Map<String, Object?>? _overrides(String? model, String? chain) {
+    final o = {
+      if (model != null && model.isNotEmpty) 'model': model,
+      if (chain != null && chain.isNotEmpty) 'chain': chain,
+    };
+    return o.isEmpty ? null : o;
+  }
 
   @override
   Future<Notebook> getNotebook(String notebookId) async => notebookFromJson(await _json('GET', _nb(notebookId)));

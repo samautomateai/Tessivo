@@ -12,6 +12,7 @@ class _FailingCore extends FakeCoreClient {
     required Map<String, String> vars,
     String? promptName,
     String? model,
+    String? chain,
   }) async* {
     yield const RunStatus('starting');
     throw StateError('model unavailable');

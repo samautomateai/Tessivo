@@ -20,6 +20,9 @@ import 'tab_section.dart';
 /// What a source costs a run: its token estimate, or "read at run time".
 String sourceSize(ContextItem c) => c.readAtRunTime ? 'read at run time' : '≈ ${c.estimatedTokens ~/ 1000}k tokens';
 
+/// The watch modes (SRC-8) and their labels.
+const watchModes = [('off', 'Do nothing'), ('notify', 'Tell me'), ('run', 'Tell me and run the notebook')];
+
 /// The Sources tab: every source with its include box, kind and size, and
 /// Add (a path) with more kinds behind the menu next to it.
 class SourcesTab extends StatelessWidget {
@@ -119,6 +122,24 @@ class SourcesTab extends StatelessWidget {
                       ],
                   ],
                 ),
+        ),
+        const SizedBox(height: TvSpace.s24),
+        TabSection(
+          title: 'Watch',
+          helper: 'Checks folders and files used in place every minute while Tessivo runs.',
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: TvDropdown<String>(
+                key: const Key('watch-mode'),
+                label: 'When the sources change',
+                items: watchModes,
+                value: notebook.watch.isEmpty ? 'off' : notebook.watch,
+                onChanged: (v) => unawaited(state.setWatch(notebook.id, v)),
+              ),
+            ),
+          ),
         ),
       ],
     );

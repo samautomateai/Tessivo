@@ -8,6 +8,9 @@ extension OrganizeActions on AppState {
   /// Pins or unpins a notebook; pinned notebooks are listed first.
   Future<void> setPinned(String id, bool pinned) => _manage(id, () => core.updateNotebook(id, pinned: pinned));
 
+  /// Sets what the core does when the notebook's folders change: off, notify or run (SRC-8).
+  Future<void> setWatch(String id, String mode) => _manage(id, () => core.updateNotebook(id, watch: mode));
+
   /// Filters the side bar by tag text (any case, part of a tag).
   void setTagFilter(String text) {
     tagFilter = text;

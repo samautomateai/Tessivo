@@ -17,6 +17,10 @@ void main() {
     expect(state.selectedOutputId, 'o1-v2');
     await tester.tap(find.byKey(const Key('compare')));
     await tester.pumpAndSettle();
+    expect(find.textContaining('Earlier version'), findsOneWidget); // the version it revised comes first
+    expect(find.byKey(const Key('compare-o1-v2')), findsNothing); // never itself
+    await tester.tap(find.byKey(const Key('compare-o1')).last);
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('diff-view')), findsOneWidget);
     expect(find.textContaining('added'), findsWidgets);
     expect(find.textContaining('+ '), findsWidgets);

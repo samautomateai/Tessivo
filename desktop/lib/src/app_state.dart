@@ -308,7 +308,11 @@ class AppState extends ChangeNotifier {
     try {
       final u = await action();
       final old = notebooks.where((n) => n.id == id).firstOrNull;
-      _put(old == null ? u : old.copyWith(name: u.name, archived: u.archived, tags: u.tags, pinned: u.pinned));
+      _put(
+        old == null
+            ? u
+            : old.copyWith(name: u.name, archived: u.archived, tags: u.tags, pinned: u.pinned, watch: u.watch),
+      );
     } on CoreException catch (e) {
       _notice(e.message);
     }
@@ -376,7 +380,7 @@ class AppState extends ChangeNotifier {
   /// The model the last run asked for, if any (null: the settings that apply).
   String? lastModel;
 
-  Future<void> run(String prompt, Map<String, String> vars, {String? promptName, String? model}) async {
+  Future<void> run(String prompt, Map<String, String> vars, {String? promptName, String? model, String? chain}) async {
     final nb = selected;
     if (nb == null || running) return;
     running = true;
@@ -394,6 +398,7 @@ class AppState extends ChangeNotifier {
         vars: vars,
         promptName: promptName,
         model: model,
+        chain: chain,
       )) {
         switch (e) {
           case RunStatus(:final text):

@@ -40,6 +40,9 @@ class _NotebookPageState extends State<NotebookPage> {
   /// The saved prompt in the box, until its text is edited.
   String? _promptName;
 
+  /// Read each source on its own first (a run override, and saved with a prompt).
+  bool _perSource = false;
+
   @override
   void initState() {
     super.initState();
@@ -53,12 +56,16 @@ class _NotebookPageState extends State<NotebookPage> {
 
   void _use(SavedPrompt p) {
     _prompt.text = p.text;
-    setState(() => _promptName = p.name);
+    setState(() {
+      _promptName = p.name;
+      _perSource = p.chain == chainPerSource;
+    });
   }
 
   void _run() {
     setState(() => _tab = 0);
-    unawaited(widget.state.run(_prompt.text, const {}, promptName: _promptName));
+    final chain = _perSource ? chainPerSource : null;
+    unawaited(widget.state.run(_prompt.text, const {}, promptName: _promptName, chain: chain));
   }
 
   @override
@@ -139,7 +146,14 @@ class _NotebookPageState extends State<NotebookPage> {
         Expanded(
           child: switch (_tab) {
             1 => SourcesTab(state: state, notebook: nb),
-            2 => PromptTab(state: state, controller: _prompt, promptName: _promptName, onUse: _use),
+            2 => PromptTab(
+              state: state,
+              controller: _prompt,
+              promptName: _promptName,
+              onUse: _use,
+              perSource: _perSource,
+              onPerSource: (v) => setState(() => _perSource = v),
+            ),
             3 => MemoryTab(state: state, notebook: nb),
             4 => AgentTab(state: state, notebook: nb),
             _ => OutputTab(state: state, onRun: state.running ? null : _run),

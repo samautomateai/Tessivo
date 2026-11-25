@@ -6,6 +6,7 @@ library;
 import 'command_rule.dart';
 
 export 'command_rule.dart';
+export 'core_event.dart';
 export 'output_detail.dart';
 export 'saved_prompt.dart';
 
@@ -75,6 +76,7 @@ class Notebook {
     this.archived = false,
     this.tags = const [],
     this.pinned = false,
+    this.watch = '',
   });
 
   final String id;
@@ -101,6 +103,9 @@ class Notebook {
   /// Pinned notebooks are listed first.
   final bool pinned;
 
+  /// What the core does when in-place folders change: '' (off), notify or run (SRC-8).
+  final String watch;
+
   int get enabledTokens => context.where((c) => c.enabled).fold(0, (sum, c) => sum + c.estimatedTokens);
 
   Notebook copyWith({
@@ -112,6 +117,7 @@ class Notebook {
     bool? archived,
     List<String>? tags,
     bool? pinned,
+    String? watch,
   }) => Notebook(
     id: id,
     name: name ?? this.name,
@@ -124,6 +130,7 @@ class Notebook {
     archived: archived ?? this.archived,
     tags: tags ?? this.tags,
     pinned: pinned ?? this.pinned,
+    watch: watch ?? this.watch,
   );
 }
 
@@ -256,48 +263,6 @@ class ScheduleInfo {
     nextRun: (enabled ?? this.enabled) ? nextRun : null,
     history: history,
   );
-}
-
-/// A notification-worthy event from the core (e.g. a scheduled run finished).
-class CoreEvent {
-  const CoreEvent({
-    required this.kind,
-    required this.notebookName,
-    this.notebookId = '',
-    this.sourceId,
-    this.title,
-    this.error,
-    this.tool,
-  });
-  final String kind;
-  final String notebookName;
-  final String notebookId;
-
-  /// The source a research summary event is about.
-  final String? sourceId;
-  final String? title;
-  final String? error;
-  final String? tool;
-
-  /// Whether the event changes the list of pending approvals.
-  bool get isRunEvent => kind.startsWith('run.');
-
-  /// A research notebook's summary started, is ready or failed.
-  bool get isResearchEvent => kind.startsWith('research.');
-
-  /// Short message for an in-app notification.
-  String get message => switch (kind) {
-    'schedule.finished' => '$notebookName: ${title ?? 'scheduled run'} is ready',
-    'schedule.failed' => '$notebookName: scheduled run failed${error == null ? '' : ' ($error)'}',
-    'schedule.skipped' => '$notebookName: missed run skipped',
-    'schedule.paused' || 'run.approval_needed' => '$notebookName: approval needed${tool == null ? '' : ' for $tool'}',
-    'run.finished' => '$notebookName: agent run finished',
-    'run.failed' => '$notebookName: agent run failed${error == null ? '' : ' ($error)'}',
-    'run.cancelled' => '$notebookName: agent run cancelled',
-    'usage.warning' || 'usage.limit' => 'Token usage: ${error ?? 'limit reached'}',
-    'research.summary.failed' => '$notebookName: a summary failed${error == null ? '' : ' ($error)'}',
-    _ => '$notebookName: scheduled run started',
-  };
 }
 
 /// An agent tool call waiting for the user's answer.

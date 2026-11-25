@@ -32,6 +32,7 @@ CoreEvent eventFromJson(Map<String, Object?> j) => CoreEvent(
   title: j['title'] as String?,
   error: j['error'] as String?,
   tool: j['tool'] as String?,
+  ran: j['ran'] as bool? ?? false,
 );
 
 PendingApproval approvalFromJson(Map<String, Object?> j) => PendingApproval(
@@ -90,6 +91,7 @@ Notebook notebookFromJson(Map<String, Object?> j) => Notebook(
   archived: j['archived'] as bool? ?? false,
   tags: _strings(j['tags']),
   pinned: j['pinned'] as bool? ?? false,
+  watch: j['watch'] as String? ?? '',
 );
 
 ContextItem contextFromJson(Map<String, Object?> j) {

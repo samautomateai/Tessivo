@@ -12,18 +12,23 @@ import 'text_prompt_dialog.dart';
 
 /// The open notebook's saved prompts: use one, save the current text as one, delete one.
 class PromptMenu extends StatelessWidget {
-  const PromptMenu({super.key, required this.state, required this.text, required this.onUse});
+  const PromptMenu({super.key, required this.state, required this.text, required this.onUse, this.chain});
 
   final AppState state;
 
   /// The prompt box's current text (what "Save as prompt" saves).
   final String Function() text;
 
+  /// The chain setting saved with the prompt ('' or per_source).
+  final String Function()? chain;
+
   final void Function(SavedPrompt prompt) onUse;
 
   Future<void> _save(BuildContext context) async {
     final name = await askText(context, title: 'Save as prompt', label: 'Prompt name', maxLength: 64);
-    if (name != null && name.trim().isNotEmpty) await state.savePromptAs(name.trim(), text());
+    if (name != null && name.trim().isNotEmpty) {
+      await state.savePromptAs(name.trim(), text(), chain: chain?.call() ?? '');
+    }
   }
 
   /// Fills the prompt box from the starter library.

@@ -5,30 +5,39 @@ import 'package:material_ui/material_ui.dart';
 import '../core/core_client.dart';
 import '../core/models.dart';
 import '../design/colors.dart';
-import '../design/components/buttons.dart';
+import '../design/components/menu.dart';
 import '../design/icons.dart';
 import '../design/type.dart';
 
-/// "Compare": the open revision against the version it revised.
+/// "Compare": the open output against another output of the notebook. The
+/// version it revised comes first.
 class CompareButton extends StatelessWidget {
   const CompareButton({
     super.key,
     required this.core,
     required this.notebookId,
     required this.outputId,
+    required this.others,
+    this.parentId,
     this.compact = false,
   });
 
   final CoreClient core;
   final String notebookId;
   final String outputId;
+
+  /// The notebook's other outputs, any of which the open one can be compared with.
+  final List<OutputSummary> others;
+
+  /// The version the open output revised, if any.
+  final String? parentId;
   final bool compact;
 
-  Future<void> _open(BuildContext context) async {
+  Future<void> _open(BuildContext context, String against) async {
     final messenger = ScaffoldMessenger.of(context);
     final OutputDiffInfo d;
     try {
-      d = await core.diffOutput(notebookId, outputId);
+      d = await core.diffOutput(notebookId, outputId, against: against);
     } on CoreException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
       return;
@@ -41,14 +50,29 @@ class CompareButton extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => TvToolButton(
-    'Compare',
-    key: const Key('compare'),
-    icon: TvIcon.compare,
-    compact: compact,
-    onPressed: () => unawaited(_open(context)),
-  );
+  Widget build(BuildContext context) {
+    final list = [
+      ...others.where((o) => o.id == parentId),
+      ...others.where((o) => o.id != parentId && o.id != outputId),
+    ];
+    return TvMenuButton(
+      key: const Key('compare'),
+      label: 'Compare',
+      icon: TvIcon.compare,
+      compact: compact,
+      items: [
+        for (final o in list)
+          TvMenuItem(
+            '${o.id == parentId ? 'Earlier version' : o.title}  ·  ${_day(o.createdAt)}',
+            key: Key('compare-${o.id}'),
+            onSelected: () => unawaited(_open(context, o.id)),
+          ),
+      ],
+    );
+  }
 }
+
+String _day(String iso) => iso.length >= 10 ? iso.substring(0, 10) : iso;
 
 class _DiffDialog extends StatelessWidget {
   const _DiffDialog({required this.diff});

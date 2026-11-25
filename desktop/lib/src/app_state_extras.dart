@@ -15,11 +15,33 @@ extension PromptActions on AppState {
     _changed();
   }
 
-  /// Saves [text] as prompt [name]; a refusal becomes a notice.
-  Future<bool> savePromptAs(String name, String text) => _promptAction(() async {
+  /// Saves [text] (and [chain]) as prompt [name]; a refusal becomes a notice.
+  Future<bool> savePromptAs(String name, String text, {String chain = ''}) => _promptAction(() async {
     final nb = selected;
-    if (nb != null) await core.savePrompt(nb.id, SavedPrompt(name: name, text: text));
+    if (nb != null) await core.savePrompt(nb.id, SavedPrompt(name: name, text: text, chain: chain));
   });
+
+  /// A saved prompt's versions, the current one first; a failure becomes a notice and an empty list.
+  Future<List<PromptVersion>> promptVersions(String name) async {
+    final nb = selected;
+    if (nb == null) return const [];
+    try {
+      return await core.promptVersions(nb.id, name);
+    } on CoreException catch (e) {
+      _notice(e.message);
+      return const [];
+    }
+  }
+
+  /// Makes an earlier version the prompt's current one; returns it, or null after a notice.
+  Future<SavedPrompt?> restorePromptVersion(String name, int version) async {
+    SavedPrompt? restored;
+    final ok = await _promptAction(() async {
+      final nb = selected;
+      if (nb != null) restored = await core.restorePromptVersion(nb.id, name, version);
+    });
+    return ok ? restored : null;
+  }
 
   Future<bool> deletePrompt(String name) => _promptAction(() async {
     final nb = selected;

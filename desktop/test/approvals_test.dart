@@ -49,6 +49,7 @@ class RecordingCore extends FakeCoreClient {
     required Map<String, String> vars,
     String? promptName,
     String? model,
+    String? chain,
   }) {
     if (!pauseRuns) {
       return super.startRun(notebookId: notebookId, prompt: prompt, vars: vars, promptName: promptName, model: model);

@@ -17,8 +17,15 @@ abstract interface class CoreClient {
   Future<List<Notebook>> listNotebooks();
   Future<Notebook> createNotebook({required String name, required WorkTypeId workType});
 
-  /// Renames, archives or restores a notebook; null fields stay.
-  Future<Notebook> updateNotebook(String notebookId, {String? name, bool? archived, List<String>? tags, bool? pinned});
+  /// Renames, archives, restores, tags, pins or sets the watch mode (off, notify, run); null fields stay.
+  Future<Notebook> updateNotebook(
+    String notebookId, {
+    String? name,
+    bool? archived,
+    List<String>? tags,
+    bool? pinned,
+    String? watch,
+  });
 
   /// Deletes a notebook and everything in it (409 while a run is active or paused).
   Future<void> deleteNotebook(String notebookId);
@@ -31,6 +38,7 @@ abstract interface class CoreClient {
     required Map<String, String> vars,
     String? promptName,
     String? model,
+    String? chain,
   });
 
   /// The run behind an output: its prompt, variables and model.
@@ -41,6 +49,12 @@ abstract interface class CoreClient {
   Future<List<SavedPrompt>> listPrompts(String notebookId);
   Future<SavedPrompt> savePrompt(String notebookId, SavedPrompt prompt);
   Future<void> deletePrompt(String notebookId, String name);
+
+  /// A saved prompt's versions, the current one first (PR-4).
+  Future<List<PromptVersion>> promptVersions(String notebookId, String name);
+
+  /// Saves an earlier version as the prompt's new current version.
+  Future<SavedPrompt> restorePromptVersion(String notebookId, String name, int version);
   Future<List<OutputSummary>> listOutputs({WorkTypeId? workType, String? notebookId});
   Future<Notebook> getNotebook(String notebookId);
   Future<Notebook> addContext(String notebookId, String path);
