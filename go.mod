@@ -6,7 +6,7 @@ toolchain go1.27.4
 
 require (
 	github.com/klippa-app/go-pdfium v1.21.5
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 )
 
 require (
